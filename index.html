@@ -20,7 +20,7 @@
         }
         
         /* 登录遮罩 */
-        。login-mask {
+        .login-mask {
             position: fixed;
             top: 0;
             left: 0;
@@ -32,7 +32,7 @@
             justify-content: center;
             z-index: 10000;
         }
-        。login-box {
+        .login-box {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border-radius: 16px;
@@ -337,6 +337,108 @@
         }
         .hide { display: none !important; }
         
+        /* 配置对话框 */
+        .modal-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .config-modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 450px;
+            padding: 30px;
+            border: 1px solid rgba(255, 144, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(255, 144, 0, 0.2);
+        }
+        .config-modal h3 {
+            margin-bottom: 20px;
+            color: #ff9000;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .config-modal label {
+            display: block;
+            margin: 15px 0 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .config-modal input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .config-modal input:focus {
+            outline: none;
+            border-color: #ff9000;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .config-modal button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ff9000, #ffb347);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .config-modal button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 144, 0, 0.4);
+        }
+        .close-modal {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #fff !important;
+            margin-top: 10px;
+        }
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+        .token-wrapper {
+            position: relative;
+        }
+        .token-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px 8px;
+            margin: 0;
+            width: auto;
+        }
+        .token-toggle:hover {
+            color: #ff9000;
+            background: none;
+            transform: none;
+            box-shadow: none;
+        }
+        
         /* 主题切换按钮组 */
         .theme-switcher {
             display: flex;
@@ -363,69 +465,339 @@
         /* 主题样式 */
         body.theme-light { 
             background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
-            color: #333;
+            color: #1a1a1a;
         }
         body.theme-light .main-panel {
-            background: rgba(255, 255, 255, 0.8);
-            border-color: rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(0, 0, 0, 0.15);
         }
         body.theme-light .file_list li {
-            background: rgba(255, 255, 255, 0.6);
-            border-color: rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #1a1a1a;
         }
         body.theme-light .file_list li:hover {
-            background: rgba(255, 255, 255, 0.9);
+            background: #ffffff;
+            border-color: rgba(255, 144, 0, 0.5);
         }
-        body.theme-light .file_list li a { color: #333; }
-        body.theme-light input { 
-            background: rgba(255, 255, 255, 0.8); 
-            color: #333; 
-            border-color: rgba(0, 0, 0, 0.1);
+        body.theme-light .file_list li a { color: #1a1a1a; }
+        body.theme-light .file_list li.dir a { color: #ff9000; }
+        body.theme-light .file_list li span { color: #666; }
+        body.theme-light .file_list li .delete-btn {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.4);
+            color: #dc2626;
+        }
+        body.theme-light .action-btn {
+            background: rgba(255, 144, 0, 0.15);
+            border-color: rgba(255, 144, 0, 0.4);
+            color: #e67e00;
+        }
+        body.theme-light .action-btn:hover {
+            background: rgba(255, 144, 0, 0.25);
+        }
+        body.theme-light .cdn-btn {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.15);
+            color: #333;
+        }
+        body.theme-light .cdn-btn:hover {
+            border-color: #ff9000;
+            color: #ff9000;
+        }
+        body.theme-light .cdn-btn.active {
+            background: rgba(255, 144, 0, 0.2);
+            border-color: #ff9000;
+            color: #ff9000;
+        }
+        body.theme-light .cdn-input,
+        body.theme-light .search-box input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a1a;
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        body.theme-light .cdn-input:focus,
+        body.theme-light .search-box input:focus {
+            border-color: #ff9000;
+        }
+        body.theme-light .drag-hint {
+            background: rgba(255, 144, 0, 0.1);
+            border-color: rgba(255, 144, 0, 0.4);
+            color: #e67e00;
+        }
+        body.theme-light .empty-folder-hint {
+            background: rgba(255, 144, 0, 0.05);
+            border-color: rgba(255, 144, 0, 0.3);
+        }
+        body.theme-light .theme-btn {
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        body.theme-light .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(255, 144, 0, 0.4);
+        }
+        body.theme-light .login-box h2 {
+            color: #ff9000;
+        }
+        body.theme-light .login-box input {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.15);
+            color: #1a1a1a;
         }
         
         body.theme-blue {
             background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: #e2e8f0;
+        }
+        body.theme-blue .main-panel {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        body.theme-blue .file_list li {
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(59, 130, 246, 0.15);
+            color: #e2e8f0;
+        }
+        body.theme-blue .file_list li:hover {
+            background: rgba(30, 58, 138, 0.4);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        body.theme-blue .file_list li a { color: #e2e8f0; }
+        body.theme-blue .file_list li.dir a { color: #60a5fa; }
+        body.theme-blue .file_list li span { color: #94a3b8; }
+        body.theme-blue .file_list li .delete-btn {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
         }
         body.theme-blue .action-btn {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
         }
-        body.theme-blue .file_list li.dir a { color: #3b82f6; }
+        body.theme-blue .action-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+        body.theme-blue .cdn-btn {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(59, 130, 246, 0.2);
+            color: #cbd5e1;
+        }
+        body.theme-blue .cdn-btn:hover {
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
         body.theme-blue .cdn-btn.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-color: #3b82f6;
-            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
+        body.theme-blue .cdn-input,
+        body.theme-blue .search-box input {
+            background: rgba(30, 41, 59, 0.6);
+            color: #e2e8f0;
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        body.theme-blue .cdn-input:focus,
+        body.theme-blue .search-box input:focus {
+            border-color: #60a5fa;
+        }
+        body.theme-blue .drag-hint {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        body.theme-blue .empty-folder-hint {
+            background: rgba(59, 130, 246, 0.05);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        body.theme-blue .theme-btn {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        body.theme-blue .login-box {
+            background: rgba(15, 23, 42, 0.9);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        body.theme-blue .login-box h2 {
+            color: #60a5fa;
+        }
+        body.theme-blue .login-box input {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(59, 130, 246, 0.2);
+            color: #e2e8f0;
+        }
+        body.theme-blue .login-box button {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
         }
         
         body.theme-green {
             background: linear-gradient(135deg, #052e16 0%, #166534 100%);
+            color: #ecfdf5;
+        }
+        body.theme-green .main-panel {
+            background: rgba(5, 46, 22, 0.8);
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+        body.theme-green .file_list li {
+            background: rgba(22, 101, 52, 0.4);
+            border-color: rgba(34, 197, 94, 0.15);
+            color: #ecfdf5;
+        }
+        body.theme-green .file_list li:hover {
+            background: rgba(22, 101, 52, 0.6);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+        body.theme-green .file_list li a { color: #ecfdf5; }
+        body.theme-green .file_list li.dir a { color: #4ade80; }
+        body.theme-green .file_list li span { color: #a7f3d0; }
+        body.theme-green .file_list li .delete-btn {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
         }
         body.theme-green .action-btn {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.3);
-            color: #22c55e;
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #4ade80;
         }
-        body.theme-green .file_list li.dir a { color: #22c55e; }
+        body.theme-green .action-btn:hover {
+            background: rgba(34, 197, 94, 0.25);
+        }
+        body.theme-green .cdn-btn {
+            background: rgba(22, 101, 52, 0.4);
+            border-color: rgba(34, 197, 94, 0.2);
+            color: #d1fae5;
+        }
+        body.theme-green .cdn-btn:hover {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
         body.theme-green .cdn-btn.active {
-            background: rgba(34, 197, 94, 0.2);
-            border-color: #22c55e;
-            color: #22c55e;
+            background: rgba(34, 197, 94, 0.25);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+        body.theme-green .cdn-input,
+        body.theme-green .search-box input {
+            background: rgba(22, 101, 52, 0.4);
+            color: #ecfdf5;
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+        body.theme-green .cdn-input:focus,
+        body.theme-green .search-box input:focus {
+            border-color: #4ade80;
+        }
+        body.theme-green .drag-hint {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+        }
+        body.theme-green .empty-folder-hint {
+            background: rgba(34, 197, 94, 0.05);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        body.theme-green .theme-btn {
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        body.theme-green .login-box {
+            background: rgba(5, 46, 22, 0.9);
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+        body.theme-green .login-box h2 {
+            color: #4ade80;
+        }
+        body.theme-green .login-box input {
+            background: rgba(22, 101, 52, 0.4);
+            border-color: rgba(34, 197, 94, 0.2);
+            color: #ecfdf5;
+        }
+        body.theme-green .login-box button {
+            background: linear-gradient(135deg, #22c55e, #4ade80);
         }
         
         body.theme-purple {
             background: linear-gradient(135deg, #2e1065 0%, #6b21a8 100%);
+            color: #faf5ff;
+        }
+        body.theme-purple .main-panel {
+            background: rgba(46, 16, 101, 0.8);
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+        body.theme-purple .file_list li {
+            background: rgba(107, 33, 168, 0.3);
+            border-color: rgba(168, 85, 247, 0.15);
+            color: #faf5ff;
+        }
+        body.theme-purple .file_list li:hover {
+            background: rgba(107, 33, 168, 0.5);
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+        body.theme-purple .file_list li a { color: #faf5ff; }
+        body.theme-purple .file_list li.dir a { color: #c084fc; }
+        body.theme-purple .file_list li span { color: #e9d5ff; }
+        body.theme-purple .file_list li .delete-btn {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.4);
+            color: #fca5a5;
         }
         body.theme-purple .action-btn {
-            background: rgba(168, 85, 247, 0.1);
-            border-color: rgba(168, 85, 247, 0.3);
-            color: #a855f7;
+            background: rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #c084fc;
         }
-        body.theme-purple .file_list li.dir a { color: #a855f7; }
+        body.theme-purple .action-btn:hover {
+            background: rgba(168, 85, 247, 0.25);
+        }
+        body.theme-purple .cdn-btn {
+            background: rgba(107, 33, 168, 0.3);
+            border-color: rgba(168, 85, 247, 0.2);
+            color: #e9d5ff;
+        }
+        body.theme-purple .cdn-btn:hover {
+            border-color: #c084fc;
+            color: #c084fc;
+        }
         body.theme-purple .cdn-btn.active {
-            background: rgba(168, 85, 247, 0.2);
-            border-color: #a855f7;
-            color: #a855f7;
+            background: rgba(168, 85, 247, 0.25);
+            border-color: #c084fc;
+            color: #c084fc;
+        }
+        body.theme-purple .cdn-input,
+        body.theme-purple .search-box input {
+            background: rgba(107, 33, 168, 0.3);
+            color: #faf5ff;
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+        body.theme-purple .cdn-input:focus,
+        body.theme-purple .search-box input:focus {
+            border-color: #c084fc;
+        }
+        body.theme-purple .drag-hint {
+            background: rgba(168, 85, 247, 0.1);
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #c084fc;
+        }
+        body.theme-purple .empty-folder-hint {
+            background: rgba(168, 85, 247, 0.05);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+        body.theme-purple .theme-btn {
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+        body.theme-purple .login-box {
+            background: rgba(46, 16, 101, 0.9);
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+        body.theme-purple .login-box h2 {
+            color: #c084fc;
+        }
+        body.theme-purple .login-box input {
+            background: rgba(107, 33, 168, 0.3);
+            border-color: rgba(168, 85, 247, 0.2);
+            color: #faf5ff;
+        }
+        body.theme-purple .login-box button {
+            background: linear-gradient(135deg, #a855f7, #c084fc);
         }
         
         /* 响应式设计 */
@@ -629,9 +1001,14 @@
         modalDiv.innerHTML = `
             <div class="config-modal">
                 <h3>⚙️ 仓库配置</h3>
-                <input type="text" id="repoInput" placeholder="仓库 (owner/repo)" value="${currentRepo.replace(/"/g, '&quot;')}" />
-                <input type="password" id="tokenInput" placeholder="GitHub Token" value="${currentToken.replace(/"/g, '&quot;')}" />
-                <button id="saveConfigBtn">保存配置</button>
+                <label>仓库地址</label>
+                <input type="text" id="repoInput" placeholder="例如：baoge972/heimao" value="${currentRepo.replace(/"/g, '&quot;')}" />
+                <label>GitHub Token</label>
+                <div class="token-wrapper">
+                    <input type="password" id="tokenInput" placeholder="输入你的 GitHub Token" value="${currentToken.replace(/"/g, '&quot;')}" />
+                    <button type="button" class="token-toggle" onclick="toggleTokenVisibility()">👁️ 查看</button>
+                </div>
+                <button id="saveConfigBtn">💾 保存配置</button>
                 <button id="closeConfigBtn" class="close-modal">取消</button>
             </div>
         `;
@@ -644,11 +1021,23 @@
             const newRepo = repoInp.value.trim();
             const newToken = tokenInp.value.trim();
             if(newRepo) localStorage.setItem("GIT_REPO", newRepo);
-            if(newToken) setSecureToken(newToken); // 安全存储
+            if(newToken) setSecureToken(newToken);
             modalDiv.remove();
             location.reload();
         };
         closeBtn.onclick = () => modalDiv.remove();
+    }
+    
+    function toggleTokenVisibility() {
+        const tokenInput = document.getElementById('tokenInput');
+        const toggleBtn = document.querySelector('.token-toggle');
+        if(tokenInput.type === 'password') {
+            tokenInput.type = 'text';
+            toggleBtn.textContent = '🙈 隐藏';
+        } else {
+            tokenInput.type = 'password';
+            toggleBtn.textContent = '👁️ 查看';
+        }
     }
     
     // ========== Token 安全存储（SessionStorage + 内存） ==========
@@ -706,14 +1095,21 @@
         for(let j = 0; j < urls.length; j++) {
             const temp = urls[j];
             const btn = document.createElement("button");
-            btn.innerHTML = `<span class="cdn-name">${temp.name}</span><span class="speed-info" id="btn${j}">⏳</span>`;
+            btn.className = 'cdn-btn';
+            btn.innerHTML = `<span class="cdn-name">${temp.name}</span><span class="speed-tag" id="btn${j}">⏳</span>`;
             btn.onclick = function () {
-                btnEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                btnEl.querySelectorAll('.cdn-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById("rootdm").value = temp.url;
                 initFileList();
             };
             btnEl.appendChild(btn);
+            
+            // 默认选择"本站"（第一个CDN）
+            if(j === 0) {
+                btn.classList.add('active');
+                document.getElementById("rootdm").value = temp.url;
+            }
             
             // 异步测速
             testCDNSpeed(temp.url).then(speed => {
@@ -721,13 +1117,13 @@
                 if(speedEl) {
                     if(speed !== null && speed < 3000) {
                         speedEl.innerHTML = speed + "ms";
-                        speedEl.className = "speed-info speed-good";
+                        speedEl.className = "speed-tag speed-good";
                     } else if(speed !== null) {
                         speedEl.innerHTML = speed + "ms";
-                        speedEl.className = "speed-info speed-slow";
+                        speedEl.className = "speed-tag speed-slow";
                     } else {
                         speedEl.innerHTML = "超时";
-                        speedEl.className = "speed-info speed-slow";
+                        speedEl.className = "speed-tag speed-slow";
                     }
                 }
             });
@@ -787,9 +1183,10 @@
                     let rootdm = document.getElementById("rootdm").value || "";
                     document.getElementById("file_list").innerHTML = results.map(item => {
                         const encodedPath = item.path.replace(/ /g, '%20');
+                        // 优先使用本站域名
                         const fileUrl = rootdm 
                             ? `${rootdm}${encodedPath}` 
-                            : `https://raw.githubusercontent.com/${baseRepo}/master/${encodedPath}`;
+                            : `${location.origin}${location.pathname.replace(/\/[^/]*$/, '/')}${encodedPath}`;
                         return `<li class="file">
                             <a target="_blank" href="${fileUrl}">${escapeHtml(item.name)}</a>
                             <span class='sha'>${item.sha?.slice(0,7) || ''}</span>
@@ -821,10 +1218,10 @@
                         <button class="delete-btn" onclick="delOne('${item.path.replace(/'/g, "\\'")}', '${item.sha}')">删除</button>
                     </li>`;
                 } else {
-                    // 优先使用 CDN，其次使用 GitHub Raw 链接（尝试 master 分支）
+                    // 优先使用本站域名，其次使用 GitHub Raw 链接
                     const fileUrl = rootdm 
                         ? `${rootdm}${encodedPath}` 
-                        : `https://raw.githubusercontent.com/${baseRepo}/master/${encodedPath}`;
+                        : `${location.origin}${location.pathname.replace(/\/[^/]*$/, '/')}${encodedPath}`;
                     return `<li class="file ${item.ftype}">
                         <a target="_blank" href="${fileUrl}">${escapeHtml(item.name)}</a>
                         <span class='sha'>${item.sha?.slice(0,7) || ''}</span>
