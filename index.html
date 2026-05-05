@@ -15,7 +15,8 @@
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 20px;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
         }
         
@@ -81,11 +82,20 @@
         }
         
         /* 主面板 */
+        #drop-zone {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
         .main-panel {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(10px);
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
@@ -94,25 +104,26 @@
         .top-bar {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 6px;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         .action-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
+            gap: 4px;
+            padding: 6px 10px;
             background: rgba(255, 144, 0, 0.1);
             border: 1px solid rgba(255, 144, 0, 0.3);
-            border-radius: 8px;
+            border-radius: 6px;
             color: #ff9000;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
+            white-space: nowrap;
         }
         .action-btn:hover {
             background: rgba(255, 144, 0, 0.2);
@@ -130,7 +141,8 @@
         
         /* CDN 选择区 */
         .cdn-section {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
         }
         .cdn-input {
             width: 100%;
@@ -183,11 +195,15 @@
         .speed-slow { color: #f87171; }
         
         /* 文件列表 */
+        .file_wrap {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
         .file_list { 
-            list-style: none; 
-            margin-top: 15px;
+            list-style: none;
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
         .file_list li {
             background: rgba(255, 255, 255, 0.03);
@@ -802,16 +818,20 @@
         
         /* 响应式设计 */
         @media screen and (max-width: 768px) {
-            body { padding: 10px; }
-            .main-panel { padding: 15px; }
+            body { padding: 8px; }
+            .main-panel { padding: 10px; }
             .top-bar { 
-                flex-direction: column;
-                align-items: stretch;
+                gap: 4px;
             }
-            .action-btn { justify-content: center; }
+            .action-btn { 
+                padding: 5px 8px;
+                font-size: 12px;
+                gap: 3px;
+            }
             .search-box { 
                 margin-left: 0;
                 width: 100%;
+                order: 10;
             }
             .search-box input { width: 100%; }
             .search-box input:focus { width: 100%; }
@@ -819,14 +839,24 @@
             .file_list li span.size { 
                 display: none;
             }
-            .cdn-buttons { gap: 6px; }
-            .cdn-btn { flex: 1; justify-content: center; }
+            .cdn-buttons { gap: 4px; }
+            .cdn-btn { 
+                padding: 5px 8px;
+                font-size: 12px;
+            }
+            .theme-btn {
+                width: 24px;
+                height: 24px;
+            }
         }
         
         @media screen and (max-width: 480px) {
-            .login-box { padding: 30px 20px; }
-            .file_list li { padding: 10px 12px; }
-            .action-btn { padding: 6px 12px; font-size: 13px; }
+            body { padding: 5px; }
+            .main-panel { padding: 8px; }
+            .login-box { padding: 25px 15px; }
+            .file_list li { padding: 8px 10px; font-size: 13px; }
+            .action-btn { padding: 4px 7px; font-size: 11px; }
+            .cdn-btn { padding: 4px 7px; font-size: 11px; }
         }
     </style>
 </head>
@@ -1262,7 +1292,11 @@
     
     function delOne(path, sha) {
         if(path == "index.html" || path == "D-file.html" || path == "CNAME" || path == "json.html") return alert("系统文件不能删除!");
-        if(confirm("确认删除: " + path)) delFile(path, sha, true);
+        if(confirm("确认删除: " + path)) {
+            verifyPassword().then(ok => {
+                if(ok) delFile(path, sha, true);
+            });
+        }
     }
     
     document.getElementById("file").addEventListener("change", (e) => {
@@ -1386,7 +1420,7 @@
             setTimeout(() => {
                 alert(`上传完成\n成功: ${successful}/${files.length}\n失败: ${failed}/${files.length}`);
                 refresh(); hideLoading();
-            }, 500);
+            }， 500);
         });
     }
     
