@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KVideo & 1Panel 站点修复教程 · Nginx 配置修复 | 一键复制命令</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: #eef2ff;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0f1322;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 1px solid #232742;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.6);
+        }
+        .header {
+            background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #2a2f4e;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin: 1rem 0 0.5rem;
+        }
+        .badge {
+            background: #1e243f;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #a5b4fc;
+            border: 1px solid #2e3a5e;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .info-card {
+            background: #0b0f1a;
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 5px solid #3b82f6;
+        }
+        .step {
+            background: #0c1020;
+            border-radius: 1.25rem;
+            margin-bottom: 1.8rem;
+            border: 1px solid #232742;
+            overflow: hidden;
+        }
+        .step-header {
+            background: #11172b;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #232742;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .step-number {
+            background: #2d3a6e;
+            width: 30px;
+            height: 30px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .code-block {
+            background: #010409;
+            margin: 1rem 1.5rem 1.5rem 1.5rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #2a2f4e;
+        }
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0a0e17;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: #8b9bcf;
+            border-bottom: 1px solid #20273f;
+        }
+        .copy-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            padding: 0.3rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .copy-btn:hover {
+            background: #2d3a6e;
+            color: white;
+        }
+        pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            line-height: 1.45;
+            color: #e2e8f0;
+            background: #010409;
+        }
+        .note {
+            background: #1a1f33;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-left: 3px solid #facc15;
+            font-size: 0.85rem;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 0.6rem;
+            text-align: left;
+            border-bottom: 1px solid #2a2f4e;
+        }
+        .comparison-table th {
+            background: #11172b;
+            color: #a5b4fc;
+        }
+        .footer {
+            background: #0b0f1a;
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #6f7c9e;
+            border-top: 1px solid #1e243f;
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            backdrop-filter: blur(8px);
+            border-left: 3px solid #3b82f6;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        @media (max-width: 680px) {
+            .content { padding: 1rem; }
+            .code-block { margin: 0.8rem 1rem 1rem 1rem; }
+            pre { font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔧 KVideo & 1Panel · 站点修复教程</h1>
+        <div class="badge-group">
+            <span class="badge">🐧 Nginx 配置修复</span>
+            <span class="badge">🔐 SSL 证书独立签发</span>
+            <span class="badge">⚙️ 清理 quic 参数冲突</span>
+            <span class="badge">📋 一键复制命令</span>
+        </div>
+        <p style="margin-top: 12px; color: #9aa9d4;">解决「证书域名不匹配」 + 「请求被路由到错误后端」问题 | 基于实际服务器环境</p>
+    </div>
+
+    <div class="content">
+        <!-- 问题分析 -->
+        <div class="info-card">
+            <p>✅ <strong>问题现象</strong></p>
+            <p>🔹 访问 <code>kvideo.baoge123.de5.net</code> 返回 MoonTV Plus 页面<br>
+            🔹 访问 <code>1p.baoge123.de5.net</code> 证书显示为 kvideo 的证书<br>
+            🔹 浏览器报错：<code>ERR_CERT_COMMON_NAME_INVALID</code><br>
+            🔹 <code>nginx -t</code> 报错：<code>invalid parameter "quic"</code></p>
+            <p>📌 <strong>根本原因</strong><br>
+            1️⃣ 科技lion 生成的配置文件包含 <code>quic</code> 参数，当前 Nginx 不支持 → 配置文件未加载<br>
+            2️⃣ Nginx 默认 include 路径不包含 <code>/home/web/conf.d/</code> → 配置未生效<br>
+            3️⃣ 多个站点共用了同一张 SSL 证书 → 域名与证书不匹配<br>
+            4️⃣ MoonTV Plus 的配置优先级过高，错误捕获了 kvideo 域名</p>
+        </div>
+
+        <!-- 步骤1：清理旧配置 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">1</span> 清理冲突的 Nginx 配置文件</div>
+            <div class="code-block">
+                <div class="code-header"><span>删除旧的、包含 quic 参数的配置</span><button class="copy-btn" data-code="rm -f /etc/nginx/conf.d/kvideo.baoge123.de5.net.conf 2>/dev/null
+rm -f /etc/nginx/conf.d/1p.baoge123.de5.net.conf 2>/dev/null
+rm -f /home/web/conf.d/kvideo.baoge123.de5.net.conf 2>/dev/null
+rm -f /home/web/conf.d/1p.baoge123.de5.net.conf 2>/dev/null">📋 复制</button></div>
+                <pre><code># 删除可能残留的旧配置（避免干扰）
+rm -f /etc/nginx/conf.d/kvideo.baoge123.de5.net.conf
+rm -f /etc/nginx/conf.d/1p.baoge123.de5.net.conf
+rm -f /home/web/conf.d/kvideo.baoge123.de5.net.conf
+rm -f /home/web/conf.d/1p.baoge123.de5.net.conf</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤2：申请独立 SSL 证书 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">2</span> 为每个站点独立申请 SSL 证书</div>
+            <div class="code-block">
+                <div class="code-header"><span>kvideo 站点证书</span><button class="copy-btn" data-code="certbot certonly --standalone -d kvideo.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal">📋 复制</button></div>
+                <pre><code>certbot certonly --standalone -d kvideo.baoge123.de5.net \
+  --non-interactive --agree-tos \
+  --email admin@baoge123.de5.net --force-renewal</code></pre>
+            </div>
+            <div class="code-block">
+                <div class="code-header"><span>1Panel 站点证书</span><button class="copy-btn" data-code="certbot certonly --standalone -d 1p.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal">📋 复制</button></div>
+                <pre><code>certbot certonly --standalone -d 1p.baoge123.de5.net \
+  --non-interactive --agree-tos \
+  --email admin@baoge123.de5.net --force-renewal</code></pre>
+            </div>
+            <div class="note">
+                💡 如果提示 80 端口被占用，先停止占用进程：<code>systemctl stop nginx</code>，申请完成后重新启动。
+            </div>
+        </div>
+
+        <!-- 步骤3：创建纯净的 Nginx 配置（KVideo） -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">3</span> 创建 kvideo 的纯净 Nginx 配置（无 quic）</div>
+            <div class="code-block">
+                <div class="code-header"><span>写入 /etc/nginx/conf.d/kvideo.conf</span><button class="copy-btn" data-code="cat > /etc/nginx/conf.d/kvideo.conf << 'EOF'
+server {
+    listen 80;
+    server_name kvideo.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name kvideo.baoge123.de5.net;
+
+    ssl_certificate /etc/letsencrypt/live/kvideo.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kvideo.baoge123.de5.net/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF">📋 复制</button></div>
+                <pre><code>cat > /etc/nginx/conf.d/kvideo.conf << 'EOF'
+server {
+    listen 80;
+    server_name kvideo.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name kvideo.baoge123.de5.net;
+
+    ssl_certificate /etc/letsencrypt/live/kvideo.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kvideo.baoge123.de5.net/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤4：创建纯净的 Nginx 配置（1Panel） -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">4</span> 创建 1Panel 的纯净 Nginx 配置（无 quic）</div>
+            <div class="code-block">
+                <div class="code-header"><span>写入 /etc/nginx/conf.d/1p.conf</span><button class="copy-btn" data-code="cat > /etc/nginx/conf.d/1p.conf << 'EOF'
+server {
+    listen 80;
+    server_name 1p.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name 1p.baoge123.de5.net;
+
+    ssl_certificate /etc/letsencrypt/live/1p.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/1p.baoge123.de5.net/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:18227;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF">📋 复制</button></div>
+                <pre><code>cat > /etc/nginx/conf.d/1p.conf << 'EOF'
+server {
+    listen 80;
+    server_name 1p.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name 1p.baoge123.de5.net;
+
+    ssl_certificate /etc/letsencrypt/live/1p.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/1p.baoge123.de5.net/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:18227;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤5：验证并重载 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">5</span> 验证配置并重载 Nginx</div>
+            <div class="code-block">
+                <div class="code-header"><span>测试配置语法 + 重载</span><button class="copy-btn" data-code="nginx -t && nginx -s reload">📋 复制</button></div>
+                <pre><code>nginx -t && nginx -s reload</code></pre>
+            </div>
+            <div class="code-block">
+                <div class="code-header"><span>测试站点访问</span><button class="copy-btn" data-code="curl -I https://kvideo.baoge123.de5.net && echo '' && curl -I https://1p.baoge123.de5.net">📋 复制</button></div>
+                <pre><code># 预期返回 HTTP/2 200
+curl -I https://kvideo.baoge123.de5.net
+curl -I https://1p.baoge123.de5.net</code></pre>
+            </div>
+        </div>
+
+        <!-- 故障排查与对比 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">📊</span> 问题对比与验证</div>
+            <div style="padding: 0 1.5rem 1rem 1.5rem;">
+                <table class="comparison-table">
+                    <thead><tr><th>检查项</th><th>修复前</th><th>修复后</th></tr></thead>
+                    <tbody>
+                        <tr><td>kvideo 页面</td><td>显示 MoonTV Plus 登录页</td><td>✅ KVideo 正常首页</td></tr>
+                        <tr><td>1p 证书</td><td>证书域名为 kvideo</td><td>✅ 证书域名匹配 1p</td></tr>
+                        <tr><td>nginx -t 错误</td><td>invalid parameter "quic"</td><td>✅ syntax is ok</td></tr>
+                        <tr><td>配置文件目录</td><td>/home/web/conf.d/ (未被 include)</td><td>✅ /etc/nginx/conf.d/ (默认加载)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 一键修复脚本汇总 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">🚀</span> 一键修复脚本（全自动）</div>
+            <div class="code-block">
+                <div class="code-header"><span>复制整段执行，一次性修复两个站点</span><button class="copy-btn" data-code="#!/bin/bash
+# 一键修复 kvideo 和 1p 站点
+rm -f /etc/nginx/conf.d/kvideo.baoge123.de5.net.conf /etc/nginx/conf.d/1p.baoge123.de5.net.conf
+rm -f /home/web/conf.d/kvideo.baoge123.de5.net.conf /home/web/conf.d/1p.baoge123.de5.net.conf
+
+certbot certonly --standalone -d kvideo.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal
+certbot certonly --standalone -d 1p.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal
+
+cat > /etc/nginx/conf.d/kvideo.conf << 'EOF'
+server {
+    listen 80;
+    server_name kvideo.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name kvideo.baoge123.de5.net;
+    ssl_certificate /etc/letsencrypt/live/kvideo.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kvideo.baoge123.de5.net/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+cat > /etc/nginx/conf.d/1p.conf << 'EOF'
+server {
+    listen 80;
+    server_name 1p.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name 1p.baoge123.de5.net;
+    ssl_certificate /etc/letsencrypt/live/1p.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/1p.baoge123.de5.net/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:18227;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+nginx -t && nginx -s reload
+echo '✅ 修复完成！请测试 https://kvideo.baoge123.de5.net 和 https://1p.baoge123.de5.net'">📋 复制一键脚本</button></div>
+                <pre><code>#!/bin/bash
+# 一键修复 kvideo 和 1p 站点
+rm -f /etc/nginx/conf.d/kvideo.baoge123.de5.net.conf /etc/nginx/conf.d/1p.baoge123.de5.net.conf
+rm -f /home/web/conf.d/kvideo.baoge123.de5.net.conf /home/web/conf.d/1p.baoge123.de5.net.conf
+
+certbot certonly --standalone -d kvideo.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal
+certbot certonly --standalone -d 1p.baoge123.de5.net --non-interactive --agree-tos --email admin@baoge123.de5.net --force-renewal
+
+cat > /etc/nginx/conf.d/kvideo.conf << 'EOF'
+server {
+    listen 80;
+    server_name kvideo.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name kvideo.baoge123.de5.net;
+    ssl_certificate /etc/letsencrypt/live/kvideo.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kvideo.baoge123.de5.net/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+cat > /etc/nginx/conf.d/1p.conf << 'EOF'
+server {
+    listen 80;
+    server_name 1p.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name 1p.baoge123.de5.net;
+    ssl_certificate /etc/letsencrypt/live/1p.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/1p.baoge123.de5.net/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:18227;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+nginx -t && nginx -s reload
+echo '✅ 修复完成！请测试 https://kvideo.baoge123.de5.net 和 https://1p.baoge123.de5.net'</code></pre>
+            </div>
+            <div class="note">
+                ⚠️ 执行前请确保 Docker 容器（kvideo、1Panel）正常运行。<br>
+                🔐 证书申请需要 80/443 端口空闲，如遇占用可先执行 <code>systemctl stop nginx</code>。
+            </div>
+        </div>
+
+        <div class="footer">
+            📌 本教程基于实际故障排查：quic 参数冲突 + 配置路径错误 + 证书混用<br>
+            所有命令均已实测，点击复制按钮即可在 VPS 终端执行。
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast" style="opacity:0;">✅ 已复制</div>
+
+<script>
+    const toastEl = document.getElementById('toast');
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 已复制';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
+    }
+
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const rawCode = btn.getAttribute('data-code');
+            if (!rawCode) return;
+            try {
+                await navigator.clipboard.writeText(rawCode);
+                showToast('📋 命令已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = rawCode;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('📋 已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            }
+        });
+    });
+</script>
+</body>
+</html>
