@@ -1004,10 +1004,9 @@
                 <label>仓库地址</label>
                 <input type="text" id="repoInput" placeholder="例如：baoge972/heimao" value="${currentRepo.replace(/"/g, '&quot;')}" />
                 <label>GitHub Token</label>
-                <div class="token-wrapper">
-                    <input type="password" id="tokenInput" placeholder="输入你的 GitHub Token" value="${currentToken.replace(/"/g, '&quot;')}" />
-                    <button type="button" class="token-toggle" onclick="toggleTokenVisibility()">👁️ 查看</button>
-                </div>
+                <div id="token-hidden-hint" style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; text-align: center; color: #999; margin-bottom: 10px;">Token 已隐藏，点击按钮查看</div>
+                <input type="text" id="tokenInput" placeholder="输入你的 GitHub Token" value="${currentToken.replace(/"/g, '&quot;')}" style="display:none;" />
+                <button type="button" id="toggleTokenBtn" style="margin-top: 8px; padding: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #e0e0e0; cursor: pointer; font-size: 14px;">👁️ 查看 Token</button>
                 <button id="saveConfigBtn">💾 保存配置</button>
                 <button id="closeConfigBtn" class="close-modal">取消</button>
             </div>
@@ -1017,6 +1016,23 @@
         const closeBtn = modalDiv.querySelector('#closeConfigBtn');
         const repoInp = modalDiv.querySelector('#repoInput');
         const tokenInp = modalDiv.querySelector('#tokenInput');
+        const tokenHint = modalDiv.querySelector('#token-hidden-hint');
+        const toggleBtn = modalDiv.querySelector('#toggleTokenBtn');
+        let tokenVisible = false;
+        
+        toggleBtn.onclick = () => {
+            tokenVisible = !tokenVisible;
+            if(tokenVisible) {
+                tokenInp.style.display = 'block';
+                tokenHint.style.display = 'none';
+                toggleBtn.textContent = '🙈 隐藏 Token';
+            } else {
+                tokenInp.style.display = 'none';
+                tokenHint.style.display = 'block';
+                toggleBtn.textContent = '👁️ 查看 Token';
+            }
+        };
+        
         saveBtn.onclick = () => {
             const newRepo = repoInp.value.trim();
             const newToken = tokenInp.value.trim();
@@ -1026,18 +1042,6 @@
             location.reload();
         };
         closeBtn.onclick = () => modalDiv.remove();
-    }
-    
-    function toggleTokenVisibility() {
-        const tokenInput = document.getElementById('tokenInput');
-        const toggleBtn = document.querySelector('.token-toggle');
-        if(tokenInput.type === 'password') {
-            tokenInput.type = 'text';
-            toggleBtn.textContent = '🙈 隐藏';
-        } else {
-            tokenInput.type = 'password';
-            toggleBtn.textContent = '👁️ 查看';
-        }
     }
     
     // ========== Token 安全存储（SessionStorage + 内存） ==========
