@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Vercel 部署完全指南 | 文心雕龙项目部署教程</title>
+    <meta name="description" content="从 Firebase Studio 到 GitHub 再到 Vercel 的完整部署教程，含环境变量配置、安全实践与故障排查">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #faf9fc;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            color: #1a1a2e;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #edeef2;
+        }
+        .hero {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+            color: white;
+            padding: 2.5rem 2rem;
+            border-bottom: 1px solid #2d2d4a;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .hero-badge {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .hero p {
+            font-size: 1.1rem;
+            color: #cbcbe8;
+            max-width: 85%;
+        }
+        .content {
+            padding: 2rem 2rem 2.5rem 2rem;
+        }
+        .step-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            border: 1px solid #eef2f6;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .card-header {
+            background: #fbfdff;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .step-number {
+            background: #0a0a1a;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 1000px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .card-header h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0;
+            color: #0f172a;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 1rem 0;
+            border: 1px solid #1e293b;
+        }
+        .inline-code {
+            background: #eef2ff;
+            color: #0f172a;
+            padding: 0.2rem 0.4rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .warning-box {
+            background: #fffbeb;
+            border-left: 5px solid #f59e0b;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            margin: 1.2rem 0;
+            font-size: 0.9rem;
+        }
+        .tip-box {
+            background: #ecfdf5;
+            border-left: 5px solid #10b981;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            margin: 1.2rem 0;
+        }
+        .danger-box {
+            background: #fef2f2;
+            border-left: 5px solid #ef4444;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            margin: 1.2rem 0;
+        }
+        button.copy-btn {
+            background: #1e293b;
+            border: none;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: auto;
+        }
+        button.copy-btn:hover {
+            background: #3b4252;
+        }
+        hr {
+            margin: 1rem 0;
+            border: 0;
+            border-top: 1px solid #eef2f8;
+        }
+        .footer-note {
+            margin-top: 2rem;
+            text-align: center;
+            color: #4b5565;
+            font-size: 0.85rem;
+            border-top: 1px solid #edf2f7;
+            padding-top: 1.8rem;
+        }
+        @media (max-width: 680px) {
+            .content {
+                padding: 1.5rem;
+            }
+            .hero p {
+                max-width: 100%;
+            }
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+        }
+        th, td {
+            border: 1px solid #e4e7ec;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>
+            📘 Vercel 部署完全指南
+            <span class="hero-badge">Next.js + Gemini API</span>
+        </h1>
+        <p>从 GitHub 仓库到线上可访问的 AI 文章生成平台 —— 含环境变量安全、故障排查及自动化部署最佳实践</p>
+    </div>
+    <div class="content">
+        <div class="step-grid">
+            <!-- 步骤 1 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">1</span>
+                    <h2>🚀 准备工作 & 登录 Vercel</h2>
+                </div>
+                <div class="card-body">
+                    <p>在开始部署之前，请确保拥有以下三个必要项：</p>
+                    <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                        <li>✅ 一个 <strong>GitHub 账号</strong>（已包含你的项目仓库 <span class="inline-code">baoge456/wenzhangshengchengqi</span>）</li>
+                        <li>✅ 一个 <strong>Vercel 账号</strong>（推荐直接用 GitHub 账号一键登录）</li>
+                        <li>✅ 一个有效的 <strong>Google Gemini API Key</strong>（从 <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a> 免费获取）</li>
+                    </ul>
+                    <div class="tip-box">
+                        💡 <strong>安全贴士</strong>：<br>
+                        • 本地开发可使用 <span class="inline-code">.env</span> 文件，但切记将该文件加入 <span class="inline-code">.gitignore</span>，避免泄漏密钥。<br>
+                        • 生产环境绝不要将真实 API Key 写在代码中，一律使用 <strong>Vercel 环境变量</strong>。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 2 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">2</span>
+                    <h2>🔗 导入 GitHub 仓库</h2>
+                </div>
+                <div class="card-body">
+                    <p>登录 <a href="https://vercel.com" target="_blank">vercel.com</a> 后，在 Dashboard 点击 <strong>Add New → Project</strong>。</p>
+                    <ol style="margin-left: 1.5rem; margin-bottom: 0.8rem;">
+                        <li>在 “Import Git Repository” 列表中找到 <span class="inline-code">baoge456/wenzhangshengchengqi</span>。</li>
+                        <li>若仓库很多，可直接搜索关键词 <span class="inline-code">wenzhangshengchengqi</span>。</li>
+                        <li>点击 <strong>Import</strong> — Vercel 会自动识别为 Next.js 项目。</li>
+                    </ol>
+                    <div class="code-block">
+                        ✅ 框架预设: Next.js<br>
+                        ✅ 构建命令: npm run build<br>
+                        ✅ 输出目录: .next
+                    </div>
+                    <p>根目录及其他配置保持默认即可，无需额外修改。</p>
+                </div>
+            </div>
+
+            <!-- 步骤 3 (环境变量核心) -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">3</span>
+                    <h2>🔐 配置环境变量 (最重要!)</h2>
+                </div>
+                <div class="card-body">
+                    <p><strong>注意：Vercel 不会读取仓库中的 .env 文件，也绝不会在服务器上生成 .env。密钥通过加密方式注入到 <span class="inline-code">process.env</span>。</strong></p>
+                    <ul style="margin-bottom: 1rem;">
+                        <li>在 Import 完成后的配置页面，找到 <strong>Environment Variables</strong> 区域 → 点击 <strong>Add Variable</strong>。</li>
+                        <li>Name 输入: <span class="inline-code">GEMINI_API_KEY</span></li>
+                        <li>Value 输入: 你的真实 <strong>Gemini API Key</strong></li>
+                        <li>Environment 选项：勾选 <strong>Production</strong>、<strong>Preview</strong>、<strong>Development</strong> (三个环境都勾选，保证本地预览和生产一致)。</li>
+                        <li>⚡ 务必点击🔒图标标记为 <strong>"Secret"</strong>，这样密钥会被安全加密存储，永远不会泄露。</li>
+                    </ul>
+                    <div class="warning-box">
+                        ⚠️ 常见误区：<br>
+                        • 即便本地有 .env 文件，Vercel 也不会自动读取。<br>
+                        • 如果部署后文章生成失败，优先检查此处变量是否添加、值是否有效、是否触发了新的部署。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 4 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">4</span>
+                    <h2>⚙️ 部署 & 自动化流水线</h2>
+                </div>
+                <div class="card-body">
+                    <p>点击 <strong>Deploy</strong> 按钮，Vercel 将自动执行构建并通过 CDN 发布。通常 1~2 分钟就能完成。</p>
+                    <p>部署成功后，您会看到类似以下的域名：<span class="inline-code">https://wenzhangshengchengqi.vercel.app</span> 。同时，Vercel 会为每个 commit 生成唯一的预览链接。</p>
+                    <div class="tip-box">
+                        🔁 <strong>自动部署特性</strong>：<br>
+                        今后当你执行 <span class="inline-code">git push origin main</span> 时，Vercel 会自动重新部署并更新线上版本，无需任何手动操作。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 5 - 关于 .env 误提交以及删除后修复 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">5</span>
+                    <h2>🧹 根治 .env 隐患 & 重新部署技巧</h2>
+                </div>
+                <div class="card-body">
+                    <p>如果你发现 GitHub 仓库中曾经不小心提交过 <span class="inline-code">.env</span> 文件，请立即执行以下命令清理并使其不再被跟踪：</p>
+                    <div class="code-block">
+                        git rm --cached .env<br>
+                        echo ".env" >> .gitignore<br>
+                        git add .gitignore<br>
+                        git commit -m "移除 .env 并更新忽略规则"<br>
+                        git push origin main
+                    </div>
+                    <p>完成之后，Vercel 的环境变量仍然保留，但需要<strong>手动触发一次重新部署</strong>（让新的构建感知到环境变量变更）。</p>
+                    <p>如何手动重新部署：</p>
+                    <ul>
+                        <li>前往 Vercel 项目 → <strong>Deployments</strong> 选项卡 → 点击最新部署右侧的「...」→ <strong>Redeploy with existing Settings</strong>。</li>
+                        <li>或者进入项目 Settings → <strong>Environment Variables</strong> 确认变量存在后，点击顶部 “Redeploy” 按钮。</li>
+                        <li>如果依旧失败，可以尝试 <strong>Clear Build Cache</strong> (Settings → General → Build Cache)。</li>
+                    </ul>
+                    <div class="warning-box">
+                        ❗ 删除仓库中的 .env 并不会导致 Vercel 环境变量丢失，但需要重新部署来使构建系统读取最新的环境变量注入。只要后台密钥存在，重新部署即可恢复。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 6 私有仓库变更 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">6</span>
+                    <h2>🔒 将仓库设为私有 (不影响 Vercel)</h2>
+                </div>
+                <div class="card-body">
+                    <p>担心代码公开？可以随时将 GitHub 仓库改为 <strong>私有 (Private)</strong>。已授权的 Vercel 仍然拥有部署权限，部署的服务不会中断。</p>
+                    <ol>
+                        <li>进入 GitHub 仓库 → <strong>Settings</strong> → <strong>Danger Zone</strong>。</li>
+                        <li>点击 <strong>Change visibility</strong> → <strong>Make private</strong>。</li>
+                        <li>确认仓库名称后立即生效。</li>
+                    </ol>
+                    <div class="tip-box">
+                        ✅ 个人账号下的私有仓库，Vercel Hobby 套餐完全支持。组织私有仓库则需升级 Pro 计划。你的账号 <strong>baoge456</strong> 为个人账号，可放心设为私有。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 故障排查部分 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">🔧</span>
+                    <h2>📡 故障排查 & 常见问题</h2>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr><th>现象</th><th>可能原因</th><th>解决方案</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>部署成功但生成文章报错</td><td>GEMINI_API_KEY 未设置或无效</td><td>检查 Vercel 环境变量是否正确添加到 Production，并重新部署</td></tr>
+                            <tr><td>删除 .env 后本地运行失败</td><td>本地缺少 .env 文件</td><td>本地开发重新创建 .env 文件（仅本地），线上不受影响</td></tr>
+                            <tr><td>构建日志显示 “Module not found”</td><td>依赖安装问题</td><td>删除 node_modules 和 lockfile 重新 push，或清除 Vercel 构建缓存</td></tr>
+                            <tr><td>仓库私有后 Vercel 部署失败</td><td>授权过期或权限缺失</td><td>在 Vercel Dashboard 的 Project Settings → Git 中重新连接 GitHub 并授予私有仓库权限</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="danger-box">
+                        ⚡ 重要：线上环境永远不要依赖未被跟踪的 .env 文件。代码中仅使用 <span class="inline-code">process.env.GEMINI_API_KEY</span>，Vercel 会自动注入。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最佳实践摘要 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="step-number">✓</span>
+                    <h2>📌 部署检查清单</h2>
+                </div>
+                <div class="card-body">
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li>✅ [ ] 仓库根目录存在 <span class="inline-code">package.json</span> 且 Next.js 构建脚本正确</li>
+                        <li>✅ [ ] <span class="inline-code">.gitignore</span> 包含 <strong>node_modules/</strong>、<strong>.env</strong>、<strong>.next/</strong>、<strong>dist/</strong>等敏感目录</li>
+                        <li>✅ [ ] Vercel 环境变量 <span class="inline-code">GEMINI_API_KEY</span> 已设置并标记为 Secret</li>
+                        <li>✅ [ ] 本地通过 <span class="inline-code">npm run dev</span> 或本地 .env 测试 API 调用正常</li>
+                        <li>✅ [ ] 执行过一次成功的生产部署，并访问自定义域名/vercel.app 域名做真实验证</li>
+                    </ul>
+                    <div class="tip-box">
+                        🌟 额外推荐：在 Vercel 中打开 <strong>“Automatic Protection”</strong> (可选)，并为生产环境加入 <strong>“Deployment Protection”</strong> 以增强安全性。
+                    </div>
+                    <hr>
+                    <p style="margin-top: 0.8rem;">至此，你的“文心雕龙”AI 文章生成器已经完全部署在 Vercel 上，并且环境变量配置安全、自动化更新可靠。想要修改网站名称或绑定自定义域名，可以在项目 Settings → Domains 中操作。</p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-note">
+            🧠 教程配套自 Firebase Studio → GitHub → Vercel 全流程迁移实践 · 确保 API 密钥零泄漏，部署稳定可控<br>
+            📄 最后更新：2026-05-03 &nbsp;|&nbsp; 适用 Next.js 15 + Genkit 项目
+        </div>
+    </div>
+</div>
+<script>
+    // 可选：为代码块添加复制按钮功能
+    document.querySelectorAll('.code-block').forEach(block => {
+        let btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.innerText = '复制';
+        btn.style.float = 'right';
+        btn.style.marginTop = '-0.2rem';
+        btn.onclick = function() {
+            const text = block.innerText.replace('复制', '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerText = '已复制 ✓';
+                setTimeout(() => btn.innerText = '复制', 1500);
+            }).catch(() => alert('手动复制'));
+        };
+        block.style.position = 'relative';
+        block.prepend(btn);
+    });
+</script>
+</body>
+</html>
