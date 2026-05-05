@@ -86,6 +86,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            padding: 10px 0;
         }
         .main-panel {
             flex: 1;
@@ -98,6 +99,7 @@
             padding: 15px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            margin: 0;
         }
         
         /* 顶部工具栏 */
@@ -143,6 +145,9 @@
         .cdn-section {
             margin-bottom: 12px;
             flex-shrink: 0;
+        }
+        .cdn-section.hidden {
+            display: none;
         }
         .cdn-input {
             width: 100%;
@@ -829,20 +834,32 @@
                 gap: 3px;
             }
             .search-box { 
-                margin-left: 0;
-                width: 100%;
-                order: 10;
+                flex: 1;
+                min-width: 0;
             }
             .search-box input { width: 100%; }
             .search-box input:focus { width: 100%; }
+            .cdn-section {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+            .cdn-input {
+                flex: 1;
+                margin-bottom: 0;
+            }
+            .cdn-buttons {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
             .file_list li span.sha, 
             .file_list li span.size { 
                 display: none;
             }
-            .cdn-buttons { gap: 4px; }
             .cdn-btn { 
                 padding: 5px 8px;
                 font-size: 12px;
+                white-space: nowrap;
             }
             .theme-btn {
                 width: 24px;
@@ -898,7 +915,7 @@
         </div>
         
         <!-- CDN 选择区 -->
-        <div class="cdn-section">
+        <div class="cdn-section" id="cdn-section">
             <input type="text" id="rootdm" class="cdn-input" placeholder="CDN地址 (点击下方按钮自动填充)" />
             <div id="btn-wrap" class="cdn-buttons"></div>
         </div>
@@ -1028,7 +1045,7 @@
             <div class="config-modal">
                 <h3>⚙️ 仓库配置</h3>
                 <label>仓库地址</label>
-                <input type="text" id="repoInput" placeholder="例如：baoge972/heimao" value="${currentRepo.replace(/"/g, '&quot;')}" />
+                <input type="text" id="repoInput" placeholder="格式：用户名/仓库名" value="${currentRepo.replace(/"/g, '&quot;')}" />
                 <label>GitHub Token</label>
                 <div id="token-hidden-hint" style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; text-align: center; color: #999; margin-bottom: 10px;">Token 已隐藏，点击按钮查看</div>
                 <input type="text" id="tokenInput" placeholder="输入你的 GitHub Token" value="${currentToken.replace(/"/g, '&quot;')}" style="display:none;" />
@@ -1131,6 +1148,13 @@
                 btnEl.querySelectorAll('.cdn-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById("rootdm").value = temp.url;
+                // 选择"本站"时隐藏CDN输入框
+                const cdnSection = document.getElementById('cdn-section');
+                if(j === 0) {
+                    cdnSection.classList.add('hidden');
+                } else {
+                    cdnSection.classList.remove('hidden');
+                }
                 initFileList();
             };
             btnEl.appendChild(btn);
@@ -1158,6 +1182,9 @@
                 }
             });
         }
+        
+        // 默认选择"本站"时隐藏CDN输入框
+        document.getElementById('cdn-section').classList.add('hidden');
     }
     
     window.request = axios.create({
