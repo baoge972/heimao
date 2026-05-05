@@ -14,7 +14,7 @@
             font-size: 15px; 
             max-width: 1200px; 
             margin: 0 auto; 
-            padding: 20px;
+            padding: 15px;
             height: 100vh;
             overflow: hidden;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
@@ -83,10 +83,9 @@
         
         /* 主面板 */
         #drop-zone {
-            height: 100vh;
+            height: calc(100vh - 30px);
             display: flex;
             flex-direction: column;
-            padding: 10px 0;
         }
         .main-panel {
             flex: 1;
@@ -146,7 +145,10 @@
             margin-bottom: 12px;
             flex-shrink: 0;
         }
-        .cdn-section.hidden {
+        .cdn-input-wrapper {
+            margin-bottom: 10px;
+        }
+        .cdn-input-wrapper.hidden {
             display: none;
         }
         .cdn-input {
@@ -219,6 +221,7 @@
             align-items: center;
             gap: 12px;
             transition: all 0.2s;
+            flex-wrap: nowrap;
         }
         .file_list li:hover {
             background: rgba(255, 255, 255, 0.06);
@@ -248,6 +251,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             font-size: 14px;
+            min-width: 0;
         }
         .file_list li.dir a { 
             color: #ff9000; 
@@ -276,6 +280,8 @@
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .file_list li .delete-btn:hover {
             background: rgba(248, 113, 113, 0.2);
@@ -823,7 +829,7 @@
         
         /* 响应式设计 */
         @media screen and (max-width: 768px) {
-            body { padding: 8px; }
+            body { padding: 10px; }
             .main-panel { padding: 10px; }
             .top-bar { 
                 gap: 4px;
@@ -844,7 +850,7 @@
                 gap: 6px;
                 align-items: center;
             }
-            .cdn-input {
+            .cdn-input-wrapper {
                 flex: 1;
                 margin-bottom: 0;
             }
@@ -852,9 +858,19 @@
                 flex-wrap: nowrap;
                 overflow-x: auto;
             }
-            .file_list li span.sha, 
+            .file_list li {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            .file_list li span.sha { 
+                display: none;
+            }
             .file_list li span.size { 
                 display: none;
+            }
+            .file_list li .delete-btn {
+                padding: 5px 10px;
+                font-size: 12px;
             }
             .cdn-btn { 
                 padding: 5px 8px;
@@ -868,10 +884,21 @@
         }
         
         @media screen and (max-width: 480px) {
-            body { padding: 5px; }
+            body { padding: 8px; }
             .main-panel { padding: 8px; }
             .login-box { padding: 25px 15px; }
-            .file_list li { padding: 8px 10px; font-size: 13px; }
+            .file_list li { 
+                padding: 8px 10px; 
+                font-size: 13px;
+                gap: 6px;
+            }
+            .file_list li a {
+                font-size: 13px;
+            }
+            .file_list li .delete-btn { 
+                padding: 4px 8px;
+                font-size: 11px;
+            }
             .action-btn { padding: 4px 7px; font-size: 11px; }
             .cdn-btn { padding: 4px 7px; font-size: 11px; }
         }
@@ -915,8 +942,10 @@
         </div>
         
         <!-- CDN 选择区 -->
-        <div class="cdn-section" id="cdn-section">
-            <input type="text" id="rootdm" class="cdn-input" placeholder="CDN地址 (点击下方按钮自动填充)" />
+        <div class="cdn-section">
+            <div class="cdn-input-wrapper" id="cdn-input-wrapper">
+                <input type="text" id="rootdm" class="cdn-input" placeholder="CDN地址 (点击下方按钮自动填充)" />
+            </div>
             <div id="btn-wrap" class="cdn-buttons"></div>
         </div>
         
@@ -1149,11 +1178,11 @@
                 btn.classList.add('active');
                 document.getElementById("rootdm").value = temp.url;
                 // 选择"本站"时隐藏CDN输入框
-                const cdnSection = document.getElementById('cdn-section');
+                const inputWrapper = document.getElementById('cdn-input-wrapper');
                 if(j === 0) {
-                    cdnSection.classList.add('hidden');
+                    inputWrapper.classList.add('hidden');
                 } else {
-                    cdnSection.classList.remove('hidden');
+                    inputWrapper.classList.remove('hidden');
                 }
                 initFileList();
             };
@@ -1184,7 +1213,7 @@
         }
         
         // 默认选择"本站"时隐藏CDN输入框
-        document.getElementById('cdn-section').classList.add('hidden');
+        document.getElementById('cdn-input-wrapper').classList.add('hidden');
     }
     
     window.request = axios.create({
