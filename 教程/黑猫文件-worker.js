@@ -814,11 +814,11 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
 
 <script>
     // ========== 环境变量注入（Workers 运行时注入） ==========
-    const LOGIN_PASSWORD = "${LOGIN_PASSWORD}";
-    const ADMIN_PASSWORD_HASH = "${ADMIN_PASSWORD_HASH}";
-    const PASSWORD_SALT = "${PASSWORD_SALT}";
-    const GIT_REPO = "${GIT_REPO}";
-    const GIT_TOKEN = "${GIT_TOKEN}";
+    const LOGIN_PASSWORD = "__LOGIN_PASSWORD__";
+    const ADMIN_PASSWORD_HASH = "__ADMIN_PASSWORD_HASH__";
+    const PASSWORD_SALT = "__PASSWORD_SALT__";
+    const GIT_REPO = "__GIT_REPO__";
+    const GIT_TOKEN = "__GIT_TOKEN__";
     
     // 自动配置仓库和 Token（从环境变量注入）
     if(GIT_REPO) {
@@ -1370,7 +1370,14 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
 </body>
 </html>`;
         
-        return new Response(html, {
+        const finalHtml = html
+            .replace(/__LOGIN_PASSWORD__/g, LOGIN_PASSWORD)
+            .replace(/__ADMIN_PASSWORD_HASH__/g, ADMIN_PASSWORD_HASH)
+            .replace(/__PASSWORD_SALT__/g, PASSWORD_SALT)
+            .replace(/__GIT_REPO__/g, GIT_REPO)
+            .replace(/__GIT_TOKEN__/g, GIT_TOKEN);
+        
+        return new Response(finalHtml, {
             headers: {
                 "Content-Type": "text/html;charset=UTF-8",
             },
