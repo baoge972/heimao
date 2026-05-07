@@ -1,0 +1,46 @@
+AI 黑科技！老照片修复、视频去码变高清
+
+https://github.com/sczhou/CodeFormer
+
+打开Anaconda应用程序
+
+找到powershell prompt
+
+点击 “  lanch”，进入(base) PS C:\Users\wangs>:
+
+输入：cd CodeFormer
+
+改图宝，在线修改尺寸为512x512
+
+https://www.gaitubao.com/
+
+
+面部修复（裁剪和对齐的面部）
+
+
+1·把待修复照片放到C:\Users\wangs\CodeFormer\inputs\cropped_faces目录下
+
+
+2·输入命令：
+
+python inference_codeformer.py -w 0.5 --has_aligned --input_path C:\Users\wangs\CodeFormer\inputs\cropped_faces
+
+3·运行结束后根据末尾提示，进入C:\Users\wangs\CodeFormer\results\cropped_faces_0.5\restored_faces目录下找到修复好的文件
+
+
+整体图像增强：
+
+python inference_codeformer.py -w 0.7 --input_path C:\Users\wangs\CodeFormer\old
+
+运行结束后根据末尾提示，进入C:\Users\wangs\CodeFormer\results\old_0.7\final_results目录下找到修复好的文件
+
+
+
+
+CodeFormer, https://github.com/sczhou/CodeFormer
+Restorephotos, https://github.com/Nutlope/restorePhotos
+MyHeritage，https://www.myheritage.com/
+图像在线处理，移除杂物，去背景，图片打光，AI绘画等等，Clipdrop，https://clipdrop.co/
+照片无损放大，https://www.upscale.media/
+
+https://upscayl.org/download
