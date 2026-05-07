@@ -160,8 +160,18 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
             margin: 0 auto; 
             padding: 15px;
             height: 100vh;
-            overflow: hidden;
+            overflow: auto;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+        body::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        body::-webkit-scrollbar-thumb {
+            background: rgba(255, 144, 0, 0.6);
+            border-radius: 4px;
         }
         
         .login-mask {
@@ -225,13 +235,13 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
         }
         
         #drop-zone {
-            height: calc(100vh - 30px);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
         .main-panel {
-            flex: 1;
-            overflow: hidden;
+            flex: 1 0 auto;
+            overflow: visible;
             display: flex;
             flex-direction: column;
             background: rgba(255, 255, 255, 0.03);
@@ -241,6 +251,20 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
             margin: 0;
+        }
+        .main-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .main-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 144, 0, 0.5);
+            border-radius: 4px;
+        }
+        .main-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 144, 0, 0.8);
         }
         
         .top-bar {
@@ -343,12 +367,13 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
         
         .file_wrap {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: visible;
             margin-top: 10px;
         }
         .file_list { 
             list-style: none;
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 6px;
         }
         .file_list li {
@@ -733,17 +758,20 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
         
         @media screen and (max-width: 768px) {
             body { padding: 10px; }
-            .main-panel { padding: 10px; }
+            .main-panel { padding: 10px; overflow: auto; -webkit-overflow-scrolling: touch; }
             .top-bar { gap: 4px; }
             .action-btn { padding: 5px 8px; font-size: 12px; gap: 3px; }
             .search-box { flex: 1; min-width: 0; }
             .search-box input { width: 100%; }
             .search-box input:focus { width: 100%; }
-            .cdn-section { display: flex; gap: 6px; align-items: center; }
+            .cdn-section { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
             .cdn-input-wrapper { flex: 1; margin-bottom: 0; }
             .cdn-buttons { flex-wrap: nowrap; overflow-x: auto; }
+            .file_wrap { flex: 1; overflow-y: visible; }
             .file_list li { padding: 10px 12px; gap: 8px; }
             .file_list li span.sha, .file_list li span.size { display: none; }
+            .file_list li a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .file_list li .delete-btn { padding: 6px 12px; font-size: 12px; min-width: 55px; flex-shrink: 0; }
             .cdn-btn, .action-btn { padding: 5px 8px; font-size: 12px; white-space: nowrap; }
         }
         
@@ -751,8 +779,10 @@ async function handleAdminPanel(request, env, LOGIN_PASSWORD, ADMIN_PASSWORD_HAS
             body { padding: 8px; }
             .main-panel { padding: 8px; }
             .login-box { padding: 25px 15px; }
+            .file_wrap { flex: 1; overflow-y: visible; }
             .file_list li { padding: 8px 10px; font-size: 13px; gap: 6px; }
-            .file_list li .delete-btn { padding: 4px 8px; font-size: 11px; }
+            .file_list li a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .file_list li .delete-btn { padding: 6px 12px; font-size: 11px; min-width: 55px; flex-shrink: 0; }
             .action-btn, .cdn-btn { padding: 4px 7px; font-size: 11px; }
         }
     </style>
