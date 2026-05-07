@@ -16,8 +16,18 @@
             margin: 0 auto; 
             padding: 15px;
             height: 100vh;
-            overflow: hidden;
+            overflow: auto;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+        body::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        body::-webkit-scrollbar-thumb {
+            background: rgba(255, 144, 0, 0.6);
+            border-radius: 4px;
         }
         
         /* 登录遮罩 */
@@ -83,13 +93,13 @@
         
         /* 主面板 */
         #drop-zone {
-            height: calc(100vh - 30px);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
         .main-panel {
-            flex: 1;
-            overflow: hidden;
+            flex: 1 0 auto;
+            overflow: visible;
             display: flex;
             flex-direction: column;
             background: rgba(255, 255, 255, 0.03);
@@ -204,7 +214,7 @@
         /* 文件列表 */
         .file_wrap {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: visible;
             margin-top: 10px;
         }
         .file_list { 
@@ -849,6 +859,7 @@
                 display: flex;
                 gap: 6px;
                 align-items: center;
+                flex-shrink: 0;
             }
             .cdn-input-wrapper {
                 flex: 1;
@@ -868,9 +879,18 @@
             .file_list li span.size { 
                 display: none;
             }
+            .file_list li a {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
             .file_list li .delete-btn {
-                padding: 5px 10px;
+                padding: 6px 12px;
                 font-size: 12px;
+                min-width: 55px;
+                flex-shrink: 0;
             }
             .cdn-btn { 
                 padding: 5px 8px;
@@ -893,11 +913,18 @@
                 gap: 6px;
             }
             .file_list li a {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
                 font-size: 13px;
             }
             .file_list li .delete-btn { 
-                padding: 4px 8px;
+                padding: 6px 12px;
                 font-size: 11px;
+                min-width: 55px;
+                flex-shrink: 0;
             }
             .action-btn { padding: 4px 7px; font-size: 11px; }
             .cdn-btn { padding: 4px 7px; font-size: 11px; }
@@ -1329,24 +1356,65 @@
         showLoading();
         getContent(path + "?t=" + new Date().getTime()).then((data) => {
             window.fileList = (data || [])
-                .filter(d => !["init.jpg", "CNAME", "D-file.html", "index.html", "json.html"].includes(d.name))
+                .filter(d => !["init.jpg", "CNAME", "D-file.html", "index.html", "json.html", ".init"].includes(d.name))
                 .map(item => { item.ftype = getType(item.name); if (item.type == "dir") item.ftype = "dir"; return item; });
             window.fileList.sort((a, b) => (a.type < b.type ? -1 : 1));
-            if (path && !isBack) paths.push(path);
+            if (path && !isBack) {
+                if(!paths.length || paths[paths.length-1] !== path) paths.push(path);
+            }
             initFileList();
             hideLoading();
-        }).catch(() => hideLoading());
+        }).catch(() => {
+            if(!isRoot && !isBack && paths.length) paths.pop();
+            hideLoading();
+        });
     }
     
     function addDir() { const val = prompt("请输入新建目录名称", ""); if(val) putDir(val); }
-    function dirBack() { if(!paths.length) return alert("已经是根目录了!"); paths.pop(); getDir(paths.length ? paths[paths.length-1] : "", true); }
-    function refresh() { getDir(paths.length ? paths[paths.length-1] : "", true); }
+    function dirBack() { 
+        if(!paths.length) return alert("已经是根目录了!"); 
+        paths.pop(); 
+        getDir(paths.length ? paths[paths.length-1] : "", true, null, true); 
+    }
+    function refresh() { 
+        const currentPath = paths.length ? paths[paths.length-1] : "";
+        paths = [];
+        if(currentPath) paths.push(currentPath);
+        getDir(currentPath, true, null, true); 
+    }
     
     function delOne(path, sha) {
         if(path == "index.html" || path == "D-file.html" || path == "CNAME" || path == "json.html") return alert("系统文件不能删除!");
         if(confirm("确认删除: " + path)) {
             verifyPassword().then(ok => {
-                if(ok) delFile(path, sha, true);
+                if(!ok) return;
+                showLoading("删除中...");
+                const isDir = window.fileList.find(f => f.path === path && f.type === "dir");
+                if(isDir) {
+                    getContent(path).then(dirContent => {
+                        if(!Array.isArray(dirContent) || dirContent.length === 0) {
+                            hideLoading();
+                            alert("目录为空，已自动清理");
+                            return;
+                        }
+                        const realFiles = dirContent.filter(f => f.name !== ".init");
+                        if(realFiles.length > 0) {
+                            hideLoading();
+                            alert("目录非空，请先删除目录内所有文件");
+                            return;
+                        }
+                        getSha(path + "/.init").then(initSha => {
+                            if(initSha) {
+                                delFile(path + "/.init", initSha, true);
+                            } else {
+                                hideLoading();
+                                alert("删除失败：未找到目录标识文件");
+                            }
+                        });
+                    });
+                } else {
+                    delFile(path, sha, true);
+                }
             });
         }
     }
@@ -1365,12 +1433,32 @@
         const data = { message: now() + " create dir " + path, content: "" };
         getContent(path).then(res => {
             if(Array.isArray(res)) return alert("目录已存在");
-            request.put(`/repos/${baseRepo}/contents/${path}${path.endsWith("/") ? "" : "/"}.init`, data).then(() => { alert("创建成功: " + path); refresh(); });
+            const initPath = path + (path.endsWith("/") ? "" : "/") + ".init";
+            request.put('/repos/' + baseRepo + '/contents/' + initPath, data).then(() => {
+                showLoading("✅ 创建成功: " + path);
+                setTimeout(() => {
+                    refresh();
+                    hideLoading();
+                }, 1500);
+            });
         });
     }
     
     function delFile(path, sha, isTip) {
-        request.delete(`/repos/${baseRepo}/contents/${path}`, { params: { message: now() + " del " + path, sha } }).then(() => { if(isTip) alert("删除成功:" + path); refresh(); });
+        request.delete('/repos/' + baseRepo + '/contents/' + path, { params: { message: now() + " del " + path, sha } }).then(() => {
+            if(isTip) {
+                showLoading("✅ 删除成功: " + path);
+                setTimeout(() => {
+                    refresh();
+                    hideLoading();
+                }, 1500);
+            } else {
+                refresh();
+            }
+        }).catch(err => {
+            hideLoading();
+            alert("删除失败: " + (err.message || "未知错误"));
+        });
     }
     
     // ========== 上传队列（支持进度条 + 大文件限制） ==========
