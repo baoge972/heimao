@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VPS 项目监控面板 | 运维仪表板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 2rem 1.5rem;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部区域 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 1rem;
+        }
+        .title-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d3a4e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .title-section p {
+            color: #475569;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        .badge-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #eef2ff;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+        .badge.success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .badge.info {
+            background: #e0f2fe;
+            color: #0c4a6e;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 24px;
+            padding: 0.9rem 1.4rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            flex: 1 1 160px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .stat-card .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+        .stat-card .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5b6e8c;
+        }
+
+        /* 项目卡片网格 */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .project-card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            border: 1px solid #eef2f6;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            border-color: #cbd5e1;
+            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            padding: 1.2rem 1.4rem 0.8rem 1.4rem;
+            border-bottom: 1px solid #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .project-name {
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 30px;
+            background: #e2e8f0;
+            color: #2c3e50;
+        }
+        .status-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .domain-link {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.7rem;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 30px;
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .domain-link:hover {
+            background: #e0e7ff;
+            border-color: #b9d0f8;
+            text-decoration: underline;
+        }
+        .link-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .card-body {
+            padding: 1rem 1.4rem;
+            flex: 1;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            border-bottom: 1px dashed #f0f2f8;
+            padding-bottom: 6px;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: #475569;
+        }
+        .detail-value {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #1e293b;
+            word-break: break-all;
+            max-width: 60%;
+            text-align: right;
+        }
+        .code-command {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.7rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .code-command:hover {
+            background: #1e293b;
+        }
+
+        .card-footer {
+            background: #fafcff;
+            padding: 0.8rem 1.4rem 1.2rem;
+            border-top: 1px solid #ecf3f9;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .cmd-btn {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: monospace;
+        }
+        .cmd-btn:hover {
+            background: #eef2ff;
+            border-color: #94a3b8;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .footer-note {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #62748c;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .detail-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .detail-value { max-width: 100%; text-align: left; }
+            .link-group { justify-content: flex-start; margin-top: 6px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="title-section">
+            <h1>📡 VPS 项目运维面板</h1>
+            <p>racknerd-ffa4775 · 实时管理与监控 · 域名直达 | 一键复制命令</p>
+        </div>
+        <div class="badge-group">
+            <div class="badge success">✅ 7项服务运行中</div>
+            <div class="badge info">🔗 域名可一键跳转</div>
+            <div class="badge info">🔄 最后更新: 2026-05-09</div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 简洁明了 -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-number">7</div><div class="stat-label">运行中项目</div></div>
+        <div class="stat-card"><div class="stat-number">6</div><div class="stat-label">域名站点</div></div>
+        <div class="stat-card"><div class="stat-number">7</div><div class="stat-label">容器/服务</div></div>
+        <div class="stat-card"><div class="stat-number">🔐</div><div class="stat-label">全站HTTPS</div></div>
+    </div>
+
+    <!-- 动态渲染项目卡片 -->
+    <div class="projects-grid" id="projectsGrid"></div>
+
+    <div class="footer-note">
+        💡 提示：点击 <strong>域名链接</strong> 直接打开网站；任意命令块或按钮即可复制命令到剪贴板。<br>
+        所有服务均已配置开机自启 (restart always/unless-stopped)
+    </div>
+</div>
+<div id="toast" class="toast-msg">✅ 已复制命令</div>
+
+<script>
+    // 项目数据集 —— 包含域名直达、端口、容器、查询/重启命令，无重复冗余描述
+    // 针对 IPTV Pro 项目将单独的域名链接替换为 /token 和 /xymm 两个独立管理入口
+    const projects = [
+        {
+            name: "Bitwarden",
+            domain: "https://mm.baoge456.de5.net",
+            port: "8072",
+            container: "bitwarden",
+            image: "vaultwarden/server",
+            type: "密码管理器",
+            dataDir: "/home/docker/bitwarden/data",
+            healthCmd: "docker ps | grep bitwarden && docker logs bitwarden --tail 20",
+            restartCmd: "docker restart bitwarden",
+            extraCmd: "docker logs -f bitwarden",
+            status: "active"
+        },
+        {
+            name: "家庭记账",
+            domain: "https://jizhang.baoge.wang",
+            port: "9999",
+            container: "accounting-app",
+            image: "jizhang_app (自定义)",
+            type: "收支管理+Redis",
+            dataDir: "/root/jizhang",
+            healthCmd: "docker ps | grep accounting-app && curl -I http://127.0.0.1:9999",
+            restartCmd: "docker restart accounting-app",
+            extraCmd: "cd /root/jizhang && docker build -t jizhang_app . && docker-compose up -d",
+            status: "active"
+        },
+        {
+            name: "新闻聚合 what-happen",
+            domain: "https://dyx.baoge123.de5.net",
+            port: "3001",
+            container: "what-happen-app",
+            image: "yltfspace/what-happen",
+            type: "热点聚合器",
+            dataDir: "/root/dyx",
+            healthCmd: "docker ps | grep what-happen && curl -I http://127.0.0.1:3001",
+            restartCmd: "cd /root/dyx && docker-compose restart",
+            extraCmd: "docker logs what-happen-app --tail 30",
+            status: "active"
+        },
+        {
+            name: "K视频",
+            domain: "https://kvideo.baoge123.de5.net",
+            port: "3100",
+            container: "kvideo",
+            image: "kuekhaoyang/kvideo:latest",
+            type: "视频点播",
+            dataDir: "/root/kvideo",
+            healthCmd: "docker ps | grep kvideo && curl -I http://127.0.0.1:3100",
+            restartCmd: "cd /root/kvideo && docker-compose restart",
+            extraCmd: "docker logs kvideo --tail 20",
+            status: "active"
+        },
+        {
+            name: "MoonTVPlus",
+            domain: "https://moontvplus.baoge123.de5.net",
+            port: "3000",
+            container: "moontvplus",
+            image: "ghcr.io/mtvpls/moontvplus:latest",
+            type: "影视/电视",
+            dataDir: "/root/moontvplus",
+            healthCmd: "docker ps | grep moontvplus && curl -I http://127.0.0.1:3000",
+            restartCmd: "cd /root/moontvplus && docker-compose restart",
+            extraCmd: "docker logs moontvplus --tail 20",
+            status: "active"
+        },
+        {
+            name: "IPTV Pro",
+            // 不再使用单一域名链接，改用两个独立管理入口: /token 和 /xymm
+            customLinks: [
+                { label: "📺 订阅地址", url: "https://yzby.baoge123.de5.net/token", desc: "直播源订阅" },
+                { label: "📊 XYMM 控制台", url: "https://yzby.baoge123.de5.net/xymm", desc: "统计 & 配置" }
+            ],
+            port: "8880",
+            container: "iptv-pro",
+            image: "qqt8520/iptv-pro:1.0",
+            type: "IPTV直播",
+            dataDir: "/root/zby",
+            healthCmd: "docker ps | grep iptv-pro && curl -I http://127.0.0.1:8880",
+            restartCmd: "docker restart iptv-pro",
+            extraCmd: "docker logs iptv-pro --tail 30",
+            status: "active"
+        },
+        {
+            name: "1Panel 面板代理",
+            domain: "https://1p.baoge123.de5.net",
+            port: "18227",
+            container: "1panel-core (系统进程)",
+            image: "-",
+            type: "管理面板",
+            dataDir: "/opt/1panel",
+            healthCmd: "ss -tlnp | grep 18227 && systemctl status 1panel --no-pager",
+            restartCmd: "systemctl restart 1panel",
+            extraCmd: "1p info",
+            status: "active"
+        }
+    ];
+
+    let toastTimeout;
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg || '📋 已复制命令';
+        toast.style.opacity = '1';
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.style.opacity = '0';
+        }, 1800);
+    }
+
+    async function copyToClipboard(text, event) {
+        event?.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast(`✅ 已复制: ${text.substring(0, 55)}${text.length > 55 ? '…' : ''}`);
+        } catch (err) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('📋 复制成功');
+        }
+    }
+
+    // 生成卡片（普通域名可点击直达，IPTV Pro 显示两个独立按钮链接）
+    function createCard(proj) {
+        const card = document.createElement('div');
+        card.className = 'project-card';
+        const statusClass = proj.status === 'active' ? 'active' : '';
+        const statusText = proj.status === 'active' ? '● 运行中' : '● 异常';
+        
+        // 处理头部右侧链接区域的渲染（普通项目显示单个域名链接，IPTV显示两个入口）
+        let headerLinkHtml = '';
+        if (proj.customLinks && Array.isArray(proj.customLinks)) {
+            const linksHtml = proj.customLinks.map(link => 
+                `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="domain-link" title="${link.desc || link.label}">${link.label}</a>`
+            ).join('');
+            headerLinkHtml = `<div class="link-group">${linksHtml}</div>`;
+        } else if (proj.domain) {
+            headerLinkHtml = `<a href="${proj.domain}" target="_blank" rel="noopener noreferrer" class="domain-link" title="点击打开：${proj.domain}">🌐 ${proj.domain.replace(/^https?:\/\//, '')}</a>`;
+        } else {
+            headerLinkHtml = `<span class="domain-link" style="background:#f1f5f9;color:#334155;cursor:default;">🔗 未绑定域名</span>`;
+        }
+
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="project-name">
+                    📦 ${proj.name}
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                ${headerLinkHtml}
+            </div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <span class="detail-label">🔌 端口</span>
+                    <span class="detail-value">${proj.port}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">🐳 容器/服务</span>
+                    <span class="detail-value">${proj.container}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">📦 镜像/类型</span>
+                    <span class="detail-value">${proj.image} ${proj.type ? '· '+proj.type : ''}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">🗂️ 配置/数据目录</span>
+                    <span class="detail-value">${proj.dataDir || '-'}</span>
+                </div>
+                <!-- 核心运维命令块，一键复制 -->
+                <div class="code-command" data-cmd="${escapeCmd(proj.healthCmd)}">🔍 状态查询: ${truncateCmd(proj.healthCmd, 65)}</div>
+                <div class="code-command" data-cmd="${escapeCmd(proj.restartCmd)}">🔄 重启服务: ${proj.restartCmd}</div>
+                ${proj.extraCmd ? `<div class="code-command" data-cmd="${escapeCmd(proj.extraCmd)}">📜 快捷日志: ${truncateCmd(proj.extraCmd, 65)}</div>` : ''}
+            </div>
+            <div class="card-footer">
+                <button class="cmd-btn" data-cmd="${escapeCmd(proj.healthCmd)}">📊 健康检查</button>
+                <button class="cmd-btn" data-cmd="${escapeCmd(proj.restartCmd)}">♻️ 重启容器</button>
+                ${proj.extraCmd ? `<button class="cmd-btn" data-cmd="${escapeCmd(proj.extraCmd)}">📑 查看日志</button>` : ''}
+                <button class="cmd-btn" data-cmd="docker ps | grep ${proj.container.split(' ')[0]}">🔎 容器状态</button>
+            </div>
+        `;
+
+        // 绑定所有带data-cmd元素的复制事件
+        const clickableElements = card.querySelectorAll('.code-command, .cmd-btn');
+        clickableElements.forEach(el => {
+            const cmd = el.getAttribute('data-cmd');
+            if (cmd) {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(cmd, e);
+                });
+            }
+        });
+        return card;
+    }
+
+    function escapeCmd(cmd) {
+        if (!cmd) return '';
+        return cmd.replace(/"/g, '&quot;');
+    }
+    function truncateCmd(cmd, len) {
+        if (!cmd) return '';
+        return cmd.length > len ? cmd.substring(0, len) + '…' : cmd;
+    }
+
+    const grid = document.getElementById('projectsGrid');
+    projects.forEach(p => {
+        grid.appendChild(createCard(p));
+    });
+
+    // ---------- 附加 ：批量运维面板 (不重复项目列表，提供常用统一运维命令) ----------
+    const toolSection = document.createElement('div');
+    toolSection.style.marginTop = '1.8rem';
+    toolSection.style.background = '#f8fafc';
+    toolSection.style.borderRadius = '28px';
+    toolSection.style.padding = '1.2rem 1.8rem';
+    toolSection.style.border = '1px solid #e2edf7';
+    toolSection.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="font-size: 1rem; font-weight: 600; display: flex; gap:10px; align-items: center;">⚙️ 批量运维 & 快捷速查</h3>
+                <p style="font-size:0.75rem; color:#4b5563;">集群命令 · 一键复制，无需切换终端</p>
+            </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px;">
+            <button class="cmd-btn" data-cmd="docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'">📋 所有容器状态</button>
+            <button class="cmd-btn" data-cmd="ss -tlnp | grep -E ':(3000|3001|3100|8072|8880|9999|18227)'">🌐 核心端口监听</button>
+            <button class="cmd-btn" data-cmd="for c in bitwarden accounting-app what-happen-app kvideo moontvplus iptv-pro; do echo \\\"=== $c ===\\\"; docker logs $c --tail 5; done">📑 批量日志尾行</button>
+            <button class="cmd-btn" data-cmd="docker restart bitwarden accounting-app what-happen-app kvideo moontvplus iptv-pro">🔄 批量重启所有容器</button>
+            <button class="cmd-btn" data-cmd="systemctl reload nginx && nginx -t">🛠️ 重载Nginx配置</button>
+            <button class="cmd-btn" data-cmd="ls -la /etc/nginx/conf.d/ | grep '.conf'">📁 Nginx站点列表</button>
+        </div>
+        <div style="margin-top: 18px; background: #eef2ff; padding: 10px 16px; border-radius: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-weight:500;">💾 一键备份关键数据:</span>
+            <code style="font-size:0.7rem; background:#e0e7ff; padding:4px 12px; border-radius: 24px; word-break: break-all;">tar -czf /root/backup_$(date +%Y%m%d).tar.gz /home/docker/bitwarden/data /root/jizhang /root/dyx /root/kvideo /root/moontvplus /etc/nginx/conf.d/</code>
+            <button class="cmd-btn" data-cmd="tar -czf /root/backup_$(date +%Y%m%d).tar.gz /home/docker/bitwarden/data /root/jizhang /root/dyx /root/kvideo /root/moontvplus /etc/nginx/conf.d/">📦 复制备份命令</button>
+        </div>
+        <div style="margin-top: 12px; font-size: 0.7rem; color: #4b5563; background: #ffffff80; border-radius: 20px; padding: 6px 12px;">
+            🔗 提示：<strong>IPTV Pro</strong> 项目已拆分「订阅地址」和「XYMM控制台」两个专属入口，其余项目点击域名直接跳转。
+        </div>
+    `;
+
+    // 给工具按钮绑定复制事件
+    const toolBtns = toolSection.querySelectorAll('.cmd-btn');
+    toolBtns.forEach(btn => {
+        const cmd = btn.getAttribute('data-cmd');
+        if (cmd) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                copyToClipboard(cmd, e);
+            });
+        }
+    });
+    grid.parentNode.insertBefore(toolSection, grid.nextSibling);
+
+    // 微调长命令展示
+    const allCodeBlocks = document.querySelectorAll('.code-command');
+    allCodeBlocks.forEach(block => {
+        const cmdText = block.getAttribute('data-cmd');
+        if (cmdText && cmdText.length > 75) {
+            block.style.whiteSpace = 'normal';
+            block.style.wordBreak = 'break-all';
+        }
+    });
+</script>
+<!-- ========== 登录验证脚本 开始 ========== -->
+<style>
+#login_overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+
+
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+
+  /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://s3.bmp.ovh/imgs/2025/12/06/2eecac904df39972.png') center/cover fixed;*/
+
+   /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://picsum.photos/1920/1080?random=1') center/cover fixed;*/
+
+    /* 快加载渐变背景，启用时注释上面在用的行 */
+    /* background: linear-gradient(135deg, #2c3e50, #4ca1af); */
+
+
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999999;
+}
+#login_box {
+  background: #fff; padding: 30px; border-radius: 16px;
+  width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#login_box h3 { margin: 0 0 20px; font-size: 18px; }
+#pwd_input {
+  width: 100%; padding: 12px; margin-bottom: 15px;
+  border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;
+}
+#login_btn {
+  width: 100%; padding: 12px; background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px; font-size: 16px; cursor:pointer;
+}
+#login_btn:hover { background: #2563eb; }
+</style>
+
+<div id="login_overlay">
+  <div id="login_box">
+    <h3>🔒 请输入访问密码</h3>
+    <input type="password" id="pwd_input" placeholder="输入密码">
+    <button id="login_btn">确认进入</button>
+  </div>
+</div>
+
+<script>
+const REMEMBER_LOGIN = false;  // true=记住登录  false=每次都验证
+const LOGIN_KEY = "is_login_success";
+
+// ✅ 正确的  SHA256
+const CORRECT_HASH = "06a9e94ceb731a81b5ed9119cd359f1883ed808cd20baa6277018b9ca3dc3975";
+
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+  document.getElementById("login_overlay").remove();
+}
+
+async function check() {
+  const val = document.getElementById("pwd_input").value.trim();
+  const inputHash = await sha256(val);
+  
+  if (inputHash === CORRECT_HASH) {
+    if (REMEMBER_LOGIN) localStorage.setItem(LOGIN_KEY, "true");
+    document.getElementById("login_overlay").remove();
+  } else {
+    alert("密码错误");
+  }
+}
+
+document.getElementById("login_btn").onclick = check;
+document.getElementById("pwd_input").onkeydown = e => { if(e.key==="Enter") check() };
+setTimeout(() => document.getElementById("pwd_input").focus(), 100);
+</script>
+<!-- ========== 登录验证脚本 结束 ========== -->
+</body>
+</html>
