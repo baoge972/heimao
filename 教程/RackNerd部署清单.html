@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>VPS 项目状态</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f0f0f0; }
+        .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .running { color: green; font-weight: bold; }
+        .stopped { color: red; font-weight: bold; }
+        .cmd { background: #eef; padding: 8px; margin: 5px 0; border-radius: 4px; font-family: monospace; cursor: pointer; }
+        .cmd:hover { background: #dde; }
+        button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-bottom: 20px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>📡 VPS 项目监控面板</h1>
+    <p>racknerd-ffa4775 | <span id="updateTime">加载中...</span></p>
+    <button onclick="loadData()">🔄 手动刷新</button>
+    <div id="projects"></div>
+
+    <script>
+        // 项目配置（您也可以直接修改这里的域名、端口等）
+        const projects = [
+            { name: "Bitwarden", domain: "https://mm.baoge456.de5.net", port: "8072", container: "bitwarden", restart: "docker restart bitwarden" },
+            { name: "家庭记账", domain: "https://jizhang.baoge.wang", port: "9999", container: "accounting-app", restart: "docker restart accounting-app" },
+            { name: "新闻聚合", domain: "https://dyx.baoge123.de5.net", port: "3001", container: "what-happen-app", restart: "cd /root/dyx && docker-compose restart" },
+            { name: "K视频", domain: "https://kvideo.baoge123.de5.net", port: "3100", container: "kvideo", restart: "cd /root/kvideo && docker-compose restart" },
+            { name: "MoonTVPlus", domain: "https://moontvplus.baoge123.de5.net", port: "3000", container: "moontvplus", restart: "cd /root/moontvplus && docker-compose restart" },
+            { name: "IPTV Pro", domain: null, port: "8880", container: "iptv-pro", restart: "docker restart iptv-pro", subUrls: ["https://yzby.baoge123.de5.net/token", "https://yzby.baoge123.de5.net/xymm"] },
+            { name: "1Panel面板", domain: "https://1p.baoge123.de5.net", port: "18227", container: "1panel-core", restart: "systemctl restart 1panel" }
+        ];
+
+        // 模拟当前状态（您可以根据实际情况修改）
+        const mockStatus = {
+            "Bitwarden": "running",
+            "家庭记账": "running", 
+            "新闻聚合": "running",
+            "K视频": "running",
+            "MoonTVPlus": "running",
+            "IPTV Pro": "running",
+            "1Panel面板": "stopped"
+        };
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert("已复制: " + text);
+        }
+
+        function loadData() {
+            const container = document.getElementById('projects');
+            container.innerHTML = '';
+            
+            let runningCount = 0, stoppedCount = 0;
+            
+            for (let p of projects) {
+                const status = mockStatus[p.name];
+                if (status === 'running') runningCount++;
+                else stoppedCount++;
+                
+                const statusClass = status === 'running' ? 'running' : 'stopped';
+                const statusText = status === 'running' ? '● 运行中' : '○ 已停止';
+                
+                let linksHtml = '';
+                if (p.subUrls) {
+                    linksHtml = p.subUrls.map(url => `<a href="${url}" target="_blank">🔗 ${url.split('/').pop()}</a>`).join(' ');
+                } else if (p.domain) {
+                    linksHtml = `<a href="${p.domain}" target="_blank">🌐 打开网站</a>`;
+                }
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>📦 ${p.name}</h3>
+                        <span class="${statusClass}">${statusText}</span>
+                    </div>
+                    <div>🔌 端口: ${p.port}</div>
+                    <div>🐳 容器: ${p.container}</div>
+                    <div>${linksHtml}</div>
+                    <div class="cmd" onclick="copyToClipboard('${p.restart}')">🔄 重启命令: ${p.restart}</div>
+                    <div class="cmd" onclick="copyToClipboard('docker ps | grep ${p.container.split(' ')[0]}')">🔎 查询状态</div>
+                `;
+                container.appendChild(card);
+            }
+            
+            document.getElementById('updateTime').innerHTML = `更新时间: ${new Date().toLocaleString()} | 运行: ${runningCount} | 停止: ${stoppedCount}`;
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>
