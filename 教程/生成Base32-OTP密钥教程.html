@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成 Base32 OTP 密钥 - 教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 40px;
+            font-size: 1rem;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        .step {
+            margin-bottom: 15px;
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            position: relative;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            display: block;
+            line-height: 1.6;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .copy-btn.copied {
+            background: #4caf50;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: #856404;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .success-box code {
+            background: #c3e6cb;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        table th, table td {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+
+        table th {
+            background: #667eea;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        table td {
+            background: #f9f9f9;
+        }
+
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .warning strong {
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 生成 Base32 OTP 密钥</h1>
+        <p class="subtitle">用于 Google Authenticator 的 TOTP 验证</p>
+
+        <!-- 第一步：打开 PowerShell -->
+        <div class="card">
+            <h2><span class="icon">1️⃣</span> 第一步：打开 PowerShell</h2>
+            
+            <div class="step">
+                <div class="step-title">在哪里运行：</div>
+                <p>在 Windows 系统上打开 PowerShell 终端</p>
+            </div>
+
+            <div class="step">
+                <div class="step-title">操作方法：</div>
+                <p>按 <code>Win + X</code>，选择 <strong>"Windows PowerShell"</strong> 或 <strong>"Windows 终端"</strong></p>
+                <p style="margin-top: 8px;">或按 <code>Win + R</code>，输入 <code>powershell</code>，按回车</p>
+            </div>
+
+            <div class="note">
+                <strong>📍 提示：</strong>无需管理员权限，普通用户模式即可
+            </div>
+        </div>
+
+        <!-- 第二步：生成密钥 -->
+        <div class="card">
+            <h2><span class="icon">2️⃣</span> 第二步：生成 Base32 密钥</h2>
+
+            <div class="step">
+                <div class="step-title">方法 1：简单版（推荐）</div>
+                <div class="code-block">
+                    <code>$chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+$key = -join (1..20 | ForEach-Object { Get-Random -InputObject $chars.ToCharArray() })
+Write-Host "Base32 密钥: $key"</code>
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">方法 2：一行版</div>
+                <div class="code-block">
+                    <code>-join (1..20 | ForEach-Object { "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[(Get-Random -Minimum 0 -Maximum 32)] })</code>
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <strong>✅ 输出示例：</strong>
+                <code>Base32 密钥: JBSWY3DPEHPK3PXP</code>
+                <p style="margin-top: 8px; color: #155724;">密钥长度为 16-20 位，仅包含大写字母 A-Z 和数字 2-7</p>
+            </div>
+        </div>
+
+        <!-- 第三步：配置环境变量 -->
+        <div class="card">
+            <h2><span class="icon">3️⃣</span> 第三步：配置 Workers 环境变量</h2>
+
+            <div class="step">
+                <div class="step-title">在哪里配置：</div>
+                <p>Cloudflare Dashboard → Workers → 你的项目 → 设置 → 变量</p>
+            </div>
+
+            <table>
+                <tr>
+                    <th>变量名</th>
+                    <th>值</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td><code>OTP_SECRET</code></td>
+                    <td>生成的 Base32 密钥</td>
+                    <td>如 <code>JBSWY3DPEHPK3PXP</code></td>
+                </tr>
+            </table>
+
+            <div class="note">
+                <strong>📍 提示：</strong>保存后需要重新部署 Workers 才能生效
+            </div>
+        </div>
+
+        <!-- 第四步：绑定 Google Authenticator -->
+        <div class="card">
+            <h2><span class="icon">4️⃣</span> 第四步：绑定 Google Authenticator</h2>
+
+            <div class="step">
+                <div class="step-title">在手机上操作：</div>
+                <p>1. 打开 Google Authenticator 应用</p>
+                <p>2. 点击 <strong>+</strong> 号，选择 <strong>"手动输入密钥"</strong></p>
+                <p>3. 输入以下信息：</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>账户名称：<code>CF-Workers</code>（自定义）</li>
+                    <li>密钥：复制生成的 Base32 密钥</li>
+                    <li>时间类型：保持 <strong>"基于时间"</strong></li>
+                </ul>
+                <p style="margin-top: 10px;">4. 点击 <strong>"添加"</strong></p>
+            </div>
+
+            <div class="success-box">
+                <strong>✅ 成功标志：</strong>手机应用显示 6 位数字验证码，每 30 秒刷新一次
+            </div>
+        </div>
+
+        <!-- 测试验证 -->
+        <div class="card">
+            <h2><span class="icon">5️⃣</span> 第五步：测试验证</h2>
+
+            <div class="step">
+                <div class="step-title">测试流程：</div>
+                <p>1. 访问你的 Workers 网站</p>
+                <p>2. 输入登录密码</p>
+                <p>3. 弹出 OTP 输入框</p>
+                <p>4. 输入手机上的 6 位验证码</p>
+                <p>5. 验证成功，登录完成 ✅</p>
+            </div>
+
+            <div class="warning">
+                <strong>⚠️ 注意：</strong>如果提示"动态验证码错误"，检查：
+                <ul style="margin-left: 20px; margin-top: 8px;">
+                    <li>手机时间是否准确</li>
+                    <li>密钥是否正确复制（区分大小写）</li>
+                    <li>Workers 环境变量是否已更新</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 常见问题 -->
+        <div class="card">
+            <h2><span class="icon">❓</span> 常见问题</h2>
+
+            <table>
+                <tr>
+                    <th style="width: 30%;">问题</th>
+                    <th>解决方法</th>
+                </tr>
+                <tr>
+                    <td>Google Authenticator 提示"密码值太短"</td>
+                    <td>使用了 Base64 密钥，必须用 Base32（仅包含 A-Z 和 2-7）</td>
+                </tr>
+                <tr>
+                    <td>动态验证码一直错误</td>
+                    <td>校准手机时间，确保与网络时间同步</td>
+                </tr>
+                <tr>
+                    <td>忘记密码怎么办</td>
+                    <td>重新生成密钥，更新环境变量，重新绑定 Google Authenticator</td>
+                </tr>
+                <tr>
+                    <td>多人使用怎么办</td>
+                    <td>每人使用不同的 OTP_SECRET，分别绑定</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const codeBlock = btn.parentElement.querySelector('code');
+            const text = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = '已复制!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                // 备用方案
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btn.textContent = '已复制!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
