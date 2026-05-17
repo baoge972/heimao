@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Workers OTP 二次验证集成教程</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.8;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        h2 {
+            color: #34495e;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        h3 {
+            color: #2980b9;
+            margin: 20px 0 10px;
+        }
+        .step {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: #3498db;
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin: 15px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Cloudflare Workers OTP 二次验证集成教程</h1>
+        <p class="subtitle">适用于任何 Workers 项目的 TOTP 双因素认证方案</p>
+
+        <div class="toc">
+            <h3>📋 目录</h3>
+            <ul>
+                <li><a href="#step1">步骤 1：生成 OTP 密钥</a></li>
+                <li><a href="#step2">步骤 2：配置 Workers 环境变量</a></li>
+                <li><a href="#step3">步骤 3：添加 TOTP 验证函数</a></li>
+                <li><a href="#step4">步骤 4：修改登录 API</a></li>
+                <li><a href="#step5">步骤 5：前端集成</a></li>
+                <li><a href="#step6">步骤 6：用户绑定说明</a></li>
+                <li><a href="#faq">常见问题</a></li>
+            </ul>
+        </div>
+
+        <h2 id="step1"><span class="step-number">1</span>生成 Base32 OTP 密钥</h2>
+        
+        <div class="step">
+            <h3>📍 在哪里运行：Windows PowerShell</h3>
+            <p>按 <code>Win + R</code>，输入 <code>powershell</code>，按回车</p>
+        </div>
+
+        <div class="step">
+            <h3>方法 1：推荐（可复制）</h3>
+            <pre><code>$chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+$key = -join (1..20 | ForEach-Object { Get-Random -InputObject $chars.ToCharArray() })
+Write-Host "Base32 密钥: $key"</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>方法 2：一行版</h3>
+            <pre><code>-join (1..20 | ForEach-Object { "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[(Get-Random -Minimum 0 -Maximum 32)] })</code></pre>
+        </div>
+
+        <div class="success">
+            <strong>✅ 输出示例：</strong><code>Base32 密钥: JBSWY3DPEHPK3PXP</code>
+            <p style="margin-top: 8px;">密钥长度为 16-20 位，仅包含大写字母 A-Z 和数字 2-7</p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 重要：</strong>必须使用 Base32 格式（仅 A-Z 和 2-7），不能使用 Base64！否则 Google Authenticator 会提示“密码值太短”
+        </div>
+
+        <h2 id="step2"><span class="step-number">2</span>配置 Workers 环境变量</h2>
+
+        <ol>
+            <li>登录 <a href="https://dash.cloudflare.com" target="_blank">Cloudflare 控制台</a></li>
+            <li>进入 <strong>Workers & Pages</strong> → 选择你的 Worker</li>
+            <li>点击 <strong>设置</strong> → <strong>变量</strong></li>
+            <li>在 <strong>环境变量</strong> 区域点击 <strong>添加变量</strong></li>
+            <li>填写：
+                <ul>
+                    <li><strong>变量名：</strong><code>OTP_SECRET</code></li>
+                    <li><strong>变量值：</strong>步骤 1 生成的密钥（如 <code>JBSWY3DPEHPK3PXP</code>）</li>
+                    <li><strong>类型：</strong>选择 <strong>密钥</strong>（加密存储）</li>
+                </ul>
+            </li>
+            <li>点击 <strong>保存</strong></li>
+            <li>部署 Worker 使环境变量生效</li>
+        </ol>
+
+        <div class="success">
+            <strong>✅ 提示：</strong>如果不设置 <code>OTP_SECRET</code>，系统会自动跳过 OTP 验证（兼容旧版本）
+        </div>
+
+        <h2 id="step3"><span class="step-number">3</span>添加 TOTP 验证函数</h2>
+
+        <p>将以下代码添加到 Workers 文件的顶部（路由定义之前）：</p>
+
+        <pre><code>// --- TOTP 验证函数 ---
+async function verifyTOTP(secret, token) {
+  if (!secret || !token) return false;
+  
+  try {
+    // Base32 解码
+    function base32Decode(base32) {
+      const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      let bits = '';
+      for (let i = 0; i &lt; base32.length; i++) {
+        const val = base32Chars.indexOf(base32[i].toUpperCase());
+        if (val === -1) continue;
+        bits += val.toString(2).padStart(5, '0');
+      }
+      
+      const bytes = [];
+      for (let i = 0; i + 8 &lt;= bits.length; i += 8) {
+        bytes.push(parseInt(bits.substring(i, i + 8), 2));
+      }
+      return new Uint8Array(bytes);
+    }
+    
+    const key = base32Decode(secret.replace(/=/g, ''));
+    
+    // 当前时间步（30秒）
+    const currentTimeStep = Math.floor(Date.now() / 30000);
+    
+    // 允许 ±2 时间步误差（±1分钟）
+    for (let i = -2; i &lt;= 2; i++) {
+      const timeStep = currentTimeStep + i;
+      
+      // 生成时间步的8字节大端序数组
+      const timeBytes = new ArrayBuffer(8);
+      const view = new DataView(timeBytes);
+      view.setUint32(4, timeStep, false);
+      
+      // HMAC-SHA1
+      const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, timeBytes);
+      
+      // 动态截断
+      const hmacResult = new Uint8Array(signature);
+      const offset = hmacResult[hmacResult.length - 1] &amp; 0xf;
+      const binary = ((hmacResult[offset] &amp; 0x7f) &lt;&lt; 24) |
+                     ((hmacResult[offset + 1] &amp; 0xff) &lt;&lt; 16) |
+                     ((hmacResult[offset + 2] &amp; 0xff) &lt;&lt; 8) |
+                     (hmacResult[offset + 3] &amp; 0xff);
+      
+      const otp = (binary % 1000000).toString().padStart(6, '0');
+      
+      if (token === otp) return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.error('TOTP 验证失败:', e);
+    return false;
+  }
+}</code></pre>
+
+        <h2 id="step4"><span class="step-number">4</span>修改登录 API</h2>
+
+        <p>找到你的登录 API 路由（如 <code>/api/login</code>），修改为两步验证：</p>
+
+        <pre><code>router.post('/api/login', async (request, env) =&gt; {
+    const { password, otp, step } = await request.json();
+    
+    // CORS headers
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    };
+    
+    // 第一步：验证密码
+    if (step === 1) {
+        if (password !== env.ADMIN_PASSWORD) {
+            return new Response(JSON.stringify({ success: false, message: '密码错误', step: 1 }), { 
+                status: 401, 
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...corsHeaders
+                } 
+            });
+        }
+        
+        // 密码正确，检查是否需要 OTP
+        if (env.OTP_SECRET &amp;&amp; env.OTP_SECRET !== '') {
+            return new Response(JSON.stringify({ success: true, requireOtp: true, step: 2 }), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...corsHeaders
+                }
+            });
+        }
+        
+        // 不需要 OTP，直接登录成功
+        return new Response(JSON.stringify({ success: true, step: 3 }), {
+            headers: {
+                'Content-Type': 'application/json',
+                'Set-Cookie': `auth_token=authenticated; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`,
+                ...corsHeaders
+            }
+        });
+    }
+    
+    // 第二步：验证 OTP
+    if (step === 2) {
+        if (!otp) {
+            return new Response(JSON.stringify({ success: false, message: '请输入动态验证码', step: 2 }), { 
+                status: 401, 
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...corsHeaders
+                } 
+            });
+        }
+        
+        const isValid = await verifyTOTP(env.OTP_SECRET, otp);
+        if (!isValid) {
+            return new Response(JSON.stringify({ success: false, message: '动态验证码错误', step: 2 }), { 
+                status: 401, 
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...corsHeaders
+                } 
+            });
+        }
+        
+        // OTP 验证成功
+        return new Response(JSON.stringify({ success: true, step: 3 }), {
+            headers: {
+                'Content-Type': 'application/json',
+                'Set-Cookie': `auth_token=authenticated; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`,
+                ...corsHeaders
+            }
+        });
+    }
+});</code></pre>
+
+        <div class="success">
+            <strong>✅ CORS 跨域支持：</strong>所有 API 响应已添加 <code>Access-Control-Allow-Origin: *</code> 等跨域 headers，支持前端跨域调用
+        </div>
+
+        <h2 id="step5"><span class="step-number">5</span>前端集成</h2>
+
+        <h3>HTML 部分</h3>
+        <p>在登录表单后添加 OTP 模态框：</p>
+
+        <pre><code>&lt;!-- OTP 验证模态框 --&gt;
+&lt;div id="otp-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center;"&gt;
+    &lt;div style="background:#fff; padding:40px 30px; border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,0.3); text-align:center; max-width:320px; width:90%;"&gt;
+        &lt;div style="font-size:3rem; margin-bottom:15px;"&gt;🔐&lt;/div&gt;
+        &lt;h3 style="margin:0 0 10px; color:#333; font-size:1.4rem;"&gt;二次验证&lt;/h3&gt;
+        &lt;p style="margin:0 0 20px; color:#666; font-size:0.95rem;"&gt;请输入6位动态验证码&lt;/p&gt;
+        &lt;input type="text" id="otp-input" placeholder="000000" maxlength="6" style="width:100%; padding:14px; font-size:1.5rem; text-align:center; letter-spacing:8px; border:2px solid #e0e0e0; border-radius:12px; outline:none; transition:border 0.3s; box-sizing:border-box;"&gt;
+        &lt;button id="otp-submit-button" style="width:100%; margin-top:20px; padding:14px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:12px; font-size:1.1rem; font-weight:600; cursor:pointer; transition:transform 0.2s;"&gt;验证&lt;/button&gt;
+        &lt;p id="otp-error" style="margin-top:12px; color:#e53e3e; font-size:0.9rem;"&gt;&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+        <h3>JavaScript 部分</h3>
+        <pre><code>let currentPassword = '';
+
+// 第一步：验证密码
+document.getElementById('login-button').addEventListener('click', async () =&gt; {
+    const password = document.getElementById('password').value;
+    if (!password) {
+        document.querySelector('.error-message').textContent = '请输入密码';
+        return;
+    }
+    
+    currentPassword = password;
+    
+    const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, step: 1 })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        if (data.requireOtp) {
+            // 显示 OTP 模态框
+            document.getElementById('otp-modal').style.display = 'flex';
+            document.getElementById('otp-input').focus();
+        } else {
+            // 不需要 OTP，直接刷新
+            window.location.reload();
+        }
+    } else {
+        document.querySelector('.error-message').textContent = data.message || '登录失败';
+    }
+});
+
+// 第二步：验证 OTP
+document.getElementById('otp-submit-button').addEventListener('click', async () =&gt; {
+    const otp = document.getElementById('otp-input').value;
+    if (!otp || otp.length !== 6) {
+        document.getElementById('otp-error').textContent = '请输入6位数字';
+        return;
+    }
+    
+    const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: currentPassword, otp, step: 2 })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        window.location.reload();
+    } else {
+        document.getElementById('otp-error').textContent = data.message || '验证失败';
+        document.getElementById('otp-input').value = '';
+        document.getElementById('otp-input').focus();
+    }
+});
+
+// OTP 输入框自动提交
+document.getElementById('otp-input').addEventListener('input', (e) =&gt; {
+    e.target.value = e.target.value.replace(/\D/g, '');
+    if (e.target.value.length === 6) {
+        document.getElementById('otp-submit-button').click();
+    }
+});</code></pre>
+
+        <h2 id="step6"><span class="step-number">6</span>用户绑定说明</h2>
+
+        <p>将以下说明发送给用户：</p>
+
+        <div class="step">
+            <h3>📱 谷歌验证器绑定步骤</h3>
+            <ol>
+                <li>手机下载 <strong>Google Authenticator</strong>（谷歌验证器）App</li>
+                <li>打开 App，点击 <strong>"+"</strong> 号</li>
+                <li>选择 <strong>"手动输入密钥"</strong></li>
+                <li>填写：
+                    <ul>
+                        <li><strong>账户名：</strong>你的项目名称（如"科学订阅"）</li>
+                        <li><strong>密钥：</strong><code>JBSWY3DPEHPK3PXP</code>（替换为实际密钥）</li>
+                    </ul>
+                </li>
+                <li>点击 <strong>"保存"</strong></li>
+                <li>登录时，打开 App 查看当前 6 位数字并输入</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <strong>💡 提示：</strong>密钥每 30 秒变化一次，请在 30 秒内完成输入
+        </div>
+
+        <h2 id="faq">常见问题</h2>
+
+        <h3>Q1：如果用户手机时间不准确怎么办？</h3>
+        <p>A：代码已内置 <strong>±2 时间步容差（±1 分钟）</strong>，手机时间偏差 1 分钟内仍可验证通过。</p>
+
+        <h3>Q2：可以不启用 OTP 吗？</h3>
+        <p>A：可以。如果不设置 <code>OTP_SECRET</code> 环境变量，系统会自动跳过 OTP 验证，仅验证密码。</p>
+
+        <h3>Q3：密钥丢失怎么办？</h3>
+        <p>A：在 Workers 环境变量中重新设置新密钥，所有用户需用新密钥重新绑定。</p>
+
+        <h3>Q4：支持多个用户吗？</h3>
+        <p>A：当前方案所有用户共享同一密钥。如需独立密钥，需扩展为每个用户存储独立 Secret。</p>
+
+        <h3>Q5：兼容性如何？</h3>
+        <p>A：支持所有主流验证器 App：Google Authenticator、Microsoft Authenticator、Authy 等。</p>
+
+        <div class="success">
+            <strong>🎉 完成！</strong>现在你的 Workers 项目已具备企业级双因素认证能力。
+        </div>
+
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #e0e0e0;">
+        <p style="text-align: center; color: #999; font-size: 0.9em;">
+            本教程适用于 Cloudflare Workers 环境 | 基于 TOTP 标准（RFC 6238）
+        </p>
+    </div>
+</body>
+</html>
