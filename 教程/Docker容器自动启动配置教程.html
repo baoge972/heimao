@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Docker容器自动启动配置教程 | 重启策略管理</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            margin: 0;
+            padding: 24px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.2s ease;
+            border: 1px solid #e9eef3;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #eef2f8;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .card-header h2, .card-header h3 {
+            margin: 0;
+            font-weight: 600;
+        }
+        .card-header h2 {
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, #0f2b3d, #1e4a76);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .badge {
+            background: #eef2ff;
+            padding: 6px 14px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+        }
+        code {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #0f3b5c;
+        }
+        .cmd-block {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 0.5rem 1rem;
+            margin: 1rem 0;
+            border: 1px solid #dce3ec;
+            flex-wrap: wrap;
+        }
+        .cmd-text {
+            font-family: monospace;
+            font-weight: 500;
+            background: #ffffff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 14px;
+            color: #0b3b5f;
+            word-break: break-all;
+            font-size: 0.9rem;
+        }
+        button.copy-btn, .small-btn {
+            background: #1e293b;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.75rem;
+            transition: 0.2s;
+            margin-left: 12px;
+        }
+        button.copy-btn:hover {
+            background: #0f172a;
+            transform: scale(0.97);
+        }
+
+        .generator-area {
+            background: #fefce8;
+            border-left: 5px solid #eab308;
+            border-radius: 24px;
+            padding: 1.2rem 1.8rem;
+            margin-top: 1rem;
+        }
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .form-group {
+            flex: 2;
+            min-width: 200px;
+        }
+        .form-group label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+        .primary-btn {
+            background: #0f3b5f;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .primary-btn:hover {
+            background: #0b2a44;
+            transform: translateY(-1px);
+        }
+        .danger-btn {
+            background: #dc2626;
+        }
+        .danger-btn:hover {
+            background: #b91c1c;
+        }
+        .history-table-wrapper {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+        .delete-icon {
+            color: #ef4444;
+            cursor: pointer;
+            font-weight: bold;
+            background: #fee2e2;
+            padding: 4px 10px;
+            border-radius: 40px;
+            display: inline-block;
+            font-size: 0.7rem;
+        }
+        .delete-icon:hover {
+            background: #fecaca;
+        }
+        .note {
+            background: #e6f7ff;
+            padding: 12px 18px;
+            border-radius: 20px;
+            margin-top: 18px;
+            font-size: 0.85rem;
+            border-left: 4px solid #0284c7;
+        }
+        .link-list a {
+            color: #2563eb;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 500;
+        }
+        .link-list a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+        }
+        @media (max-width: 680px) {
+            .card {
+                padding: 1.2rem;
+            }
+            .cmd-block {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            button.copy-btn {
+                margin-left: 0;
+            }
+        }
+        hr {
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 标题与简介 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🐳 Docker Desktop 容器自动启动配置</h2>
+            <div class="badge">重启策略 · always</div>
+        </div>
+        <p>默认情况下，Docker Desktop 中的容器不会随 Docker 引擎启动而自动运行。通过设置 <code>--restart=always</code> 策略，即可让容器在 Docker 启动时自动拉起，异常退出后也会自动重启。<br>
+        ✅ 教程提供了两种查询容器名称的方式、管理员权限提醒、一键复制命令，以及历史记录管理功能。</p>
+        <div class="link-list">
+            🔗 查询容器名称方式：
+            <a href="https://dpanel.baoge.wang/dpanel/ui/app/list" target="_blank" rel="noopener noreferrer">📦 DPanel 容器列表 (点击跳转)</a>
+            <span>｜</span>
+            <a href="#" onclick="alert('在终端中运行: docker ps -a 或 docker container ls 即可查看所有容器名称'); return false;">💻 终端命令查询 (docker ps -a)</a>
+        </div>
+        <div class="note">
+            ⚠️ <strong>管理员权限提醒</strong>：请以 <strong>管理员身份运行 PowerShell / 终端</strong>，否则 Docker 命令可能权限不足。<br>
+            命令格式：<code>docker update --restart=always &lt;容器名称&gt;</code> (容器名称区分大小写)
+        </div>
+    </div>
+
+    <!-- 快速生成命令模块 -->
+    <div class="card">
+        <h3>✨ 根据容器名称一键生成启动命令</h3>
+        <div class="generator-area">
+            <div class="flex-row">
+                <div class="form-group">
+                    <label>📌 容器名称 (区分大小写)</label>
+                    <input type="text" id="containerNameInput" placeholder="例如: portainerUI, dpanel, fireflyiii ..." />
+                </div>
+                <div>
+                    <button class="primary-btn" id="genCmdBtn">⚡ 生成命令 + 记录历史</button>
+                </div>
+            </div>
+            <div id="dynamicCmdPreview" style="margin-top: 16px;">
+                <div class="cmd-block" style="background:#f1f5f9;">
+                    <span class="cmd-text" id="previewCmdText">docker update --restart=always 容器名称</span>
+                    <button class="copy-btn" id="copyPreviewBtn">📋 复制命令</button>
+                </div>
+            </div>
+            <p class="note" style="margin-top: 12px;">⭐ 生成命令后会自动添加到下方「已运行历史记录」，表示该命令已配置/执行。</p>
+        </div>
+    </div>
+
+    <!-- 我给你的历史数据 (已经运行过的命令记录) 同时支持添加和删除 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📜 已运行命令历史记录 (证明已执行配置)</h3>
+            <button id="clearAllHistoryBtn" class="small-btn" style="background:#64748b;">🗑️ 清空全部</button>
+        </div>
+        <p>以下是根据你提供的容器列表及手动添加生成的 <code>docker update --restart=always &lt;container&gt;</code> 记录，代表这些容器已设置为自动启动。你可以添加新记录，或删除任意条目。</p>
+        <div class="history-table-wrapper">
+            <table id="historyTable">
+                <thead>
+                    <tr><th>容器名称</th><th>完整命令</th><th>操作</th></tr>
+                </thead>
+                <tbody id="historyTbody">
+                    <!-- 动态js填充历史数据 -->
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="addContainerName" placeholder="输入新容器名称 (例如 my-app)" style="flex:2; min-width: 180px;" />
+            <button id="addHistoryBtn" class="primary-btn" style="background:#2c5f2d;">➕ 添加新容器记录</button>
+        </div>
+        <div class="note" style="margin-top: 15px;">
+            💡 提示：历史数据保存在浏览器本地 (localStorage)，刷新页面后依然保留。每条记录代表该容器已经执行过 <code>docker update --restart=always</code>。
+        </div>
+    </div>
+
+    <!-- 完整教程步骤：管理员终端+操作示例 -->
+    <div class="card">
+        <h3>📖 详细配置步骤</h3>
+        <ol style="line-height: 1.6; padding-left: 1.2rem;">
+            <li><strong>以管理员身份打开终端</strong> (PowerShell / CMD / 终端)：右键“Windows PowerShell”选择“以管理员身份运行”，macOS/Linux 使用 sudo 提升权限。</li>
+            <li><strong>查询当前所有容器名称</strong>：执行 <code>docker ps -a</code>，复制需要自启动的容器名 (注意大小写敏感)。</li>
+            <li><strong>执行自动重启策略命令</strong>：<br/>
+                <div class="cmd-block" style="background:#eef2ff; margin: 8px 0;">
+                    <span class="cmd-text">docker update --restart=always &lt;容器名&gt;</span>
+                    <button class="copy-btn" id="sampleCopyBtn">复制示例命令</button>
+                </div>
+                例如: <code>docker update --restart=always portainerUI</code>
+            </li>
+            <li><strong>验证是否生效</strong>：重启 Docker Desktop 后，运行 <code>docker ps</code> 查看容器状态，或者 <code>docker inspect &lt;容器名&gt; | grep -i restart</code></li>
+        </ol>
+        <p>✅ 如需取消自动启动：可执行 <code>docker update --restart=no &lt;容器名&gt;</code>，并在历史记录中删除相应条目。</p>
+        <div class="link-list">
+            📘 官方文档参考：<a href="https://docs.docker.com/config/containers/start-containers-automatically/" target="_blank">Docker 容器重启策略</a>
+        </div>
+    </div>
+
+    <!-- 你提供的原始容器列表展示（作为已运行命令的证据） -->
+    
+<footer>© Docker 自动启动助手 | 请确保使用管理员终端执行命令 | 所有数据本地存储，安全可靠</footer>
+
+<script>
+    // ---------- 预置历史数据 (基于用户的初始容器列表) ----------
+    const defaultContainers = [
+        "tender_kirch", "portainerUI", "dport", "dpanel", "sun-panel",
+        "fireflyiii", "fireflydb", "clever_bhaskara", "music-player-music-player-1",
+        "music-player-music-player", "music", "shaarli-shaarli-1", "glance", "halo-halo-1"
+    ];
+
+    // 存储历史记录: 每个条目 { containerName, command, timestamp }
+    let historyRecords = [];
+
+    // 加载本地存储的历史
+    function loadHistory() {
+        const stored = localStorage.getItem("docker_autostart_history");
+        if (stored) {
+            try {
+                historyRecords = JSON.parse(stored);
+                if (!Array.isArray(historyRecords)) historyRecords = [];
+            } catch(e) { historyRecords = []; }
+        }
+        // 如果本地没有任何记录, 则初始化默认数据(原始提供的容器列表)
+        if (historyRecords.length === 0) {
+            for (let name of defaultContainers) {
+                const command = `docker update --restart=always ${name}`;
+                historyRecords.push({
+                    containerName: name,
+                    command: command,
+                    timestamp: new Date().toLocaleString()
+                });
+            }
+            saveHistory();
+        } else {
+            // 可选：检查是否缺失defaultContainers中的某些？为了避免重复，我们不自动合并，保留用户已有。
+            // 但为了展示完整性，如果是全新安装但已有一个空数组，上面已经兜底。同时如果用户之前删除了一些无所谓，尊重用户删除意愿。
+            // 为防止初始数据覆盖用户自定义删除，但第一条是空记录时会加载默认。这里if history长度==0才初始化, 很好。
+        }
+        renderHistoryTable();
+    }
+
+    function saveHistory() {
+        localStorage.setItem("docker_autostart_history", JSON.stringify(historyRecords));
+    }
+
+    // 渲染历史表格
+    function renderHistoryTable() {
+        const tbody = document.getElementById("historyTbody");
+        if (!tbody) return;
+        if (historyRecords.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">暂无历史记录，添加一条吧 ✨</td></tr>`;
+            return;
+        }
+        let html = "";
+        for (let i = 0; i < historyRecords.length; i++) {
+            const rec = historyRecords[i];
+            html += `
+                <tr>
+                    <td><strong>${escapeHtml(rec.containerName)}</strong><br><span style="font-size:0.7rem; color:#6c757d;">${rec.timestamp || ''}</span></td>
+                    <td><code style="background:#eef2ff; padding:4px 8px; border-radius:12px;">${escapeHtml(rec.command)}</code>
+                        <button class="copy-btn" style="background:#334155; padding:2px 10px; margin-left:8px;" data-copytext="${escapeHtml(rec.command)}">复制命令</button>
+                    </td>
+                    <td><span class="delete-icon" data-index="${i}">🗑️ 删除</span></td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
+
+        // 绑定删除事件
+        document.querySelectorAll('.delete-icon').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const idx = parseInt(el.getAttribute('data-index'));
+                if (!isNaN(idx) && idx >= 0 && idx < historyRecords.length) {
+                    historyRecords.splice(idx, 1);
+                    saveHistory();
+                    renderHistoryTable();
+                    showToast("已删除记录", 1500);
+                }
+            });
+        });
+
+        // 绑定每个复制按钮 (动态复制)
+        document.querySelectorAll('button[data-copytext]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const textToCopy = btn.getAttribute('data-copytext');
+                copyToClipboard(textToCopy);
+                showToast("命令已复制到剪贴板 ✓");
+            });
+        });
+    }
+
+    // 辅助: 防XSS
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // 复制通用方法
+    function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(err => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+    function fallbackCopy(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+    }
+    function showToast(msg, duration = 2000) {
+        let toast = document.getElementById("dynamicToast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "dynamicToast";
+            toast.style.position = "fixed";
+            toast.style.bottom = "20px";
+            toast.style.left = "50%";
+            toast.style.transform = "translateX(-50%)";
+            toast.style.backgroundColor = "#1e293b";
+            toast.style.color = "white";
+            toast.style.padding = "10px 20px";
+            toast.style.borderRadius = "40px";
+            toast.style.fontSize = "0.85rem";
+            toast.style.zIndex = "9999";
+            toast.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+            toast.style.fontWeight = "500";
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.opacity = "1";
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 300);
+        }, duration);
+    }
+
+    // 添加新容器记录
+    function addContainerRecord(containerName) {
+        if (!containerName || containerName.trim() === "") {
+            showToast("请填写容器名称", 1500);
+            return false;
+        }
+        const trimmed = containerName.trim();
+        // 检查是否已存在相同容器名的记录 (可选, 但无强制阻止, 避免重复提醒)
+        const exists = historyRecords.some(rec => rec.containerName === trimmed);
+        if (exists) {
+            showToast(`容器 "${trimmed}" 的记录已存在，无需重复添加`, 1800);
+            return false;
+        }
+        const command = `docker update --restart=always ${trimmed}`;
+        const newRecord = {
+            containerName: trimmed,
+            command: command,
+            timestamp: new Date().toLocaleString()
+        };
+        historyRecords.push(newRecord);
+        saveHistory();
+        renderHistoryTable();
+        showToast(`✅ 已添加容器 ${trimmed} 的自动启动记录`, 2000);
+        return true;
+    }
+
+    // 生成命令 & 同时添加记录 (根据输入框)
+    function generateAndRecord() {
+        const inputEl = document.getElementById("containerNameInput");
+        let containerName = inputEl.value.trim();
+        if (containerName === "") {
+            showToast("请输入容器名称再生成命令", 1500);
+            return;
+        }
+        // 生成完整命令
+        const fullCommand = `docker update --restart=always ${containerName}`;
+        const previewSpan = document.getElementById("previewCmdText");
+        if (previewSpan) previewSpan.innerText = fullCommand;
+        // 添加到历史记录 (如果重复就不添加并提示已存在)
+        const exists = historyRecords.some(rec => rec.containerName === containerName);
+        if (!exists) {
+            const newRec = {
+                containerName: containerName,
+                command: fullCommand,
+                timestamp: new Date().toLocaleString()
+            };
+            historyRecords.push(newRec);
+            saveHistory();
+            renderHistoryTable();
+            showToast(`📌 命令已生成并记录 "${containerName}" 到历史列表`, 2000);
+        } else {
+            showToast(`⚠️ 容器 "${containerName}" 已有历史记录，未重复添加，但命令已生成可直接复制`, 2000);
+        }
+        // 额外清除预览栏高亮
+    }
+
+    // 清空全部历史
+    function clearAllHistory() {
+        if (confirm("⚠️ 确定要清空所有历史记录吗？此操作不可恢复。")) {
+            historyRecords = [];
+            saveHistory();
+            renderHistoryTable();
+            showToast("所有历史记录已清空", 1500);
+        }
+    }
+
+    // 手动添加单独输入框的容器
+    function addFromManualInput() {
+        const addInput = document.getElementById("addContainerName");
+        const name = addInput.value.trim();
+        if (!name) {
+            showToast("请输入要添加的容器名称", 1200);
+            return;
+        }
+        addContainerRecord(name);
+        addInput.value = ""; // 清空
+    }
+
+    // 事件绑定和初始化
+    document.addEventListener("DOMContentLoaded", () => {
+        loadHistory();
+
+        // 生成命令按钮
+        const genBtn = document.getElementById("genCmdBtn");
+        if (genBtn) genBtn.addEventListener("click", generateAndRecord);
+
+        // 复制预览命令按钮
+        const copyPreview = document.getElementById("copyPreviewBtn");
+        if (copyPreview) {
+            copyPreview.addEventListener("click", () => {
+                const cmdText = document.getElementById("previewCmdText")?.innerText;
+                if (cmdText && cmdText !== "docker update --restart=always 容器名称") {
+                    copyToClipboard(cmdText);
+                    showToast("已复制命令: " + cmdText);
+                } else {
+                    showToast("请先生成具体的命令（输入容器名）", 1200);
+                }
+            });
+        }
+
+        // 示例复制按钮
+        const sampleBtn = document.getElementById("sampleCopyBtn");
+        if (sampleBtn) {
+            sampleBtn.addEventListener("click", () => {
+                copyToClipboard("docker update --restart=always <容器名>");
+                showToast("已复制示例命令");
+            });
+        }
+
+        // 添加新容器按钮
+        const addHistoryBtn = document.getElementById("addHistoryBtn");
+        if (addHistoryBtn) addHistoryBtn.addEventListener("click", addFromManualInput);
+        
+        const clearAllBtn = document.getElementById("clearAllHistoryBtn");
+        if (clearAllBtn) clearAllBtn.addEventListener("click", clearAllHistory);
+
+        // 初始让预览显示默认占位（无具体）但确保美观
+        const previewSpan = document.getElementById("previewCmdText");
+        if (previewSpan) previewSpan.innerText = "docker update --restart=always <容器名称>";
+    });
+</script>
+</body>
+</html>
