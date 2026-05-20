@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cloudflare WARP + Zero Trust 免费极速网络教程 | 解锁ChatGPT 千兆宽带</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0c10;
+            color: #eef2ff;
+            line-height: 1.55;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* 主卡片 */
+        .tutorial-card {
+            background: #11151c;
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(246, 130, 31, 0.2);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        /* 英雄区 */
+        .hero {
+            background: linear-gradient(145deg, #0f1722 0%, #03060c 100%);
+            padding: 2.5rem 2rem;
+            border-bottom: 3px solid #f6821f;
+            position: relative;
+        }
+
+        .hero::before {
+            content: "⚡ 不限流量 · 千兆跑满 ⚡";
+            position: absolute;
+            bottom: 12px;
+            right: 24px;
+            font-size: 0.7rem;
+            background: #f6821f20;
+            padding: 4px 12px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+            color: #ffb347;
+        }
+
+        .hero h1 {
+            font-size: 1.9rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero h1 i {
+            color: #f6821f;
+            font-size: 2rem;
+            text-shadow: 0 0 6px #f6821f60;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .badge {
+            background: #1e2a3a;
+            border-radius: 40px;
+            padding: 0.25rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #facc15;
+        }
+
+        .hero p {
+            font-size: 1.05rem;
+            color: #b9c7d9;
+            max-width: 85%;
+        }
+
+        .speed-note {
+            background: #00000055;
+            border-radius: 1rem;
+            padding: 0.7rem 1rem;
+            margin-top: 1rem;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        /* 内容区域 */
+        .content {
+            padding: 2rem 2rem 2.2rem;
+        }
+
+        .warning-box {
+            background: #2c1e0e;
+            border-left: 6px solid #f97316;
+            padding: 1.2rem 1.5rem;
+            border-radius: 1rem;
+            margin: 1.8rem 0;
+            color: #ffdd99;
+            font-weight: 500;
+        }
+
+        .warning-box i {
+            color: #ff9f4a;
+            margin-right: 8px;
+        }
+
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 5px solid #f6821f;
+            padding-left: 18px;
+        }
+
+        .step-list {
+            list-style: none;
+            counter-reset: step-counter;
+            margin: 1rem 0 1.5rem 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin-bottom: 1.35rem;
+            padding-left: 2.8rem;
+            position: relative;
+            font-weight: 500;
+            color: #e6edf5;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            background: #f6821f;
+            color: #0a0c10;
+            font-weight: 800;
+            width: 28px;
+            height: 28px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            left: 0;
+            top: -2px;
+            font-size: 0.85rem;
+            box-shadow: 0 0 0 2px #11151c, 0 0 0 4px #f6821f40;
+        }
+
+        .code-block {
+            background: #010409;
+            border: 1px solid #2d3748;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1rem;
+            font-family: 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 0.8rem 0 1.2rem 0;
+            color: #9cdcfe;
+        }
+
+        .info-note {
+            background: #0e1a26;
+            border-radius: 1rem;
+            padding: 0.9rem 1.2rem;
+            margin: 1rem 0;
+            border: 1px solid #2c4c6e;
+        }
+
+        .highlight {
+            background: #f6821f30;
+            color: #ffd966;
+            padding: 0 4px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .testimonial {
+            background: linear-gradient(120deg, #00000030, #1e2a2e30);
+            padding: 1.2rem;
+            border-radius: 1.3rem;
+            margin: 1.8rem 0;
+            text-align: center;
+            border: 1px solid #f6821f40;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #6c7a91;
+        }
+
+        @media (max-width: 700px) {
+            .hero h1 { font-size: 1.4rem; }
+            .hero p { max-width: 100%; }
+            .content { padding: 1.5rem; }
+        }
+
+        i.fa, i.fab, i.fas {
+            margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="tutorial-card">
+        <div class="hero">
+            <div class="hero-badge">
+                <span class="badge"><i class="fas fa-gift"></i> 重磅福利 · 完全免费</span>
+                <span class="badge"><i class="fas fa-tachometer-alt"></i> 千兆宽带无压力</span>
+                <span class="badge"><i class="fab fa-cloudflare"></i> Cloudflare官方加持</span>
+            </div>
+            <h1>
+                <i class="fab fa-cloudflare"></i> 
+                Cloudflare WARP + Zero Trust
+                <span style="color:#f6821f;">免费极速网络教程</span>
+            </h1>
+            <p>不限流量 · 跑满千兆 · 原生解锁ChatGPT / 8K视频秒开 · 晚高峰实测10万KB/s+</p>
+            <div class="speed-note">
+                <i class="fas fa-chart-line"></i> 实测：晚高峰8K毫无压力，速度可达10万KB/s，解锁AI工具无压力！
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- 重磅开头 -->
+            <p style="font-size: 1.1rem; font-weight: 500;">🔥 <strong>今天给大家带来一个重磅福利：</strong> 如何利用网络巨头Cloudflare旗下的WARP工具，搭配Zero Trust（零信任）模式，打造一个<strong class="highlight">完全免费、不限流量、能跑满千兆宽带的最强网络环境</strong>。经过实测，晚高峰看8K视频毫无压力，并且能完美原生解锁ChatGPT等AI工具。废话不多说，直接上干货！</p>
+
+            <!-- ⚠️ 注意事项 必看区域 -->
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i> <strong>⚠️ 注意事项（必看）</strong><br>
+                在开始操作前，请务必关闭电脑上现有的其他VPN或代理软件，否则会导致后续验证失败。确保系统干净无冲突，让WARP客户端独占通道！
+            </div>
+
+            <!-- 第一步 -->
+            <h2><i class="fab fa-cloudflare"></i> 第一步：注册Cloudflare账号并开通Zero Trust</h2>
+            <ul class="step-list">
+                <li>打开 <strong class="highlight">Cloudflare 官网</strong> (<a href="https://cloudflare.com" style="color:#f6821f;" target="_blank">cloudflare.com</a>) ，点击右上角注册账号（支持邮箱、Google、Apple ID等直接登录）。</li>
+                <li>登录后，在左侧菜单栏找到并点击 <strong>Zero Trust</strong>。</li>
+                <li>首次进入会让你创建一个<strong>团队名称(Team Name)</strong> 。随便起一个（例如 <code>aitekeji2026</code>），请务必记住这个名字，后面要用！</li>
+                <li>选择套餐时，直接选择 <strong>$0 的免费套餐（Free Plan）</strong>，支持50个设备，绝对够用。如果提示绑定支付方式，直接点击“取消并退出”即可，不影响使用。</li>
+            </ul>
+            <div class="info-note">
+                <i class="fas fa-memory"></i> <strong>小贴士：</strong> 免费版包含Zero Trust核心功能 + WARP 设备注册，适合个人和中小团队，50设备完全够折腾。
+            </div>
+
+            <!-- 第二步：配置连接模式 -->
+            <h2><i class="fas fa-sliders-h"></i> 第二步：配置连接模式（关键优化）</h2>
+            <ul class="step-list">
+                <li>再次进入 <strong>Zero Trust后台</strong>，在左侧找到 <strong>Settings（设置） -> WARP Client（WARP客户端）</strong>。</li>
+                <li>找到 <strong>Profile Settings（配置文件设置）</strong>，确保代理模式选择为 <span class="highlight">Gateway with WARP</span>（同时代理流量和DNS，最稳定）。</li>
+                <li><strong>路由配置（Split Tunnels）</strong> 选择默认的 <strong>Exclude（排除）</strong> 模式即可。</li>
+            </ul>
+            <div class="code-block">
+                # 配置路径参考：<br>
+                Zero Trust → Settings → WARP Client → 编辑Profile → <br>
+                Service mode: Gateway with WARP ✅<br>
+                Split Tunnels: Exclude IPs and domains（默认多数流量走WARP，更畅快）
+            </div>
+
+            <!-- 第三步：客户端下载与登录 -->
+            <h2><i class="fas fa-download"></i> 第三步：下载并登录WARP客户端（团队模式）</h2>
+            <ul class="step-list">
+                <li>在Zero Trust后台找到下载链接，或者直接去 <a href="https://one.one.one.one/" target="_blank" style="color:#f6821f;">官网下载对应系统</a>（Windows / macOS / iOS / Android / Linux）。</li>
+                <li>安装完成后，打开状态栏的WARP图标 <strong>（先不要点击连接！）</strong>。</li>
+                <li>点击右下角的<strong>齿轮（设置）图标</strong> → 偏好设置(Preferences) → 账户(Account)。</li>
+                <li>点击 <strong>“登录到Cloudflare Zero Trust”</strong> 。</li>
+                <li>在弹出的网页中，输入你第一步设置的<strong>团队名称(Team Name)</strong> ，例如 <code>aitekeji2026</code>。</li>
+                <li>输入你的注册邮箱，查收6位数验证码并填入。页面提示成功后，回到客户端。</li>
+                <li>打开WARP客户端主开关，点击连接 ⚡。</li>
+            </ul>
+            <div class="warning-box" style="background:#0f1a24;">
+                <i class="fas fa-key"></i> <strong>登录验证关键点：</strong> 必须选择“Cloudflare Zero Trust”而不是普通WARP模式！输入团队名称后，会跳转邮箱验证码，成功绑定后界面会显示“您的团队正在保护此设备”。
+            </div>
+
+            <!-- 第四步：测试与享受 -->
+            <h2><i class="fas fa-tv"></i> 🎉 测试与享受极速网络</h2>
+            <p>当WARP客户端显示<strong class="highlight">“已连接”</strong>，且你的网络受到保护时，大功告成！你现在可以：</p>
+            <div class="testimonial">
+                <i class="fas fa-video" style="font-size: 1.4rem;"></i> 尝试打开YouTube 8K / 4K视频，丝滑秒播；<br>
+                <i class="fas fa-robot"></i> 访问 <strong>ChatGPT</strong> / Claude / Poe 等AI工具，原生解锁，无需额外代理；<br>
+                <i class="fas fa-tachometer-alt"></i> 跑满千兆宽带，Steam/PT下载直接起飞 🚀<br>
+                <span style="display: inline-block; margin-top: 8px;">🏆 晚高峰实测 8K 稳定 10万KB/s+ ，延迟极低！</span>
+            </div>
+            <div class="info-note">
+                <i class="fas fa-check-circle" style="color:#4ade80;"></i> <strong>验证是否成功：</strong> 访问 <a href="https://speed.cloudflare.com" target="_blank" style="color:#f6821f;">https://speed.cloudflare.com</a> 查看延迟和速度，同时检查IP位置已变成Cloudflare优选节点，且解锁流媒体。
+            </div>
+
+            <!-- 常见疑问 -->
+            <h2><i class="fas fa-question-circle"></i> 常见疑问</h2>
+            <ul style="margin-bottom: 1.5rem; list-style: disc; padding-left: 1.5rem;">
+                <li><strong>Q： 免费套餐真的永久免费吗？</strong> — A： Cloudflare Zero Trust Free Plan 长期免费，支持50个用户/设备，无需担心。</li>
+                <li><strong>Q： 开启后网速反而变慢？</strong> — A： 检查WARP连接模式是否为“Gateway with WARP”，部分地区建议在Split Tunnels里排除不必要流量，但默认exclude模式足够快。</li>
+                <li><strong>Q： ChatGPT依然地区限制？</strong> — A： 确保WARP客户端已经连接到团队模式（Zero Trust），而非个人免费WARP。个人WARP部分地区IP仍被封锁，但通过Zero Trust团队的clean IP可完美解锁。</li>
+                <li><strong>Q： 手机端能用吗？</strong> — A： 绝对可以！iOS/Android下载1.1.1.1 APP，选择“团队”并输入团队名称，邮箱登录即可。</li>
+            </ul>
+
+            <p style="margin-top: 2rem; font-size: 0.9rem; text-align: center; border-top: 1px solid #2d3a4e; padding-top: 1.5rem;">
+                🌟 本教程完全基于Cloudflare官方免费服务，实测稳定运行。如果对你有帮助，欢迎分享给更多朋友。享受无界极速网络，从WARP+Zero Trust开始！
+            </p>
+            <footer>
+                <i class="fab fa-cloudflare"></i> 由 Cloudflare WARP 强力驱动 · 不限流量· 持续更新教程 · 祝你网络自由，速度起飞 🛸
+            </footer>
+        </div>
+    </div>
+</div>
+</body>
+</html>
