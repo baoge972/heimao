@@ -1,0 +1,458 @@
+// 频率限制配置
+const RATE_LIMIT = {
+    windowMs: 60000, // 1分钟窗口
+    maxRequests: 30, // 每分钟最多30次请求
+};
+
+// 内存存储频率限制（生产环境建议使用KV）
+const rateLimitStore = new Map();
+
+// ❌ 删除这个全局的 setInterval（导致错误的原因）
+// setInterval(() => {
+//     const now = Date.now();
+//     for (const [key, time] of rateLimitStore.entries()) {
+//         if (now - time > RATE_LIMIT.windowMs) {
+//             rateLimitStore.delete(key);
+//         }
+//     }
+// }, 60000);
+
+// HTML模板（压缩版，减少传输大小）
+const HTML_TEMPLATE = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>域名监控</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        body{font-family:Arial,sans-serif;line-height:1.6;margin:0;padding:0;background-color:#f4f4f4;color:#333}
+        .container{width:95%;max-width:1200px;margin:20px auto;background-color:#fff;box-shadow:0 2px 5px rgba(0,0,0,0.1);border-radius:5px;overflow:hidden}
+        .header-container{display:flex;justify-content:space-between;align-items:center;padding:20px;background-color:#3498db;color:#fff}
+        .header-container h1{margin-bottom:0}
+        .menu-container{position:relative}
+        #menu-toggle{background-color:transparent;border:none;color:white;font-size:24px;cursor:pointer;padding:10px}
+        .button-group{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;width:100%;padding-top:10px}
+        .table-container{width:100%;overflow-x:auto}
+        table{width:100%;border-collapse:collapse;white-space:nowrap;table-layout:auto}
+        th,td{padding:12px;text-align:left;border-bottom:1px solid #ddd}
+        th{background-color:#f2f2f2;font-weight:bold;cursor:pointer}
+        .edit-button{background-color:#4CAF50;border:none;color:white;padding:10px 20px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px}
+        .edit-button-cancel{background-color:#e74c3c;border:none;color:white;padding:10px 20px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px}
+        .edit-button-save{background-color:#3498db;border:none;color:white;padding:10px 20px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px}
+        .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+        .status-dot.normal{background-color:#2ecc71}
+        .status-dot.expired{background-color:#e74c3c}
+        .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background-color:#fff;padding:20px;border-radius:5px;box-shadow:0 2px 5px rgba(0,0,0,0.1);z-index:1;max-width:90%;max-height:90%;overflow:auto}
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.5);z-index:0}
+        .remaining-days-button{background-color:#7A288A;border:none;color:white;padding:10px 20px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px}
+        .remaining-days{text-align:center}
+        @media (min-width:600px){.header-container{flex-direction:row;justify-content:space-between;align-items:center}.header-container h1{margin-bottom:0}}
+        @media (min-width:992px){.container{width:80%}th,td{padding:16px}}
+        .hidden{display:none!important}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <h1>域名监控</h1>
+            <div class="menu-container">
+                <button id="menu-toggle"><i class="fas fa-bars"></i></button>
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="edit-button hidden" id="add-domain-button" onclick="showAddForm()">添加域名</button>
+            <button class="edit-button hidden" id="export-button" onclick="exportDomains()">导出列表</button>
+            <button class="edit-button hidden" id="import-button" onclick="importDomains()">导入列表</button>
+            <button class="edit-button hidden" id="clear-button" onclick="clearDomains()">清空列表</button>
+        </div>
+        <div class="table-container">
+            <table id="domain-table">
+                <thead>
+                    <tr>
+                        <th>状态</th>
+                        <th>域名</th>
+                        <th>注册商</th>
+                        <th>注册时间</th>
+                        <th>过期时间</th>
+                        <th class="remaining-days"><button class="remaining-days-button" onclick="sortDomains('remainingDays')">剩余天数</button></th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="domain-body"></tbody>
+            </table>
+        </div>
+        <div id="add-form" class="modal" style="display:none;">
+            <h2>添加域名信息</h2>
+            <form id="add-domain-form">
+                <label for="domain">域名:</label>
+                <input type="text" id="domain" name="domain"><br><br>
+                <label for="system">注册商:</label>
+                <input type="text" id="system" name="system"><br><br>
+                <label for="systemURL">注册商网址:</label>
+                <input type="url" id="systemURL" name="systemURL"><br><br>
+                <label for="registrationDate">注册时间:</label>
+                <input type="text" id="registrationDate" name="registrationDate" oninput="formatDate(this)"><br><br>
+                <label for="expirationDate">过期时间:</label>
+                <input type="text" id="expirationDate" name="expirationDate" oninput="formatDate(this)"><br><br>
+                <button class="edit-button-cancel" type="button" onclick="cancelAdd()">取消</button>
+                <button class="edit-button-save" type="button" onclick="addDomain()">保存</button>
+            </form>
+        </div>
+        <div id="edit-modal" class="modal" style="display:none;">
+            <h2>编辑域名信息</h2>
+            <form id="edit-domain-form">
+                <label for="editDomain">域名:</label>
+                <input type="text" id="editDomain" name="editDomain"><br><br>
+                <label for="editSystem">注册商:</label>
+                <input type="text" id="editSystem" name="editSystem"><br><br>
+                <label for="editSystemURL">注册商网址:</label>
+                <input type="url" id="editSystemURL" name="editSystemURL"><br><br>
+                <label for="editRegistrationDate">注册时间:</label>
+                <input type="text" id="editRegistrationDate" name="editRegistrationDate" oninput="formatDate(this)"><br><br>
+                <label for="editExpirationDate">过期时间:</label>
+                <input type="text" id="editExpirationDate" name="editExpirationDate" oninput="formatDate(this)"><br><br>
+                <button class="edit-button-cancel" type="button" onclick="cancelEdit()">取消</button>
+                <button class="edit-button-save" type="button" onclick="saveEdit()">保存</button>
+            </form>
+        </div>
+        <div id="modal-overlay" class="modal-overlay" style="display:none;"></div>
+        <input type="file" id="import-file" style="display:none;" accept=".json" onchange="handleImportFile(this)">
+    </div>
+    <script>
+        let domains = JSON.parse(localStorage.getItem('domains')) || [{domain:'example.com',system:'Example System',systemURL:'https://example.com',registrationDate:'2022-01-01',expirationDate:'2024-01-01'}];
+        let currentEditIndex=null,isMenuOpen=false;
+        document.addEventListener('DOMContentLoaded',function(){
+            updateTable();
+            document.getElementById('menu-toggle').addEventListener('click',function(){
+                isMenuOpen=!isMenuOpen;
+                const btns=['add-domain-button','export-button','import-button','clear-button'];
+                btns.forEach(id=>{
+                    const btn=document.getElementById(id);
+                    if(isMenuOpen) btn.classList.remove('hidden');
+                    else btn.classList.add('hidden');
+                });
+            });
+        });
+        function showAddForm(){document.getElementById('add-form').style.display='block';document.getElementById('modal-overlay').style.display='block';}
+        function addDomain(){
+            const domain=document.getElementById('domain').value;
+            const system=document.getElementById('system').value;
+            const systemURL=document.getElementById('systemURL').value;
+            const registrationDate=document.getElementById('registrationDate').value;
+            const expirationDate=document.getElementById('expirationDate').value;
+            domains.push({domain,system,systemURL,registrationDate,expirationDate});
+            saveDomains();
+            updateTable();
+            document.getElementById('add-form').style.display='none';
+            document.getElementById('modal-overlay').style.display='none';
+            document.getElementById('add-domain-form').reset();
+        }
+        function cancelAdd(){document.getElementById('add-form').style.display='none';document.getElementById('modal-overlay').style.display='none';document.getElementById('add-domain-form').reset();}
+        function updateTable(){
+            const tableBody=document.getElementById('domain-body');
+            tableBody.innerHTML='';
+            domains.forEach((domainInfo,index)=>{
+                const row=document.createElement('tr');
+                const expirationDate=new Date(domainInfo.expirationDate);
+                const today=new Date();
+                const daysRemaining=Math.ceil((expirationDate-today)/(86400000));
+                const statusCell=document.createElement('td');
+                const statusDot=document.createElement('span');
+                statusDot.className='status-dot'+(daysRemaining>0?' normal':' expired');
+                statusCell.appendChild(statusDot);
+                const domainCell=document.createElement('td');
+                domainCell.textContent=domainInfo.domain;
+                const systemCell=document.createElement('td');
+                const systemLink=document.createElement('a');
+                systemLink.textContent=domainInfo.system;
+                systemLink.href=domainInfo.systemURL;
+                systemLink.target='_blank';
+                systemCell.appendChild(systemLink);
+                const registrationDateCell=document.createElement('td');
+                registrationDateCell.textContent=domainInfo.registrationDate;
+                const expirationDateCell=document.createElement('td');
+                expirationDateCell.textContent=domainInfo.expirationDate;
+                const remainingDaysCell=document.createElement('td');
+                remainingDaysCell.textContent=daysRemaining>0?daysRemaining+' 天':'已过期';
+                remainingDaysCell.className='remaining-days';
+                const actionCell=document.createElement('td');
+                const editButton=document.createElement('button');
+                editButton.textContent='编辑';
+                editButton.className='edit-button';
+                editButton.onclick=()=>{
+                    currentEditIndex=index;
+                    document.getElementById('editDomain').value=domainInfo.domain;
+                    document.getElementById('editSystem').value=domainInfo.system;
+                    document.getElementById('editSystemURL').value=domainInfo.systemURL;
+                    document.getElementById('editRegistrationDate').value=domainInfo.registrationDate;
+                    document.getElementById('editExpirationDate').value=domainInfo.expirationDate;
+                    document.getElementById('edit-modal').style.display='block';
+                    document.getElementById('modal-overlay').style.display='block';
+                };
+                const deleteButton=document.createElement('button');
+                deleteButton.textContent='删除';
+                deleteButton.className='edit-button';
+                deleteButton.onclick=()=>{
+                    if(confirm('确定要删除该域名吗？')){
+                        domains.splice(index,1);
+                        saveDomains();
+                        updateTable();
+                    }
+                };
+                actionCell.appendChild(editButton);
+                actionCell.appendChild(deleteButton);
+                row.appendChild(statusCell);
+                row.appendChild(domainCell);
+                row.appendChild(systemCell);
+                row.appendChild(registrationDateCell);
+                row.appendChild(expirationDateCell);
+                row.appendChild(remainingDaysCell);
+                row.appendChild(actionCell);
+                tableBody.appendChild(row);
+            });
+        }
+        function saveEdit(){
+            if(currentEditIndex!==null){
+                domains[currentEditIndex].domain=document.getElementById('editDomain').value;
+                domains[currentEditIndex].system=document.getElementById('editSystem').value;
+                domains[currentEditIndex].systemURL=document.getElementById('editSystemURL').value;
+                domains[currentEditIndex].registrationDate=document.getElementById('editRegistrationDate').value;
+                domains[currentEditIndex].expirationDate=document.getElementById('editExpirationDate').value;
+                saveDomains();
+                updateTable();
+                cancelEdit();
+            }
+        }
+        function cancelEdit(){document.getElementById('edit-modal').style.display='none';document.getElementById('modal-overlay').style.display='none';currentEditIndex=null;}
+        function saveDomains(){localStorage.setItem('domains',JSON.stringify(domains));}
+        function exportDomains(){
+            const jsonString=JSON.stringify(domains,null,2);
+            const blob=new Blob([jsonString],{type:'application/json'});
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url;
+            a.download='domains.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function importDomains(){document.getElementById('import-file').click();}
+        function handleImportFile(input){
+            const file=input.files[0];
+            if(file){
+                const reader=new FileReader();
+                reader.onload=function(e){
+                    try{
+                        domains=JSON.parse(e.target.result);
+                        saveDomains();
+                        updateTable();
+                    }catch(error){alert('Error parsing JSON: '+error);}
+                };
+                reader.readAsText(file);
+            }
+        }
+        function clearDomains(){if(confirm('确定要清空所有域名吗？')){domains=[];saveDomains();updateTable();}}
+        function formatDate(input){}
+        function sortDomains(sortBy){
+            if(sortBy==='remainingDays'){
+                domains.sort((a,b)=>{
+                    const aDays=Math.ceil((new Date(a.expirationDate)-new Date())/86400000);
+                    const bDays=Math.ceil((new Date(b.expirationDate)-new Date())/86400000);
+                    return aDays-bDays;
+                });
+                updateTable();
+            }
+        }
+    </script>
+</body>
+</html>`;
+
+// 清理过期的频率限制记录（在请求处理中执行）
+function cleanRateLimitStore() {
+    const now = Date.now();
+    for (const [key, time] of rateLimitStore.entries()) {
+        if (now - time > RATE_LIMIT.windowMs) {
+            rateLimitStore.delete(key);
+        }
+    }
+}
+
+// 计算HTML的ETag（基于内容长度）
+function generateETag(html) {
+    // 使用内容长度和简单哈希
+    let hash = 0;
+    for (let i = 0; i < html.length; i++) {
+        hash = ((hash << 5) - hash) + html.charCodeAt(i);
+        hash = hash & hash;
+    }
+    return `"${html.length}-${Math.abs(hash)}"`;
+}
+
+// 频率限制检查
+function checkRateLimit(request) {
+    const ip = request.headers.get('CF-Connecting-IP') || 
+               request.headers.get('X-Forwarded-For')?.split(',')[0] || 
+               'unknown';
+    const now = Date.now();
+    
+    // 清理过期记录
+    cleanRateLimitStore();
+    
+    // 统计IP在时间窗口内的请求数
+    let requestCount = 0;
+    for (const [key, time] of rateLimitStore.entries()) {
+        if (key.startsWith(ip) && now - time < RATE_LIMIT.windowMs) {
+            requestCount++;
+        }
+    }
+    
+    if (requestCount >= RATE_LIMIT.maxRequests) {
+        return false;
+    }
+    
+    // 记录本次请求
+    rateLimitStore.set(`${ip}-${now}`, now);
+    return true;
+}
+
+// 检查是否是爬虫
+function isBot(request) {
+    const userAgent = request.headers.get('User-Agent')?.toLowerCase() || '';
+    const bots = ['bot', 'crawler', 'spider', 'scanner', 'baidu', 'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'facebookexternalhit', 'twitterbot'];
+    return bots.some(bot => userAgent.includes(bot));
+}
+
+// 处理条件请求（304 Not Modified）
+function handleConditionalRequest(request, etag) {
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    
+    if (ifNoneMatch === etag) {
+        return true;
+    }
+    
+    return false;
+}
+
+// 主请求处理函数
+async function handleRequest(request) {
+    const url = new URL(request.url);
+    const method = request.method;
+    
+    // 1. 健康检查端点（用于监控和负载均衡）
+    if (url.pathname === '/health' || url.pathname === '/ping') {
+        return new Response('OK', { 
+            status: 200,
+            headers: {
+                'Content-Type': 'text/plain',
+                'Cache-Control': 'no-cache',
+            }
+        });
+    }
+    
+    // 2. 统计端点（可选，用于查看访问统计）
+    if (url.pathname === '/stats' && method === 'GET') {
+        return new Response(JSON.stringify({
+            rateLimitStoreSize: rateLimitStore.size,
+            timestamp: Date.now(),
+            uptime: performance.now(),
+        }), {
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+            }
+        });
+    }
+    
+    // 3. OPTIONS请求处理（CORS预检）
+    if (method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Max-Age': '86400',
+            }
+        });
+    }
+    
+    // 4. 只允许GET请求访问页面
+    if (method !== 'GET') {
+        return new Response('Method Not Allowed', { status: 405 });
+    }
+    
+    // 5. 爬虫友好处理：给爬虫返回简化版本或延迟响应
+    const isBotRequest = isBot(request);
+    if (isBotRequest) {
+        // 爬虫返回缓存头，减少请求频率
+        return new Response(HTML_TEMPLATE, {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/html;charset=UTF-8',
+                'Cache-Control': 'public, max-age=86400', // 爬虫缓存24小时
+                'X-Robots-Tag': 'index, follow',
+            }
+        });
+    }
+    
+    // 6. 频率限制检查
+    if (!checkRateLimit(request)) {
+        return new Response('Too Many Requests - Please try again later.', { 
+            status: 429,
+            headers: {
+                'Content-Type': 'text/plain;charset=UTF-8',
+                'Retry-After': '60',
+                'Cache-Control': 'no-cache',
+            }
+        });
+    }
+    
+    // 7. 生成ETag
+    const etag = generateETag(HTML_TEMPLATE);
+    
+    // 8. 检查条件请求
+    if (handleConditionalRequest(request, etag)) {
+        return new Response(null, { 
+            status: 304,
+            headers: {
+                'ETag': etag,
+                'Cache-Control': 'public, max-age=3600',
+                'Cache-Tag': 'domain-monitor,html',
+            }
+        });
+    }
+    
+    // 9. 返回完整响应（带完整的缓存头）
+    return new Response(HTML_TEMPLATE, {
+        status: 200,
+        headers: {
+            'Content-Type': 'text/html;charset=UTF-8',
+            
+            // 缓存控制（关键优化）
+            'Cache-Control': 'public, max-age=3600, s-maxage=7200, stale-while-revalidate=300',
+            'CDN-Cache-Control': 'public, max-age=86400',
+            'Cloudflare-CDN-Cache-Control': 'public, max-age=86400',
+            
+            // 缓存验证
+            'ETag': etag,
+            
+            // 安全头
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'SAMEORIGIN',
+            'X-XSS-Protection': '1; mode=block',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            
+            // 缓存标记（用于CDN缓存清除）
+            'Cache-Tag': 'domain-monitor,html',
+            
+            // 变化头
+            'Vary': 'Accept-Encoding, User-Agent',
+        },
+    });
+}
+
+// Worker入口
+addEventListener('fetch', event => {
+    event.respondWith(handleRequest(event.request));
+});
