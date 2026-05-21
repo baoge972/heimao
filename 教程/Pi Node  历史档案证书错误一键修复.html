@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pi Node 修复教程 | 历史档案证书错误一键修复</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f4f9;
+            font-family: 'Segoe UI', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            padding: 32px 24px;
+            color: #1a2c3e;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* 头部样式 */
+        .hero {
+            background: linear-gradient(135deg, #0b2b3f 0%, #1e4a6e 100%);
+            border-radius: 42px;
+            padding: 32px 36px;
+            margin-bottom: 32px;
+            color: white;
+            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.2);
+        }
+
+        .hero h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hero .badge {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+            border-radius: 60px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .hero p {
+            margin-top: 16px;
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: #ffffff;
+            border-radius: 32px;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e6edf4;
+            transition: all 0.2s;
+        }
+
+        .card-header {
+            padding: 18px 28px 8px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #eef2f8;
+        }
+
+        .card-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0f3b5c;
+        }
+
+        .env-tag {
+            background: #e9f0f5;
+            border-radius: 40px;
+            padding: 4px 14px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: monospace;
+            color: #1e5a7a;
+        }
+
+        .cmd-block {
+            margin: 20px 28px;
+            background: #0f172a;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .cmd-header {
+            background: #1e293b;
+            padding: 8px 18px;
+            font-size: 0.7rem;
+            color: #9ab3d5;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+        }
+
+        .cmd-content {
+            padding: 16px 20px;
+            background: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .command {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            word-break: break-all;
+            white-space: pre-wrap;
+            flex: 1;
+        }
+
+        .copy-btn {
+            background: #2d3a4e;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: #3e506e;
+        }
+
+        .info-note {
+            background: #f8fafd;
+            margin: 16px 28px 24px 28px;
+            padding: 14px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border-left: 4px solid #2a7f6e;
+            color: #1f4e5c;
+        }
+
+        .steps-list {
+            margin: 20px 28px 24px 28px;
+            padding-left: 24px;
+        }
+
+        .steps-list li {
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        hr {
+            margin: 8px 0;
+            border: none;
+            border-top: 1px solid #e2edf7;
+        }
+
+        .footer-note {
+            background: #eaf4ff;
+            border-radius: 24px;
+            padding: 20px 28px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #145c7a;
+        }
+
+        @media (max-width: 720px) {
+            .hero h1 { font-size: 1.6rem; }
+            .cmd-content { flex-direction: column; align-items: stretch; }
+            .command { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>
+            🔧 Pi Node 急救站
+            <span class="badge">certificate error · 历史档案修复</span>
+        </h1>
+        <p>
+            ✅ 检测到 <code>history.temp.testnet2.minepi.com</code> HTTPS 证书失效 → 导致状态文件卡死、<strong>Local block number 停滞</strong>。<br>
+            🚀 一键替换为正式档案源 <code>history.testnet2.minepi.com</code>，瞬间恢复同步能力。
+        </p>
+    </div>
+
+    <!-- 一键修复（最核心） -->
+    <div class="card">
+        <div class="card-header">
+            <h2>⚡ 极速一键修复 (推荐)</h2>
+            <span class="env-tag">Windows PowerShell | WSL 通用</span>
+        </div>
+        <div class="cmd-block">
+            <div class="cmd-header"><span>📋 复制整段命令 → 在 PowerShell 中粘贴回车</span></div>
+            <div class="cmd-content">
+                <div class="command" id="fixCommand">docker exec -it testnet2 bash -c "sed -i 's/history.temp.testnet2.minepi.com/history.testnet2.minepi.com/g' /opt/stellar/core/etc/stellar-core.cfg && supervisorctl restart stellar-core && sleep 3 && /usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E 'state|ledger.num|status'"</div>
+                <button class="copy-btn" data-cmd="fixCommand">📋 一键复制</button>
+            </div>
+        </div>
+        <div class="info-note">
+            🔍 <strong>这条命令做了什么？</strong><br>
+            • 自动修正 stellar-core 配置中的历史档案URL<br>
+            • 重启核心服务 stellar-core<br>
+            • 立即输出修复后的节点状态（state / ledger.num / status）<br>
+            ✅ 执行后若看到 <code>"state" : "Catching up"</code> 或 <code>"Connected"</code> + 正在下载状态文件，即表示修复成功！
+        </div>
+    </div>
+
+    <!-- 备用手动修复 + 交换文件处理 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🛠️ 手动修复 & 常见交换文件错误解决</h2>
+            <span class="env-tag">容器内操作</span>
+        </div>
+        <div class="steps-list">
+            <li><strong>1. 进入容器环境</strong><br>
+                <code style="background:#eef2f8; padding:4px 10px; border-radius:14px;">docker exec -it testnet2 bash</code>
+            </li>
+            <li><strong>2. 若遇到 ".swp 交换文件警告" (E325)</strong><br>
+                先删除残留交换文件：<code>rm -f /opt/stellar/core/etc/.stellar-core.cfg.swp</code>
+            </li>
+            <li><strong>3. 手动替换错误域名</strong><br>
+                <code style="background:#eef2f8; padding:4px 10px; border-radius:14px;">sed -i 's/history.temp.testnet2.minepi.com/history.testnet2.minepi.com/g' /opt/stellar/core/etc/stellar-core.cfg</code>
+            </li>
+            <li><strong>4. 重启 stellar-core 服务</strong><br>
+                <code style="background:#eef2f8; padding:4px 10px; border-radius:14px;">supervisorctl restart stellar-core</code>
+            </li>
+            <li><strong>5. 验证修复效果</strong><br>
+                <code style="background:#eef2f8; padding:4px 10px; border-radius:14px;">/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E "state|ledger.num|status"</code>
+            </li>
+        </div>
+        <div class="info-note">
+            💡 如果容器内没有 <code>sed</code> 命令，请先执行 <code>apt-get update && apt-get install -y sed</code> 再继续。
+        </div>
+    </div>
+
+    <!-- 同步状态监控工具包 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📡 同步状态监控工具箱</h2>
+            <span class="env-tag">实时诊断 | 日志跟踪</span>
+        </div>
+        <!-- 命令1 -->
+        <div class="cmd-block">
+            <div class="cmd-header"><span>🔎 快速查看同步进度 (状态/区块/详情)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdQuick">docker exec -it testnet2 bash -c "/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E 'state|ledger.num|status|peers.authenticated_count'"</div>
+                <button class="copy-btn" data-cmd="cmdQuick">📋 复制</button>
+            </div>
+        </div>
+        <!-- 命令2 实时 watch -->
+        <div class="cmd-block">
+            <div class="cmd-header"><span>⏱️ 每20秒自动刷新同步状态 (Windows + WSL)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdWatch">watch -n 20 'docker exec -it testnet2 bash -c "/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E \"state|ledger.num|status\""'</div>
+                <button class="copy-btn" data-cmd="cmdWatch">📋 复制</button>
+            </div>
+        </div>
+        <!-- 命令3 容器完整日志追踪 -->
+        <div class="cmd-block">
+            <div class="cmd-header"><span>📟 跟踪容器实时输出 (验证下载状态文件)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdLogs">docker logs -f testnet2 --tail 50</div>
+                <button class="copy-btn" data-cmd="cmdLogs">📋 复制</button>
+            </div>
+        </div>
+        <!-- 命令4 检查配置是否已修正 -->
+        <div class="cmd-block">
+            <div class="cmd-header"><span>✅ 验证历史档案URL是否已替换成功</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdCheckUrl">docker exec testnet2 grep "history.*minepi" /opt/stellar/core/etc/stellar-core.cfg</div>
+                <button class="copy-btn" data-cmd="cmdCheckUrl">📋 复制</button>
+            </div>
+        </div>
+        <div class="info-note">
+            🧠 <strong>解读指南</strong> — 修复成功后：<br>
+            • <code>"state": "Catching up"</code> + 显示 <code>Downloading state file</code> → 正常追赶。<br>
+            • <code>ledger.num</code> 初期保持在 8856191 不动，但状态文件名逐渐变化 (例如 89e6 → 89e7) 说明下载正常。<br>
+            • 最终 <code>ledger.num</code> 会瞬间跳跃至 900万以上，表示快照应用成功。<br>
+            • 若状态一直卡 <code>Connected</code> 且无下载动作，请再次检查配置是否含有 <code>temp.testnet2</code>。
+        </div>
+    </div>
+
+    <!-- 额外诊断 & 服务恢复 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🔍 深度诊断 & 服务自愈</h2>
+            <span class="env-tag">高级维护</span>
+        </div>
+        <div class="cmd-block">
+            <div class="cmd-header"><span>⚙️ 查看所有容器服务状态 (postgresql/stellar-core/horizon)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdSuperStatus">docker exec testnet2 supervisorctl status</div>
+                <button class="copy-btn" data-cmd="cmdSuperStatus">📋 复制</button>
+            </div>
+        </div>
+        <div class="cmd-block">
+            <div class="cmd-header"><span>🔄 单独重启 stellar-core (配置生效)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdRestartCore">docker exec testnet2 supervisorctl restart stellar-core</div>
+                <button class="copy-btn" data-cmd="cmdRestartCore">📋 复制</button>
+            </div>
+        </div>
+        <div class="cmd-block">
+            <div class="cmd-header"><span>🗑️ 清除失效swap文件 (解决vi编辑报错)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdRmSwap">docker exec testnet2 rm -f /opt/stellar/core/etc/.stellar-core.cfg.swp</div>
+                <button class="copy-btn" data-cmd="cmdRmSwap">📋 复制</button>
+            </div>
+        </div>
+        <div class="cmd-block">
+            <div class="cmd-header"><span>📊 容器资源使用监控 (CPU/内存)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdStats">docker stats testnet2 --no-stream</div>
+                <button class="copy-btn" data-cmd="cmdStats">📋 复制</button>
+            </div>
+        </div>
+        <div class="info-note">
+            🚦 <strong>故障排查指引</strong><br>
+            - 如果一键修复后仍长时间 <code>Local block number</code> 不变且无 <code>Downloading state file</code>，请手动执行 <code>docker logs --tail 100 testnet2</code> 观察有无 SSL/TLS 错误。<br>
+            - 若提示 <code>sed: command not found</code>，请进入容器运行 <code>apt update && apt install -y sed</code> 后再修复。<br>
+            - 所有命令均在 <strong>Windows PowerShell / 命令提示符</strong> 中运行，需要提前安装 Docker Desktop 并启用 WSL2。
+        </div>
+    </div>
+
+    <!-- 成功标志 -->
+    <div class="footer-note">
+        🎯 <strong>修复完成的标志：</strong> 在 Pi Node 界面或者上述状态命令中看到 <code>"Catching up to ledger XXXXX: Downloading state file history/00/89/…"</code><br>
+        并且状态文件名称逐步推进，<strong>Local block number 最终从 8856191 跃升至 9,0xx,xxx</strong>，证明节点已彻底恢复并同步中。
+        <br><br>
+        💡 提示：修改配置后第一次重启同步可能需要 10~30 分钟才显示下载进度，请保持容器运行，避免频繁重启。
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmdId = btn.getAttribute('data-cmd');
+            const cmdElement = document.getElementById(cmdId);
+            if (cmdElement) {
+                const cmdText = cmdElement.innerText;
+                navigator.clipboard.writeText(cmdText).then(() => {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = '✅ 已复制';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                    }, 1500);
+                }).catch(() => {
+                    alert('无法自动复制，请手动选中命令后 Ctrl+C');
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>
