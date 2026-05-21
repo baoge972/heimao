@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>优选IPV4/域名-批量标注工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        /* 顶部装饰条 */
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+        }
+
+        /* 标题 */
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #2c3e50;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e1e8ed;
+            position: relative;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        h1::after {
+            content: "";
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 2px;
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+        }
+
+        /* 描述区域 */
+        .description {
+            background: linear-gradient(to right, #e8f4fc, #e1f7e9);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 15px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .description p {
+            margin-bottom: 10px;
+        }
+
+        .description p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 区域通用 */
+        .input-area, .output-area {
+            margin-bottom: 25px;
+        }
+
+        /* 输入头部（标签+刷新按钮） */
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        /* 自定义关键词行 */
+        .custom-keyword {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e1e8ed;
+        }
+
+        .custom-keyword label {
+            margin-bottom: 0;
+            min-width: 120px;
+        }
+
+        .custom-keyword input {
+            padding: 10px 15px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            flex: 1;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .custom-keyword input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        /* 文本框容器（相对定位，用于清空按钮） */
+        .input-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 15px;
+            resize: vertical;
+            transition: all 0.3s;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            background-color: #fafcfd;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Cascadia Code', monospace;
+            line-height: 1.4;
+        }
+
+        /* 输入区自动换行 */
+        #inputData {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* 输出区保留格式并允许横向滚动 */
+        #outputData {
+            white-space: pre;
+            overflow-x: auto;
+            background-color: #f9fdfa;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            background-color: #fff;
+        }
+
+        /* 清空按钮（输入框内右上角） */
+        .clear-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+
+        .clear-btn:hover {
+            background: rgba(52, 152, 219, 1);
+            transform: translateY(-2px);
+        }
+
+        /* 按钮组 */
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 14px 25px;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        #processBtn, #copyBtn, #exportBtn {
+            background-color: #2ecc71;
+        }
+        #processBtn:hover, #copyBtn:hover, #exportBtn:hover {
+            background-color: #58d68d;
+        }
+
+        #autoFormatBtn {
+            background-color: #f39c12;
+        }
+        #autoFormatBtn:hover {
+            background-color: #e67e22;
+        }
+
+        #refreshBtn {
+            background-color: #3498db;
+            padding: 8px 15px;
+            font-size: 14px;
+            flex: 0 0 auto;
+            box-shadow: none;
+        }
+        #refreshBtn:hover {
+            background-color: #5dade2;
+            transform: translateY(-2px);
+        }
+
+        /* 计数器和消息 */
+        .counter {
+            text-align: center;
+            margin-top: 15px;
+            color: #7f8c8d;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 8px;
+            animation: fadeIn 0.5s;
+            display: none;
+        }
+
+        .success-message {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+        }
+
+        .info-message {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .modal p {
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        .modal-cancel {
+            background-color: #95a5a6;
+        }
+        .modal-cancel:hover {
+            background-color: #7f8c8d;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .buttons {
+                flex-direction: column;
+            }
+            .container {
+                padding: 20px;
+            }
+            textarea {
+                height: 150px;
+            }
+            .custom-keyword {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .custom-keyword label {
+                min-width: auto;
+            }
+            .input-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            #refreshBtn {
+                align-self: flex-end;
+            }
+        }
+
+        .icon {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>优选IPV4/域名-批量标注工具</h1>
+
+    <div class="description">
+        <p><strong>功能说明：</strong>本工具支持批量标注IPV4地址和域名数据，可解析「延迟 ms：域名」格式（自动去除数字/ms前缀），也支持纯IP/纯域名标注。</p>
+        <p><strong>输入格式：</strong>1. 纯IPv4地址 2. 纯域名 3. 「数字 ms：域名」混合格式（支持杂乱排列）</p>
+        <p><strong>输出格式：</strong>IP/域名#自定义关键词1（序号从1开始递增）</p>
+    </div>
+
+    <div class="custom-keyword">
+        <label for="keywordInput">自定义关键词：</label>
+        <input type="text" id="keywordInput" value="宝哥优选" placeholder="输入自定义关键词">
+    </div>
+
+    <div class="input-area">
+        <div class="input-header">
+            <label for="inputData">输入数据：</label>
+            <button id="refreshBtn">🔄 刷新</button>
+        </div>
+        <div class="input-container">
+            <textarea id="inputData" placeholder="支持纯IP、纯域名、延迟+域名格式，例如：&#10;57.673 ms：www.udacity.com&#10;192.168.1.1&#10;download.yunzhongzhuan.com"></textarea>
+            <button class="clear-btn" id="clearInput">清空</button>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="autoFormatBtn">📄 自动提取IP/域名</button>
+        <button id="processBtn">✍️ 标注数据</button>
+        <button id="copyBtn">📋 复制结果</button>
+        <button id="exportBtn">💾 导出TXT</button>
+    </div>
+
+    <div class="output-area">
+        <label for="outputData">标注结果：</label>
+        <textarea id="outputData" readonly placeholder="标注后的结果将显示在这里"></textarea>
+        <div class="counter">
+            <span id="counter">已标注: 0 行数据</span>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="successMessage" class="message success-message">结果已成功复制到剪贴板！</div>
+    <div id="formatMessage" class="message info-message">已自动提取所有IP/域名！</div>
+    <div id="refreshMessage" class="message info-message">已清空所有内容！</div>
+    <div id="exportMessage" class="message success-message">TXT文件已成功导出！</div>
+</div>
+
+<!-- 导出命名模态框 -->
+<div id="exportModal" class="modal">
+    <div class="modal-content">
+        <h3>导出文件命名</h3>
+        <p>请输入文件编号（例如：1, 2, 3...）</p>
+        <input type="number" id="fileNumber" min="1" value="1" placeholder="输入文件编号">
+        <div class="modal-buttons">
+            <button id="confirmExport">确认导出</button>
+            <button id="cancelExport" class="modal-cancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // DOM 元素
+        const inputData = document.getElementById('inputData');
+        const outputData = document.getElementById('outputData');
+        const keywordInput = document.getElementById('keywordInput');
+        const counterSpan = document.getElementById('counter');
+        const processBtn = document.getElementById('processBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const autoFormatBtn = document.getElementById('autoFormatBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const clearInputBtn = document.getElementById('clearInput');
+        const exportModal = document.getElementById('exportModal');
+        const fileNumber = document.getElementById('fileNumber');
+        const confirmExport = document.getElementById('confirmExport');
+        const cancelExport = document.getElementById('cancelExport');
+
+        // 消息元素
+        const successMsg = document.getElementById('successMessage');
+        const formatMsg = document.getElementById('formatMessage');
+        const refreshMsg = document.getElementById('refreshMessage');
+        const exportMsg = document.getElementById('exportMessage');
+
+        // 辅助函数：短暂显示消息
+        function showMessage(element, duration = 2000) {
+            if(!element) return;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, duration);
+        }
+
+        // 核心提取函数：从杂乱文本中提取 IPv4 和 域名（支持 "数字 ms：域名"）
+        function extractAllTargets(rawText) {
+            if (!rawText || !rawText.trim()) return [];
+            // 按空白字符（换行、空格、制表等）拆分成片段
+            const tokens = rawText.split(/[\n\s\t]+/).filter(t => t.trim().length > 0);
+            const targets = [];
+            const seen = new Set();
+
+            // 规则优先级：延迟+域名 > IPv4 > 纯域名
+            // 正则：匹配数字 ms：域名 （中文冒号或英文冒号兼容）
+            const delayDomainRegex = /\d+(?:\.\d+)?\s*ms\s*[：:]\s*([a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9])/i;
+            // IPv4 严格匹配
+            const ipv4Regex = /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\b/;
+            // 域名匹配（支持多级，不含协议）
+            const domainRegex = /\b([a-zA-Z0-9][a-zA-Z0-9-]{0,62}\.)+[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?\b/;
+
+            for (let token of tokens) {
+                let matched = false;
+                // 1) 延迟+域名
+                let match = token.match(delayDomainRegex);
+                if (match && match[1]) {
+                    let domain = match[1].trim();
+                    if (domain && !seen.has(domain)) {
+                        seen.add(domain);
+                        targets.push(domain);
+                    }
+                    matched = true;
+                }
+                // 2) IPv4
+                if (!matched) {
+                    match = token.match(ipv4Regex);
+                    if (match && match[1]) {
+                        let ip = match[1].trim();
+                        if (!seen.has(ip)) {
+                            seen.add(ip);
+                            targets.push(ip);
+                        }
+                        matched = true;
+                    }
+                }
+                // 3) 纯域名（且不能是纯数字）
+                if (!matched) {
+                    match = token.match(domainRegex);
+                    if (match && match[0]) {
+                        let domain = match[0].trim();
+                        // 过滤掉看起来像IPv4片段但不是完整IP的干扰
+                        if (!/^\d+\.\d+\.\d+\.\d+$/.test(domain) && !seen.has(domain)) {
+                            seen.add(domain);
+                            targets.push(domain);
+                        }
+                    }
+                }
+            }
+            return targets;
+        }
+
+        // 更新计数显示
+        function updateCounter(count) {
+            counterSpan.textContent = `已标注: ${count} 行数据`;
+        }
+
+        // 标注主逻辑
+        function annotateData() {
+            const raw = inputData.value;
+            if (!raw.trim()) {
+                alert('请输入数据！');
+                return;
+            }
+            const keyword = keywordInput.value.trim() || '宝哥优选';
+            const targets = extractAllTargets(raw);
+            if (targets.length === 0) {
+                alert('未提取到任何有效IP/域名！');
+                outputData.value = '';
+                updateCounter(0);
+                return;
+            }
+            const lines = targets.map((item, idx) => `${item}#${keyword}${idx+1}`);
+            outputData.value = lines.join('\n');
+            updateCounter(targets.length);
+        }
+
+        // 自动提取：将输入框内容过滤为纯IP/域名（每行一个）
+        function autoExtract() {
+            const raw = inputData.value;
+            if (!raw.trim()) {
+                alert('没有可提取的内容');
+                return;
+            }
+            const targets = extractAllTargets(raw);
+            if (targets.length === 0) {
+                alert('未提取到任何有效IP/域名！');
+                return;
+            }
+            inputData.value = targets.join('\n');
+            showMessage(formatMsg);
+        }
+
+        // 刷新全部内容
+        function refreshAll() {
+            inputData.value = '';
+            outputData.value = '';
+            keywordInput.value = '宝哥优选';
+            updateCounter(0);
+            showMessage(refreshMsg);
+        }
+
+        // 复制结果
+        async function copyResult() {
+            const content = outputData.value;
+            if (!content.trim()) {
+                alert('没有可复制的内容！');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(content);
+                showMessage(successMsg);
+            } catch (err) {
+                // 降级方案
+                outputData.select();
+                document.execCommand('copy');
+                showMessage(successMsg);
+            }
+        }
+
+        // 导出 TXT（带模态框）
+        function showExportModal() {
+            if (!outputData.value.trim()) {
+                alert('没有可导出的内容！');
+                return;
+            }
+            exportModal.style.display = 'flex';
+            fileNumber.value = '1';
+            fileNumber.focus();
+        }
+
+        function closeModal() {
+            exportModal.style.display = 'none';
+        }
+
+        function performExport() {
+            let num = parseInt(fileNumber.value, 10);
+            if (isNaN(num) || num < 1) {
+                alert('请输入有效的文件编号 (≥1 的数字)');
+                return;
+            }
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateStr = `${year}${month}${day}`;
+            const filename = `${dateStr}-${num}.txt`;
+            const content = outputData.value;
+            const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            closeModal();
+            showMessage(exportMsg);
+        }
+
+        // 清空输入框（不清空输出）
+        function clearInputOnly() {
+            inputData.value = '';
+            inputData.focus();
+        }
+
+        // 事件绑定
+        processBtn.addEventListener('click', annotateData);
+        autoFormatBtn.addEventListener('click', autoExtract);
+        refreshBtn.addEventListener('click', refreshAll);
+        copyBtn.addEventListener('click', copyResult);
+        exportBtn.addEventListener('click', showExportModal);
+        clearInputBtn.addEventListener('click', clearInputOnly);
+        confirmExport.addEventListener('click', performExport);
+        cancelExport.addEventListener('click', closeModal);
+        // 点击模态框背景关闭
+        exportModal.addEventListener('click', (e) => {
+            if(e.target === exportModal) closeModal();
+        });
+
+        // 粘贴后稍微清理多余空白（非必须，提升体验）
+        inputData.addEventListener('paste', () => {
+            setTimeout(() => {
+                let val = inputData.value;
+                if (val) {
+                    // 不破坏原有结构，只把连续空白/换行整理一下，避免过多空行
+                    val = val.replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n +/g, '\n');
+                    inputData.value = val;
+                }
+            }, 20);
+        });
+    })();
+</script>
+</body>
+</html>
