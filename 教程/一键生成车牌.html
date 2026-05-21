@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>一键生成车牌</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a36 0%, #0f212e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, system-ui, -apple-system, sans-serif;
+            padding: 20px;
+        }
+
+        .card {
+            max-width: 520px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 48px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #0f2b38;
+            padding: 28px 24px 22px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD966, #FFB347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 0.75rem;
+            color: #bcd3df;
+            margin-top: 6px;
+            opacity: 0.7;
+        }
+
+        .content {
+            padding: 32px 28px 38px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: block;
+            color: #1a4e5c;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            background: #f8fafc;
+            border: 1.5px solid #dce5ec;
+            border-radius: 44px;
+            padding: 14px 18px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: 0.2s;
+            outline: none;
+            color: #0a2f3c;
+            font-weight: 500;
+        }
+
+        input:focus, select:focus {
+            border-color: #F6AE3D;
+            box-shadow: 0 0 0 3px rgba(246, 174, 61, 0.2);
+            background: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .big-btn {
+            flex: 1;
+            border: none;
+            padding: 16px 12px;
+            border-radius: 60px;
+            font-weight: 800;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-copy {
+            background: #1e5f6e;
+            color: white;
+            box-shadow: 0 5px 12px rgba(30, 95, 110, 0.3);
+        }
+
+        .btn-copy:hover {
+            background: #0f4c59;
+            transform: translateY(-2px);
+        }
+
+        .btn-open {
+            background: #F6AE3D;
+            color: #261f0f;
+            box-shadow: 0 5px 14px rgba(246, 174, 61, 0.4);
+        }
+
+        .btn-open:hover {
+            background: #f5a623;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <h1>🚗 一键生成车牌</h1>
+        <p>复制链接 · 跳转打开</p>
+    </div>
+    <div class="content">
+        <div class="input-group">
+            <label>车牌号码</label>
+            <input type="text" id="plateNumber" placeholder="例如: 鲁J88888" value="鲁J88888" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label>颜色类型</label>
+            <select id="plateColor">
+                <option value="0">0 - 蓝色 (小型汽车)</option>
+                <option value="1">1 - 黄色 (大型汽车)</option>
+                <option value="2">2 - 黑色 (涉外车牌)</option>
+                <option value="3">3 - 白色 (警车/军用)</option>
+                <option value="4">4 - 绿色 (新能源)</option>
+            </select>
+        </div>
+
+        <div class="action-buttons">
+            <button id="copyBtn" class="big-btn btn-copy">📋 复制链接</button>
+            <button id="openBtn" class="big-btn btn-open">🔗 跳转打开</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const plateInput = document.getElementById('plateNumber');
+        const colorSelect = document.getElementById('plateColor');
+        const copyBtn = document.getElementById('copyBtn');
+        const openBtn = document.getElementById('openBtn');
+
+        function buildApiUrl() {
+            let plate = plateInput.value;
+            if (!plate || plate.trim() === "") {
+                return null;
+            }
+            const trimmedPlate = plate.trim().toUpperCase();
+            let colorCode = parseInt(colorSelect.value, 10);
+            if (isNaN(colorCode)) colorCode = 0;
+            if (colorCode < 0) colorCode = 0;
+            if (colorCode > 4) colorCode = 4;
+            return `http://new.hdsxsc.com:10086/server.php?cphm=${encodeURIComponent(trimmedPlate)}&cpys=${colorCode}`;
+        }
+
+        function handleCopy() {
+            const url = buildApiUrl();
+            if (!url) {
+                alert('请填写车牌号码');
+                return;
+            }
+            navigator.clipboard.writeText(url).then(() => {
+                const original = copyBtn.innerHTML;
+                copyBtn.innerHTML = '✅ 已复制';
+                setTimeout(() => {
+                    copyBtn.innerHTML = original;
+                }, 1200);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('链接已复制');
+            });
+        }
+
+        function handleOpen() {
+            const url = buildApiUrl();
+            if (!url) {
+                alert('请填写车牌号码');
+                return;
+            }
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        copyBtn.addEventListener('click', handleCopy);
+        openBtn.addEventListener('click', handleOpen);
+
+        plateInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCopy();
+            }
+        });
+    })();
+</script>
+</body>
+</html>
