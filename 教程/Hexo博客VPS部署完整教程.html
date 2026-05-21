@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Hexo 静态网站部署完整教程 | 宝哥运维笔记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem 1.5rem;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 2rem 2rem 2.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d4a6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            border-left: 5px solid #3b82f6;
+            padding-left: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e40af;
+            margin-right: 8px;
+        }
+
+        .badge.success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 1rem 0 1.8rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1.8rem 0 1rem 0;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #eef2ff;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1.2rem 0 0.8rem 0;
+            color: #1e293b;
+        }
+
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1rem 1.2rem;
+            border-radius: 20px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin: 0.8rem 0 1rem 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            position: relative;
+        }
+
+        .copy-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            float: right;
+            margin-top: -0.5rem;
+            margin-right: 0.5rem;
+            transition: 0.1s;
+        }
+
+        .copy-btn:hover {
+            background: #1e293b;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .note {
+            background: #fef9e3;
+            border-left: 4px solid #f59e0b;
+            padding: 0.8rem 1.2rem;
+            border-radius: 16px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .tip {
+            background: #e6f7ec;
+            border-left: 4px solid #10b981;
+            padding: 0.8rem 1.2rem;
+            border-radius: 16px;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .footer {
+            margin-top: 2.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #5b6e8c;
+            border-top: 1px solid #eef2ff;
+            padding-top: 1.5rem;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 1.2rem; }
+            .code-block { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📡 Hexo 静态网站部署完整教程<br><span style="font-size:1rem; color:#475569;">基于 Nginx + Python HTTP Server + SSL (Let's Encrypt)</span></h1>
+    <div class="info-bar">
+        <span class="badge success">✅ 实战记录 · 宝哥服务器</span>
+        <span class="badge">🔧 适用: Hexo / Hugo / VuePress / 任何静态站点</span>
+        <span class="badge">🖥️ 系统: Ubuntu 22.04 / 20.04</span>
+    </div>
+
+    <p>本文档记录了在 VPS (8.217.131.234) 上完整部署 Hexo 静态网站的步骤，包括 Python 静态服务器、Nginx 反向代理、域名绑定、SSL 证书自动申请。命令均附带「一键复制」按钮，下次有类似项目可直接复用。</p>
+
+    <!-- 步骤1 -->
+    <h2>1️⃣ 准备工作</h2>
+    <p><strong>确认服务器环境与网站文件</strong></p>
+    <div class="code-block" id="code1">
+        <button class="copy-btn" onclick="copyToClipboard('code1')">📋 复制</button>
+        <pre># 查看当前服务器公网 IP
+curl -4 ifconfig.me
+
+# 进入站点根目录 (假设网站文件放在 /root/hexo)
+cd /root/hexo
+ls -la   # 应包含 index.html, css, js 等静态文件</pre>
+    </div>
+
+    <div class="tip">
+        💡 如果还没有生成静态文件，请在本地先用 <code>hexo generate</code> 构建，然后将 <code>public/</code> 目录内容上传到服务器目录（例如 <code>/root/hexo</code>）。
+    </div>
+
+    <h2>2️⃣ 启动简易 HTTP 服务 (Python)</h2>
+    <p>使用 Python 自带模块在 8080 端口提供静态文件访问，作为后端源站。</p>
+    <div class="code-block" id="code2">
+        <button class="copy-btn" onclick="copyToClipboard('code2')">📋 复制</button>
+        <pre># 进入静态文件目录
+cd /root/hexo
+
+# 后台启动 HTTP 服务 (端口 8080)
+nohup python3 -m http.server 8080 > /dev/null 2>&1 &
+
+# 验证服务是否正常
+curl -I http://127.0.0.1:8080</pre>
+    </div>
+    <div class="note">
+        📌 说明：<code>nohup</code> 保证退出终端后服务继续运行，端口可自定义（如 8080, 3000等）。务必确保端口未被占用且防火墙允许。
+    </div>
+
+    <h2>3️⃣ 配置 Nginx 反向代理 (HTTP 阶段)</h2>
+    <p>先配置 HTTP 访问，验证连通性后再升级 HTTPS。</p>
+    <div class="code-block" id="code3">
+        <button class="copy-btn" onclick="copyToClipboard('code3')">📋 复制</button>
+        <pre># 创建 Nginx 配置文件 (将域名替换为你自己的)
+cat > /etc/nginx/conf.d/hexo.baoge123.de5.net.conf << 'EOF'
+server {
+    listen 80;
+    server_name hexo.baoge123.de5.net;   # 替换为真实域名
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# 测试 Nginx 配置并重载
+nginx -t && systemctl reload nginx
+
+# 测试 HTTP 访问 (域名需已解析到服务器 IP)
+curl -I http://hexo.baoge123.de5.net</pre>
+    </div>
+    <div class="tip">
+        🌐 确保域名已添加 A 记录指向服务器 IP，否则证书申请与访问会失败。可用 <code>dig 域名 +short</code> 验证。
+    </div>
+
+    <h2>4️⃣ 申请 SSL 证书 & 启用 HTTPS</h2>
+    <p>使用 Let's Encrypt 免费证书，通过 certbot 自动颁发并配置。</p>
+    <div class="code-block" id="code4">
+        <button class="copy-btn" onclick="copyToClipboard('code4')">📋 复制</button>
+        <pre># 停止 Nginx (standalone 模式需要占用 80 端口)
+systemctl stop nginx
+
+# 申请证书 (将邮箱和域名替换为真实值)
+certbot certonly --standalone -d hexo.baoge123.de5.net \
+  --non-interactive --agree-tos --email admin@baoge123.de5.net
+
+# 证书成功后会存放在 /etc/letsencrypt/live/域名/ 目录</pre>
+    </div>
+    <div class="code-block" id="code5">
+        <button class="copy-btn" onclick="copyToClipboard('code5')">📋 复制</button>
+        <pre># 更新 Nginx 配置，启用 HTTPS + HTTP 自动跳转
+cat > /etc/nginx/conf.d/hexo.baoge123.de5.net.conf << 'EOF'
+server {
+    listen 80;
+    server_name hexo.baoge123.de5.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name hexo.baoge123.de5.net;
+
+    ssl_certificate /etc/letsencrypt/live/hexo.baoge123.de5.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hexo.baoge123.de5.net/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# 启动 Nginx 并测试
+systemctl start nginx
+nginx -t && systemctl reload nginx
+
+# 验证 HTTPS 是否生效
+curl -I https://hexo.baoge123.de5.net</pre>
+    </div>
+
+    <h2>5️⃣ 部署脚本 & 日常更新方法 (只传 public)</h2>
+    <p>为避免每次上传整个 hexo 目录覆盖主题配置，推荐<strong>仅上传生成的静态文件</strong>并保留服务器上的 Nginx 与 Python 服务。</p>
+    <div class="code-block" id="code6">
+        <button class="copy-btn" onclick="copyToClipboard('code6')">📋 复制</button>
+        <pre># 在本地电脑生成静态文件后，使用 scp 上传 public 内容
+# 示例（本地执行）：
+cd ~/my-blog           # 你的 hexo 项目目录
+hexo clean && hexo generate
+scp -r public/* root@8.217.131.234:/root/hexo/
+
+# 服务器端无需重启，Nginx 自动代理最新文件 (Python http.server 会自动读取新内容)
+# 若需重启 python 服务，可执行：
+pkill -f "python3 -m http.server 8080"
+cd /root/hexo && nohup python3 -m http.server 8080 > /dev/null 2>&1 &</pre>
+    </div>
+
+    <div class="note">
+        🔁 这种模式的好处：服务器上的主题文件（anzhiyu/_config.yml）从不需要变动，所有修改都在本地 hexo 源码中进行，每次 `hexo generate` 后上传 public 目录即可。播放器、样式等定制永久保留。
+    </div>
+
+    <h2>6️⃣ 问题排查与常用命令</h2>
+    <table>
+        <thead>
+            <tr><th>场景</th><th>命令</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>检查 Python 服务是否运行</td><td><code>ps aux | grep "http.server 8080"</code></td></tr>
+            <tr><td>查看 Nginx 错误日志</td><td><code>tail -f /var/log/nginx/error.log</code></td></tr>
+            <tr><td>重载 Nginx</td><td><code>systemctl reload nginx</code></td></tr>
+            <tr><td>手动续期 SSL 证书</td><td><code>certbot renew --dry-run</code> 测试，<code>certbot renew</code> 实际续期</td></tr>
+            <tr><td>查看端口监听</td><td><code>ss -tlnp | grep 8080</code></td></tr>
+            <tr><td>防火墙放行端口 (如有 ufw)</td><td><code>ufw allow 80/tcp; ufw allow 443/tcp</code></td></tr>
+        </tbody>
+    </table>
+
+    <h2>7️⃣ 完整项目架构总结</h2>
+    <ul style="margin-left: 1.5rem;">
+        <li><strong>本地开发</strong>：Hexo 源码 + 主题 (anzhiyu) + 文章 Markdown</li>
+        <li><strong>生成静态文件</strong>：<code>hexo generate</code> 产出 public 目录</li>
+        <li><strong>上传至服务器</strong>：<code>scp -r public/* root@你的IP:/root/hexo</code></li>
+        <li><strong>服务器静态服务</strong>：Python HTTP Server 监听 8080 提供文件</li>
+        <li><strong>Web 网关</strong>：Nginx 监听 80/443 并将请求代理到 127.0.0.1:8080</li>
+        <li><strong>证书管理</strong>：Let's Encrypt 自动续期，保证 HTTPS 安全</li>
+    </ul>
+    <div class="tip">
+        ⚡ 优势：一次配置，永久使用。后续更新网站只需<strong>上传 public 内容</strong>，无需再次操作 Nginx 或证书，主题/播放器配置永不丢失。
+    </div>
+
+    <h2>8️⃣ 一键准备完整环境 (针对空服务器)</h2>
+    <p>如果全新服务器，可以一次性安装 Nginx、Python、Certbot。</p>
+    <div class="code-block" id="code7">
+        <button class="copy-btn" onclick="copyToClipboard('code7')">📋 复制</button>
+        <pre># 更新系统并安装必要软件
+sudo apt update && sudo apt install -y nginx python3 certbot
+
+# 确保 Nginx 启动
+systemctl enable nginx
+systemctl start nginx
+
+# 创建站点根目录
+mkdir -p /root/hexo</pre>
+    </div>
+
+    <div class="footer">
+        📝 教程基于真实部署案例编写 (https://hexo.baoge123.de5.net) —— 所有命令均经过验证。<br>
+        下次遇到类似静态网站项目，只需复制对应步骤即可快速上线。
+    </div>
+</div>
+
+<script>
+    function copyToClipboard(elementId) {
+        const codeDiv = document.getElementById(elementId);
+        const preElement = codeDiv.querySelector('pre');
+        if (!preElement) return;
+        const text = preElement.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = codeDiv.querySelector('.copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '✅ 已复制';
+            setTimeout(() => {
+                btn.innerText = originalText;
+            }, 1800);
+        }).catch(err => {
+            alert('复制失败，可手动选择复制');
+        });
+    }
+</script>
+
+</body>
+</html>
