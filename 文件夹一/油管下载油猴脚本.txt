@@ -1,0 +1,487 @@
+// ==UserScript==
+// @name         YouTube 全能下载器 (智能路径版)
+// @namespace    https://github.com/hc990275
+// @version      3.8
+// @description  修复中文字符路径验证问题
+// @author       定制版
+// @match        *://www.youtube.com/*
+// @grant        GM_setClipboard
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_registerMenuCommand
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    console.log('✅ YouTube下载器启动中...');
+
+    // 配置存储
+    let quality = GM_getValue('download_quality', 'best');
+    let currentDir = GM_getValue('download_dir', 'd盘专区');
+    let useCookies = GM_getValue('use_cookies', true);
+
+    // 存储用户输入的文件夹路径（不含文件名模板）
+    let customFolder = GM_getValue('custom_folder', '');
+
+    // 预设目录
+    const dirPresets = {
+        'd盘专区': {
+            label: '💾 D盘 YouTube专区',
+            folder: 'D:\\R2存储桶\\R2音乐面板\\youguan',
+            hint: 'D:\\R2存储桶\\R2音乐面板\\youguan'
+        },
+        'custom': {
+            label: '📂 自定义路径',
+            folder: customFolder,
+            hint: '请输入文件夹路径，如: D:\\Videos 或 E:\\音乐下载'
+        }
+    };
+
+    // 画质选项
+    const qualities = {
+        'best': { label: '🏆 最高画质', format: 'bestvideo+bestaudio/best', isAudio: false },
+        '4k': { label: '📺 4K', format: 'bestvideo[height<=2160]+bestaudio/best', isAudio: false },
+        '1080p': { label: '📺 1080p', format: 'bestvideo[height<=1080]+bestaudio/best', isAudio: false },
+        '720p': { label: '📺 720p', format: 'bestvideo[height<=720]+bestaudio/best', isAudio: false },
+        'audio': { label: '🎵 仅音频(MP3)', format: 'bestaudio/best', isAudio: true }
+    };
+
+    // 获取完整路径（文件夹 + 文件名模板）
+    function getFullPath() {
+        let folder = '';
+        if (currentDir === 'custom') {
+            folder = GM_getValue('custom_folder', '');
+        } else {
+            folder = dirPresets['d盘专区'].folder;
+        }
+
+        if (!folder || folder.trim() === '') {
+            return '';
+        }
+        // 确保路径以反斜杠结尾
+        if (!folder.endsWith('\\')) {
+            folder = folder + '\\';
+        }
+        return folder + '%(title)s.%(ext)s';
+    }
+
+    // 获取当前文件夹路径（不含文件名模板）
+    function getCurrentFolder() {
+        if (currentDir === 'custom') {
+            return GM_getValue('custom_folder', '');
+        }
+        return dirPresets['d盘专区'].folder;
+    }
+
+    // 验证路径（只检查是否为空，不做字符限制）
+    function getPathStatus() {
+        let folder = getCurrentFolder();
+
+        if (!folder || folder.trim() === '') {
+            return {
+                isValid: false,
+                message: '⚠️ 自定义路径为空，请先输入文件夹路径',
+                folder: '未设置'
+            };
+        }
+
+        // Windows 文件名/路径非法字符检测（不包括反斜杠和冒号）
+        // 注意：中文字符、空格、括号等都是合法的
+        const invalidChars = /[\*?<>|]/;
+        if (invalidChars.test(folder)) {
+            return {
+                isValid: false,
+                message: '❌ 路径包含非法字符 (不能包含: * ? < > |)',
+                folder: folder
+            };
+        }
+
+        return {
+            isValid: true,
+            message: '✅ 路径格式正确',
+            folder: folder
+        };
+    }
+
+    function buildCommand(url) {
+        const q = qualities[quality];
+        let outputPath = getFullPath();
+        const isAudio = q.isAudio;
+
+        // 如果路径为空，使用D盘专区路径
+        if (!outputPath) {
+            outputPath = dirPresets['d盘专区'].folder + '\\%(title)s.%(ext)s';
+        }
+
+        // 注意：--user-agent 是两个短横线
+        let cmd = `yt-dlp ---user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player-client=android,web" -f "${q.format}" -N 4 -c --retries infinite -o "${outputPath}" "${url}"`;
+
+        if (!isAudio) {
+            cmd += ` --merge-output-format mp4`;
+        } else {
+            cmd += ` --extract-audio --audio-format mp3 --audio-quality 0`;
+        }
+
+        if (useCookies) {
+            cmd = `yt-dlp --cookies "$env:USERPROFILE\\Desktop\\cookies.txt" ` + cmd.slice(8);
+        }
+
+        return cmd;
+    }
+
+    function setTextContent(element, text) {
+        element.textContent = text;
+    }
+
+    function updatePathHint(pathHint, pathInput) {
+        let status = getPathStatus();
+        let fullPath = getFullPath();
+
+        if (pathHint) {
+            let displayText = '';
+            if (currentDir === 'custom') {
+                displayText = `📁 目标文件夹: ${status.folder}\n`;
+                if (status.isValid) {
+                    displayText += `✅ 路径格式正确\n`;
+                    if (fullPath) {
+                        displayText += `📄 完整路径: ${fullPath}\n`;
+                    }
+                } else {
+                    displayText += `${status.message}\n`;
+                }
+                displayText += `💡 提示: 只需输入文件夹，自动添加文件名`;
+            } else {
+                // D盘专区
+                displayText = `📁 目标文件夹: ${dirPresets['d盘专区'].folder}\n✅ 路径格式正确\n📄 完整路径: ${fullPath}`;
+            }
+            setTextContent(pathHint, displayText);
+        }
+        if (pathInput) {
+            pathInput.value = getCurrentFolder();
+        }
+    }
+
+    // 保存自定义路径（只需输入文件夹）
+    function saveCustomPath(folderPath) {
+        if (!folderPath || folderPath.trim() === '') {
+            GM_setValue('custom_folder', '');
+            dirPresets.custom.folder = '';
+            alert('✅ 自定义路径已清空');
+            return true;
+        }
+
+        // 去除末尾的反斜杠（统一格式）
+        folderPath = folderPath.trim().replace(/\\+$/, '');
+
+        // 只检查绝对禁止的字符（* ? < > |）
+        // 注意：反斜杠 \ 和冒号 : 是路径必需字符，不检查
+        // 中文字符、空格、括号等完全合法
+        const invalidChars = /[\*\?<>|]/;
+        if (invalidChars.test(folderPath)) {
+            alert('❌ 路径包含非法字符！\n\n不能包含: * ? < > |\n\n请重新输入');
+            return false;
+        }
+
+        // 检查是否以盘符开头（建议性提示，不强制）
+        if (!folderPath.match(/^[A-Za-z]:\\/)) {
+            const confirmContinue = confirm(
+                `⚠️ 路径格式提醒\n\n` +
+                `您输入的路径: ${folderPath}\n\n` +
+                `建议使用完整路径格式，如: D:\\Videos\\YouTube\n\n` +
+                `是否继续保存？`
+            );
+            if (!confirmContinue) return false;
+        }
+
+        const userConfirm = confirm(
+            `⚠️ 路径保存确认\n\n` +
+            `文件夹: ${folderPath}\n` +
+            `完整路径: ${folderPath}\\%(title)s.%(ext)s\n\n` +
+            `❗ 重要提醒:\n` +
+            `1. 请确保上述文件夹已手动创建\n` +
+            `2. yt-dlp 不会自动创建文件夹\n` +
+            `3. 如果文件夹不存在，下载会失败\n\n` +
+            `确定要保存此路径吗？`
+        );
+
+        if (userConfirm) {
+            GM_setValue('custom_folder', folderPath);
+            dirPresets.custom.folder = folderPath;
+            alert('✅ 路径已保存\n\n请确保目标文件夹存在！');
+            return true;
+        }
+        return false;
+    }
+
+    function addButton() {
+        if (document.getElementById('yt-dl-enhanced')) return;
+
+        const container = document.createElement('div');
+        container.id = 'yt-dl-enhanced';
+        container.style.cssText = 'position:fixed;bottom:100px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:8px;';
+
+        const mainBtn = document.createElement('button');
+        mainBtn.textContent = '📥 下载视频';
+        mainBtn.style.cssText = 'background:#cc0000;color:white;border:none;padding:12px 20px;border-radius:40px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.3);transition:0.2s;';
+        mainBtn.onmouseenter = () => mainBtn.style.transform = 'scale(1.02)';
+        mainBtn.onmouseleave = () => mainBtn.style.transform = 'scale(1)';
+
+        const menuPanel = document.createElement('div');
+        menuPanel.style.cssText = 'display:none;background:#1e1e2e;border-radius:16px;padding:16px;flex-direction:column;gap:12px;min-width:420px;border:1px solid #45475a;box-shadow:0 8px 20px rgba(0,0,0,0.5);';
+
+        const title = document.createElement('div');
+        title.textContent = '⚙️ 下载设置';
+        title.style.cssText = 'color:#f9f9f9;font-size:16px;font-weight:bold;text-align:center;margin-bottom:8px;';
+        menuPanel.appendChild(title);
+
+        // 画质选择区
+        const qualitySection = document.createElement('div');
+        qualitySection.style.cssText = 'background:#11111b;border-radius:12px;padding:10px;';
+
+        const qualityLabel = document.createElement('div');
+        qualityLabel.textContent = '🎬 画质选择';
+        qualityLabel.style.cssText = 'color:#89b4fa;font-size:13px;margin-bottom:8px;font-weight:bold;';
+        qualitySection.appendChild(qualityLabel);
+
+        const qualityContainer = document.createElement('div');
+        qualityContainer.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+
+        let qualityButtons = [];
+        for (const [key, q] of Object.entries(qualities)) {
+            const btn = document.createElement('button');
+            btn.textContent = q.label;
+            btn.style.cssText = `background:${quality === key ? '#89b4fa' : '#313244'};color:${quality === key ? '#1e1e2e' : 'white'};border:none;padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;`;
+            btn.onclick = () => {
+                quality = key;
+                GM_setValue('download_quality', key);
+                qualityButtons.forEach(b => {
+                    const isActive = b.textContent === q.label;
+                    b.style.background = isActive ? '#89b4fa' : '#313244';
+                    b.style.color = isActive ? '#1e1e2e' : 'white';
+                });
+            };
+            qualityContainer.appendChild(btn);
+            qualityButtons.push(btn);
+        }
+        qualitySection.appendChild(qualityContainer);
+        menuPanel.appendChild(qualitySection);
+
+        // 目录选择区
+        const dirSection = document.createElement('div');
+        dirSection.style.cssText = 'background:#11111b;border-radius:12px;padding:10px;';
+
+        const dirLabel = document.createElement('div');
+        dirLabel.textContent = '📁 下载目录';
+        dirLabel.style.cssText = 'color:#89b4fa;font-size:13px;margin-bottom:8px;font-weight:bold;';
+        dirSection.appendChild(dirLabel);
+
+        const dirContainer = document.createElement('div');
+        dirContainer.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;';
+
+        let dirButtons = [];
+
+        const dBtn = document.createElement('button');
+        dBtn.textContent = dirPresets['d盘专区'].label;
+        dBtn.style.cssText = `background:${currentDir === 'd盘专区' ? '#89b4fa' : '#313244'};color:${currentDir === 'd盘专区' ? '#1e1e2e' : 'white'};border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;`;
+        dBtn.onclick = () => {
+            currentDir = 'd盘专区';
+            GM_setValue('download_dir', 'd盘专区');
+            dirButtons.forEach(b => {
+                b.style.background = '#313244';
+                b.style.color = 'white';
+            });
+            dBtn.style.background = '#89b4fa';
+            dBtn.style.color = '#1e1e2e';
+            updatePathHint(pathHint, pathInput);
+        };
+        dirContainer.appendChild(dBtn);
+        dirButtons.push(dBtn);
+
+        const cBtn = document.createElement('button');
+        cBtn.textContent = dirPresets['custom'].label;
+        cBtn.style.cssText = `background:${currentDir === 'custom' ? '#89b4fa' : '#313244'};color:${currentDir === 'custom' ? '#1e1e2e' : 'white'};border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;`;
+        cBtn.onclick = () => {
+            currentDir = 'custom';
+            GM_setValue('download_dir', 'custom');
+            dirButtons.forEach(b => {
+                b.style.background = '#313244';
+                b.style.color = 'white';
+            });
+            cBtn.style.background = '#89b4fa';
+            cBtn.style.color = '#1e1e2e';
+            updatePathHint(pathHint, pathInput);
+        };
+        dirContainer.appendChild(cBtn);
+        dirButtons.push(cBtn);
+
+        dirSection.appendChild(dirContainer);
+
+        // 路径编辑行
+        const pathRow = document.createElement('div');
+        pathRow.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;';
+
+        const pathInput = document.createElement('input');
+        pathInput.type = 'text';
+        pathInput.value = getCurrentFolder();
+        pathInput.placeholder = '例: D:\\Videos\\YouTube 或 E:\\音乐下载';
+        pathInput.style.cssText = 'flex:1;background:#0f0f17;border:1px solid #45475a;border-radius:8px;padding:10px;color:white;font-size:12px;font-family:monospace;';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '💾 保存';
+        saveBtn.style.cssText = 'background:#313244;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;color:white;font-size:12px;font-weight:bold;';
+        saveBtn.onclick = () => {
+            let newFolder = pathInput.value.trim();
+            if (saveCustomPath(newFolder)) {
+                if (currentDir !== 'custom') {
+                    currentDir = 'custom';
+                    GM_setValue('download_dir', 'custom');
+                    dirButtons.forEach(b => {
+                        b.style.background = '#313244';
+                        b.style.color = 'white';
+                    });
+                    cBtn.style.background = '#89b4fa';
+                    cBtn.style.color = '#1e1e2e';
+                }
+                updatePathHint(pathHint, pathInput);
+            } else {
+                pathInput.value = getCurrentFolder();
+            }
+        };
+
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = '🗑️ 清空';
+        clearBtn.style.cssText = 'background:#313244;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;color:white;font-size:12px;font-weight:bold;';
+        clearBtn.onclick = () => {
+            if (confirm('确定要清空自定义路径吗？')) {
+                GM_setValue('custom_folder', '');
+                dirPresets.custom.folder = '';
+                if (currentDir === 'custom') {
+                    pathInput.value = '';
+                }
+                updatePathHint(pathHint, pathInput);
+                alert('✅ 自定义路径已清空');
+            }
+        };
+
+        pathRow.appendChild(pathInput);
+        pathRow.appendChild(saveBtn);
+        pathRow.appendChild(clearBtn);
+        dirSection.appendChild(pathRow);
+
+        // 路径提示
+        const pathHint = document.createElement('div');
+        pathHint.style.cssText = 'font-size:12px;color:#f9f9f9;margin-top:8px;background:#0f0f17;padding:10px 12px;border-radius:8px;font-family:monospace;white-space:pre-wrap;line-height:1.6;border-left:3px solid #89b4fa;';
+        updatePathHint(pathHint, pathInput);
+        dirSection.appendChild(pathHint);
+
+        menuPanel.appendChild(dirSection);
+
+        // Cookies开关
+        const cookieSection = document.createElement('div');
+        cookieSection.style.cssText = 'background:#11111b;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;';
+        const cookieLabel = document.createElement('span');
+        cookieLabel.textContent = '🍪 Cookies 认证';
+        cookieLabel.style.cssText = 'color:#89b4fa;font-size:13px;font-weight:bold;';
+        cookieSection.appendChild(cookieLabel);
+
+        const cookieToggle = document.createElement('button');
+        cookieToggle.textContent = useCookies ? '✅ 开启' : '❌ 关闭';
+        cookieToggle.style.cssText = `background:${useCookies ? '#a6e3a1' : '#f38ba8'};color:#1e1e2e;border:none;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:bold;`;
+        cookieToggle.onclick = () => {
+            useCookies = !useCookies;
+            GM_setValue('use_cookies', useCookies);
+            cookieToggle.textContent = useCookies ? '✅ 开启' : '❌ 关闭';
+            cookieToggle.style.background = useCookies ? '#a6e3a1' : '#f38ba8';
+        };
+        cookieSection.appendChild(cookieToggle);
+        menuPanel.appendChild(cookieSection);
+
+        // 生成按钮
+        const generateBtn = document.createElement('button');
+        generateBtn.textContent = '🔧 生成下载命令并复制';
+        generateBtn.style.cssText = 'background:#89b4fa;color:#1e1e2e;border:none;padding:12px;border-radius:40px;cursor:pointer;font-weight:bold;font-size:14px;margin-top:8px;';
+        generateBtn.onclick = () => {
+            const url = window.location.href.split('&')[0];
+            const status = getPathStatus();
+            const fullPath = getFullPath();
+
+            if (currentDir === 'custom' && (!getCurrentFolder() || getCurrentFolder().trim() === '')) {
+                alert('❌ 自定义路径为空！\n\n请先输入文件夹路径并点击💾保存\n\n例如: D:\\Videos\\YouTube');
+                return;
+            }
+            if (currentDir === 'custom' && !status.isValid) {
+                alert(`❌ ${status.message}`);
+                return;
+            }
+
+            const cmd = buildCommand(url);
+            GM_setClipboard(cmd);
+
+            alert(`✅ 命令已复制！\n\n🎬 模式: ${qualities[quality].label}\n📁 文件夹: ${status.folder}\n📄 完整路径: ${fullPath}\n\n请确保文件夹已创建，然后在PowerShell中粘贴运行`);
+        };
+        menuPanel.appendChild(generateBtn);
+
+        let menuVisible = false;
+        mainBtn.onclick = (e) => {
+            e.stopPropagation();
+            menuVisible = !menuVisible;
+            menuPanel.style.display = menuVisible ? 'flex' : 'none';
+            if (menuVisible) updatePathHint(pathHint, pathInput);
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                menuPanel.style.display = 'none';
+                menuVisible = false;
+            }
+        });
+
+        container.appendChild(mainBtn);
+        container.appendChild(menuPanel);
+        document.body.appendChild(container);
+        console.log('✅ 下载按钮已添加');
+    }
+
+    // 右键菜单
+    GM_registerMenuCommand(`🎬 画质: ${qualities[quality].label}`, () => {
+        let newQuality = prompt('画质 (best/4k/1080p/720p/audio):', quality);
+        if (qualities[newQuality]) {
+            quality = newQuality;
+            GM_setValue('download_quality', quality);
+            location.reload();
+        }
+    });
+    GM_registerMenuCommand(`🍪 Cookies: ${useCookies ? '开启' : '关闭'}`, () => {
+        useCookies = !useCookies;
+        GM_setValue('use_cookies', useCookies);
+        location.reload();
+    });
+    GM_registerMenuCommand(`🗑️ 清空自定义路径`, () => {
+        if (confirm('清空自定义路径？')) {
+            GM_setValue('custom_folder', '');
+            location.reload();
+        }
+    });
+
+    function init() {
+        if (location.href.includes('/watch') || location.href.includes('?v=')) {
+            setTimeout(addButton, 1500);
+        }
+    }
+
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            const old = document.getElementById('yt-dl-enhanced');
+            if (old) old.remove();
+            if (location.href.includes('/watch') || location.href.includes('?v=')) {
+                setTimeout(addButton, 1500);
+            }
+        }
+    }).observe(document, { subtree: true, childList: true });
+
+    init();
+})();
