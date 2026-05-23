@@ -116,7 +116,7 @@
         }
 
         // 注意：--user-agent 是两个短横线
-        let cmd = `yt-dlp ---user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player-client=android,web" -f "${q.format}" -N 4 -c --retries infinite -o "${outputPath}" "${url}"`;
+        let cmd = `yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player-client=android,web" -f "${q.format}" -N 4 -c --retries infinite -o "${outputPath}" "${url}"`;
 
         if (!isAudio) {
             cmd += ` --merge-output-format mp4`;
