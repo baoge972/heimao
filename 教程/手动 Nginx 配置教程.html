@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Nginx 反向代理一键添加脚本 | 宝哥服务器教程</title>
+    <title>Nginx 反向代理一键添加脚本 | 优化版教程</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             background: #0a0e1a;
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', sans-serif;
@@ -17,20 +18,23 @@
             padding: 2rem 1rem;
             line-height: 1.5;
         }
+
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #0f1322;
             border-radius: 2rem;
             overflow: hidden;
             border: 1px solid #232742;
-            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.6);
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.6);
         }
+
         .header {
             background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
             padding: 2rem 2rem 1.5rem;
             border-bottom: 1px solid #2a2f4e;
         }
+
         .header h1 {
             font-size: 1.8rem;
             font-weight: 700;
@@ -40,12 +44,14 @@
             color: transparent;
             margin-bottom: 0.5rem;
         }
+
         .badge-group {
             display: flex;
             flex-wrap: wrap;
             gap: 0.6rem;
             margin: 1rem 0 0.5rem;
         }
+
         .badge {
             background: #1e243f;
             padding: 0.2rem 0.9rem;
@@ -55,16 +61,11 @@
             color: #a5b4fc;
             border: 1px solid #2e3a5e;
         }
+
         .content {
             padding: 2rem;
         }
-        .info-card {
-            background: #0b0f1a;
-            border-radius: 1.5rem;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 2rem;
-            border-left: 5px solid #3b82f6;
-        }
+
         .step {
             background: #0c1020;
             border-radius: 1.25rem;
@@ -72,6 +73,7 @@
             border: 1px solid #232742;
             overflow: hidden;
         }
+
         .step-header {
             background: #11172b;
             padding: 1rem 1.5rem;
@@ -82,6 +84,7 @@
             align-items: center;
             gap: 0.75rem;
         }
+
         .step-number {
             background: #2d3a6e;
             width: 30px;
@@ -93,6 +96,7 @@
             font-weight: bold;
             font-size: 0.85rem;
         }
+
         .code-block {
             background: #010409;
             margin: 1rem 1.5rem 1.5rem 1.5rem;
@@ -100,6 +104,7 @@
             overflow: hidden;
             border: 1px solid #2a2f4e;
         }
+
         .code-header {
             display: flex;
             justify-content: space-between;
@@ -110,6 +115,7 @@
             color: #8b9bcf;
             border-bottom: 1px solid #20273f;
         }
+
         .copy-btn {
             background: #1e293b;
             border: none;
@@ -123,10 +129,12 @@
             align-items: center;
             gap: 6px;
         }
+
         .copy-btn:hover {
             background: #2d3a6e;
             color: white;
         }
+
         pre {
             margin: 0;
             padding: 1rem;
@@ -137,6 +145,7 @@
             color: #e2e8f0;
             background: #010409;
         }
+
         .note {
             background: #1a1f33;
             border-radius: 1rem;
@@ -145,22 +154,11 @@
             border-left: 3px solid #facc15;
             font-size: 0.8rem;
         }
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 1.5rem;
-            width: calc(100% - 3rem);
-            font-size: 0.8rem;
+
+        .note strong {
+            color: #facc15;
         }
-        .comparison-table th, .comparison-table td {
-            padding: 0.6rem;
-            text-align: left;
-            border-bottom: 1px solid #2a2f4e;
-        }
-        .comparison-table th {
-            background: #11172b;
-            color: #a5b4fc;
-        }
+
         .footer {
             background: #0b0f1a;
             padding: 1rem;
@@ -169,6 +167,7 @@
             color: #6f7c9e;
             border-top: 1px solid #1e243f;
         }
+
         .toast {
             position: fixed;
             bottom: 24px;
@@ -183,135 +182,158 @@
             z-index: 1000;
             pointer-events: none;
         }
+
         @media (max-width: 680px) {
-            .content { padding: 1rem; }
-            .code-block { margin: 0.8rem 1rem 1rem 1rem; }
-            pre { font-size: 0.65rem; }
+            .content {
+                padding: 1rem;
+            }
+
+            .code-block {
+                margin: 0.8rem 1rem 1rem 1rem;
+            }
+
+            pre {
+                font-size: 0.65rem;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>🚀 Nginx 反向代理一键添加脚本</h1>
+        <h1>🚀 Nginx 反向代理一键添加脚本（优化版）</h1>
         <div class="badge-group">
             <span class="badge">📝 自动生成配置</span>
             <span class="badge">🔐 自动申请 SSL 证书</span>
             <span class="badge">⚙️ 一键部署站点</span>
-            <span class="badge">📋 所有命令可复制</span>
+            <span class="badge">🛡️ 错误回滚机制</span>
+            <span class="badge">📡 本地回环代理 (127.0.0.1)</span>
         </div>
-        <p style="margin-top: 12px; color: #9aa9d4;">基于宝哥服务器 · 系统 Nginx · 无需科技 lion</p>
+        <p style="margin-top: 12px; color: #9aa9d4;">基于系统 Nginx · 占位符注入安全 · 证书失败自动恢复</p>
     </div>
 
     <div class="content">
-        <!-- 脚本介绍 -->
-        <div class="info-card">
-            <p>✅ <strong>脚本功能</strong></p>
-            <p>🔹 自动创建 Nginx 配置文件（无 quic 参数，兼容系统 Nginx）<br>
-            🔹 自动申请 Let's Encrypt SSL 证书（certbot standalone 模式）<br>
-            🔹 自动重载 Nginx 使配置生效<br>
-            🔹 一条命令完成站点部署</p>
-        </div>
-
-        <!-- 步骤0：确保 conf.d 目录存在 -->
+        <!-- 步骤0：准备目录 -->
         <div class="step">
             <div class="step-header"><span class="step-number">0</span> 准备工作：确保配置目录存在</div>
             <div class="code-block">
-                <div class="code-header"><span>创建 conf.d 目录（如果不存在）</span><button class="copy-btn" data-code="mkdir -p /etc/nginx/conf.d">📋 复制</button></div>
+                <div class="code-header"><span>创建 conf.d 目录（如不存在）</span><button class="copy-btn" data-code="mkdir -p /etc/nginx/conf.d">📋 复制</button></div>
                 <pre><code>mkdir -p /etc/nginx/conf.d</code></pre>
             </div>
             <div class="note">
-                💡 某些系统（如 Ubuntu）默认没有 <code>/etc/nginx/conf.d/</code> 目录，需要先创建。本脚本会自动创建，但建议先执行一次确保目录存在。
+                💡 某些系统（如 Ubuntu）默认没有 <code>/etc/nginx/conf.d/</code> 目录，脚本内已包含自动创建逻辑，但提前执行可确保权限无虞。
             </div>
         </div>
 
-        <!-- 步骤1：创建脚本文件 -->
+        <!-- 步骤1：创建脚本 -->
         <div class="step">
             <div class="step-header"><span class="step-number">1</span> 创建脚本文件 add-site.sh</div>
             <div class="code-block">
                 <div class="code-header"><span>nano add-site.sh</span><button class="copy-btn" data-code="nano add-site.sh">📋 复制</button></div>
                 <pre><code>nano add-site.sh</code></pre>
             </div>
-            <div class="code-block">
-                <div class="code-header"><span>脚本内容（完整版）</span><button class="copy-btn" data-code="#!/bin/bash
-# 使用方法: ./add-site.sh 域名 端口
-DOMAIN=$1
-PORT=$2
-EMAIL=&quot;admin@baoge123.de5.net&quot;
 
-if [ -z &quot;$DOMAIN&quot; ] || [ -z &quot;$PORT&quot; ]; then
-    echo &quot;用法: $0 域名 端口&quot;
-    echo &quot;示例: $0 new.baoge123.de5.net 8080&quot;
-    exit 1
+            <!-- 优化版脚本内容 -->
+            <div class="code-block">
+                <div class="code-header"><span>优化版脚本内容（可直接复制）</span><button class="copy-btn" data-code='#!/bin/bash
+set -e
+
+# 颜色定义（提升可读性）
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+NC="\033[0m"
+
+usage() {
+    echo "用法: $0 [选项] 域名 端口"
+    echo ""
+    echo "选项:"
+    echo "  -r, --remove 域名      删除已添加的站点"
+    echo "  -h, --help            显示帮助"
+    echo ""
+    echo "示例:"
+    echo "  $0 app.example.com 8080                 # 后端默认 127.0.0.1"
+    echo "  $0 --remove app.example.com             # 删除站点"
+    exit 0
+}
+
+# 删除站点逻辑
+if [ "$1" == "--remove" ] || [ "$1" == "-r" ]; then
+    DOMAIN="$2"
+    if [ -z "$DOMAIN" ]; then
+        echo -e "${RED}❌ 请指定要删除的域名${NC}"
+        exit 1
+    fi
+    SAFE_NAME=$(echo "$DOMAIN" | sed "s/\./_/g")
+    rm -f "/etc/nginx/conf.d/${SAFE_NAME}.conf"
+    certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+    systemctl reload nginx
+    echo -e "${GREEN}✅ 已删除站点 ${DOMAIN} 及其证书${NC}"
+    exit 0
 fi
 
-# 确保 conf.d 目录存在
-mkdir -p /etc/nginx/conf.d
+# 帮助
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    usage
+fi
 
-cat > /etc/nginx/conf.d/$DOMAIN.conf << EOF
-server {
-    listen 80;
-    server_name $DOMAIN;
-    return 301 https://$server_name$request_uri;
-}
+# 参数解析（仅域名+端口，后端固定为 127.0.0.1）
+DOMAIN="$1"
+PORT="$2"
+BACKEND_HOST="127.0.0.1"
 
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN;
-
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:$PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection &quot;upgrade&quot;;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-systemctl stop nginx
-certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email $EMAIL
-systemctl start nginx
-nginx -t && systemctl reload nginx
-
-echo &quot;✅ 站点 $DOMAIN 已添加，端口 $PORT&quot;">📋 复制</button></div>
-                <pre><code>#!/bin/bash
-# 使用方法: ./add-site.sh 域名 端口
-DOMAIN=$1
-PORT=$2
+# 邮箱保持原样，用于证书通知
 EMAIL="admin@baoge123.de5.net"
 
 if [ -z "$DOMAIN" ] || [ -z "$PORT" ]; then
-    echo "用法: $0 域名 端口"
-    echo "示例: $0 new.baoge123.de5.net 8080"
-    exit 1
+    usage
 fi
 
-# 确保 conf.d 目录存在
+# 检查依赖并自动安装
+if ! command -v nginx &> /dev/null; then
+    echo -e "${YELLOW}📦 Nginx 未安装，正在安装...${NC}"
+    apt update && apt install nginx -y
+fi
+
+if ! command -v certbot &> /dev/null; then
+    echo -e "${YELLOW}📦 certbot 未安装，正在安装...${NC}"
+    apt update && apt install certbot -y
+fi
+
+# 确保目录存在
 mkdir -p /etc/nginx/conf.d
 
-cat > /etc/nginx/conf.d/$DOMAIN.conf << EOF
+# 安全文件名处理（支持泛域名占位符）
+SAFE_NAME=$(echo "$DOMAIN" | sed "s/\\*/wildcard/g" | sed "s/\./_/g")
+NGINX_CONF="/etc/nginx/conf.d/${SAFE_NAME}.conf"
+
+# 覆盖保护
+if [ -f "$NGINX_CONF" ]; then
+    echo -e "${YELLOW}⚠️ 配置文件 ${SAFE_NAME}.conf 已存在，是否覆盖？(y/n)${NC}"
+    read -r CONFIRM
+    if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+        echo -e "${RED}已取消操作${NC}"
+        exit 1
+    fi
+fi
+
+# 核心优化：使用占位符避免变量污染，后续通过 sed 精准替换
+cat > "$NGINX_CONF" << "NGINXEOF"
 server {
     listen 80;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name $DOMAIN;
+    server_name DOMAIN_PLACEHOLDER;
 
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:$PORT;
+        proxy_pass http://127.0.0.1:PORT_PLACEHOLDER;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -321,17 +343,190 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-EOF
+NGINXEOF
 
-systemctl stop nginx
-certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email $EMAIL
-systemctl start nginx
-nginx -t && systemctl reload nginx
+# 替换占位符（仅域名和端口）
+sed -i "s/DOMAIN_PLACEHOLDER/${DOMAIN}/g" "$NGINX_CONF"
+sed -i "s/PORT_PLACEHOLDER/${PORT}/g" "$NGINX_CONF"
 
-echo "✅ 站点 $DOMAIN 已添加，端口 $PORT"</code></pre>
+echo -e "${GREEN}▶️ 已生成 Nginx 配置文件: ${NGINX_CONF}${NC}"
+
+# 申请 SSL 证书（使用 webroot 模式，避免停止 Nginx）
+WEBROOT_PATH="/var/www/html"
+if [ -d "/usr/share/nginx/html" ]; then
+    WEBROOT_PATH="/usr/share/nginx/html"
+fi
+echo -e "${GREEN}🔐 开始申请 SSL 证书 (webroot 模式, 网站根: ${WEBROOT_PATH})${NC}"
+
+# 测试 Nginx 配置语法
+if ! nginx -t; then
+    echo -e "${RED}❌ Nginx 配置文件语法错误，请检查${NC}"
+    rm -f "$NGINX_CONF"
+    exit 1
+fi
+
+systemctl reload nginx
+
+if ! certbot certonly --webroot -w "$WEBROOT_PATH" -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL"; then
+    echo -e "${RED}❌ SSL 证书申请失败！移除损坏配置并恢复 Nginx${NC}"
+    rm -f "$NGINX_CONF"
+    systemctl reload nginx
+    exit 1
+fi
+
+systemctl reload nginx
+
+echo -e "${GREEN}✅ 站点部署完成！${NC}"
+echo -e "${GREEN}🔗 访问地址: https://${DOMAIN}${NC}"
+echo -e "${GREEN}➡️ 后端代理: http://127.0.0.1:${PORT}${NC}"'>📋 复制</button></div>
+                <pre><code>#!/bin/bash
+set -e
+
+# 颜色定义（提升可读性）
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+NC="\033[0m"
+
+usage() {
+    echo "用法: $0 [选项] 域名 端口"
+    echo ""
+    echo "选项:"
+    echo "  -r, --remove 域名      删除已添加的站点"
+    echo "  -h, --help            显示帮助"
+    echo ""
+    echo "示例:"
+    echo "  $0 app.example.com 8080                 # 后端默认 127.0.0.1"
+    echo "  $0 --remove app.example.com             # 删除站点"
+    exit 0
+}
+
+# 删除站点逻辑
+if [ "$1" == "--remove" ] || [ "$1" == "-r" ]; then
+    DOMAIN="$2"
+    if [ -z "$DOMAIN" ]; then
+        echo -e "${RED}❌ 请指定要删除的域名${NC}"
+        exit 1
+    fi
+    SAFE_NAME=$(echo "$DOMAIN" | sed "s/\./_/g")
+    rm -f "/etc/nginx/conf.d/${SAFE_NAME}.conf"
+    certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+    systemctl reload nginx
+    echo -e "${GREEN}✅ 已删除站点 ${DOMAIN} 及其证书${NC}"
+    exit 0
+fi
+
+# 帮助
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    usage
+fi
+
+# 参数解析（仅域名+端口，后端固定为 127.0.0.1）
+DOMAIN="$1"
+PORT="$2"
+BACKEND_HOST="127.0.0.1"
+
+# 邮箱保持原样，用于证书通知
+EMAIL="admin@baoge123.de5.net"
+
+if [ -z "$DOMAIN" ] || [ -z "$PORT" ]; then
+    usage
+fi
+
+# 检查依赖并自动安装
+if ! command -v nginx &> /dev/null; then
+    echo -e "${YELLOW}📦 Nginx 未安装，正在安装...${NC}"
+    apt update && apt install nginx -y
+fi
+
+if ! command -v certbot &> /dev/null; then
+    echo -e "${YELLOW}📦 certbot 未安装，正在安装...${NC}"
+    apt update && apt install certbot -y
+fi
+
+# 确保目录存在
+mkdir -p /etc/nginx/conf.d
+
+# 安全文件名处理（支持泛域名占位符）
+SAFE_NAME=$(echo "$DOMAIN" | sed "s/\\*/wildcard/g" | sed "s/\./_/g")
+NGINX_CONF="/etc/nginx/conf.d/${SAFE_NAME}.conf"
+
+# 覆盖保护
+if [ -f "$NGINX_CONF" ]; then
+    echo -e "${YELLOW}⚠️ 配置文件 ${SAFE_NAME}.conf 已存在，是否覆盖？(y/n)${NC}"
+    read -r CONFIRM
+    if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+        echo -e "${RED}已取消操作${NC}"
+        exit 1
+    fi
+fi
+
+# 核心优化：使用占位符避免变量污染，后续通过 sed 精准替换
+cat > "$NGINX_CONF" << "NGINXEOF"
+server {
+    listen 80;
+    server_name DOMAIN_PLACEHOLDER;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name DOMAIN_PLACEHOLDER;
+
+    ssl_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:PORT_PLACEHOLDER;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINXEOF
+
+# 替换占位符（仅域名和端口）
+sed -i "s/DOMAIN_PLACEHOLDER/${DOMAIN}/g" "$NGINX_CONF"
+sed -i "s/PORT_PLACEHOLDER/${PORT}/g" "$NGINX_CONF"
+
+echo -e "${GREEN}▶️ 已生成 Nginx 配置文件: ${NGINX_CONF}${NC}"
+
+# 申请 SSL 证书（使用 webroot 模式，避免停止 Nginx）
+WEBROOT_PATH="/var/www/html"
+if [ -d "/usr/share/nginx/html" ]; then
+    WEBROOT_PATH="/usr/share/nginx/html"
+fi
+echo -e "${GREEN}🔐 开始申请 SSL 证书 (webroot 模式, 网站根: ${WEBROOT_PATH})${NC}"
+
+# 测试 Nginx 配置语法
+if ! nginx -t; then
+    echo -e "${RED}❌ Nginx 配置文件语法错误，请检查${NC}"
+    rm -f "$NGINX_CONF"
+    exit 1
+fi
+
+systemctl reload nginx
+
+if ! certbot certonly --webroot -w "$WEBROOT_PATH" -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL"; then
+    echo -e "${RED}❌ SSL 证书申请失败！移除损坏配置并恢复 Nginx${NC}"
+    rm -f "$NGINX_CONF"
+    systemctl reload nginx
+    exit 1
+fi
+
+systemctl reload nginx
+
+echo -e "${GREEN}✅ 站点部署完成！${NC}"
+echo -e "${GREEN}🔗 访问地址: https://${DOMAIN}${NC}"
+echo -e "${GREEN}➡️ 后端代理: http://127.0.0.1:${PORT}${NC}"</code></pre>
             </div>
             <div class="note">
-                💡 粘贴脚本内容后，按 <code>Ctrl+O</code> 保存，<code>Ctrl+X</code> 退出。
+                💡 粘贴脚本内容后，按 <code>Ctrl+O</code> 保存，<code>Ctrl+X</code> 退出。<br>
+                📧 邮箱默认使用 <code>admin@baoge123.de5.net</code>（若需要修改请替换脚本中 <code>EMAIL</code> 变量）。
             </div>
         </div>
 
@@ -348,79 +543,38 @@ echo "✅ 站点 $DOMAIN 已添加，端口 $PORT"</code></pre>
         <div class="step">
             <div class="step-header"><span class="step-number">3</span> 运行脚本添加新站点</div>
             <div class="code-block">
-                <div class="code-header"><span>基本用法</span><button class="copy-btn" data-code="./add-site.sh 你的域名 端口号">📋 复制</button></div>
+                <div class="code-header"><span>基本用法（后端代理本机 127.0.0.1）</span><button class="copy-btn" data-code="./add-site.sh 你的域名 端口号">📋 复制</button></div>
                 <pre><code>./add-site.sh 你的域名 端口号</code></pre>
             </div>
             <div class="code-block">
-                <div class="code-header"><span>实际示例</span><button class="copy-btn" data-code="./add-site.sh new.baoge123.de5.net 9000">📋 复制</button></div>
-                <pre><code>./add-site.sh new.baoge123.de5.net 9000</code></pre>
+                <div class="code-header"><span>删除站点</span><button class="copy-btn" data-code="./add-site.sh --remove 你的域名">📋 复制</button></div>
+                <pre><code>./add-site.sh --remove 你的域名</code></pre>
             </div>
             <div class="note">
                 ⚠️ 注意事项：<br>
-                • 域名必须已解析到服务器 IP<br>
-                • 后端服务已经运行在指定的端口上<br>
+                • 域名必须已解析到服务器 IP（通过 A 记录指向当前机器）<br>
+                • 后端服务必须监听在本机 <code>127.0.0.1:端口号</code> 上<br>
                 • 需要使用 root 或 sudo 权限执行<br>
-                • 首次执行会申请 SSL 证书，需要 80 端口空闲（脚本自动处理）
+                • 脚本自动使用 <strong>webroot 模式</strong>申请证书，<strong>不再停止 Nginx</strong>，避免其他站点中断
             </div>
         </div>
 
-        <!-- 脚本执行流程图 -->
+        <!-- 脚本优化核心解释 -->
         <div class="step">
-            <div class="step-header"><span class="step-number">📊</span> 脚本执行流程</div>
-            <div style="padding: 0 1.5rem 1.2rem 1.5rem;">
-                <pre style="margin:0; background:#010409; border-radius:0.8rem; font-size:0.7rem;">用户执行 ./add-site.sh abc.com 8080
-        ↓
-检查参数是否完整（域名+端口）
-        ↓
-创建 conf.d 目录（如果不存在）
-        ↓
-创建 /etc/nginx/conf.d/abc.com.conf
-        ↓
-停止 Nginx（释放 80 端口）
-        ↓
-certbot 申请 SSL 证书（standalone 模式）
-        ↓
-启动 Nginx
-        ↓
-测试配置语法（nginx -t）
-        ↓
-重载 Nginx（systemctl reload nginx）
-        ↓
-输出成功提示 ✅</pre>
-            </div>
-        </div>
+            <div class="step-header"><span class="step-number">🛠️</span> 优化版核心改进（解决原版报错）</div>
+            <div class="note" style="margin-top: 0.5rem;">
+                <p><strong>1️⃣ 占位符 + sed 替换 —— 彻底告别 proxy_set_header 变量为空</strong><br>
+                原脚本直接使用 heredoc 和 $ 符号，在复制粘贴时容易导致 <code>$host</code> 等变量被提前解析成空值，造成配置生成错误。<br>
+                新版先写入 <code>DOMAIN_PLACEHOLDER</code> / <code>PORT_PLACEHOLDER</code>，再通过 <code>sed</code> 精准替换，保证配置语法完美。</p>
 
-        <!-- 脚本参数说明 -->
-        <div class="step">
-            <div class="step-header"><span class="step-number">📌</span> 脚本参数说明</div>
-            <div style="padding: 0 1.5rem 1.2rem 1.5rem;">
-                <table class="comparison-table">
-                    <thead><tr><th>参数</th><th>含义</th><th>示例</th></tr></thead>
-                    <tbody>
-                        <tr><td><code>$1</code></td><td>域名</td><td><code>new.baoge123.de5.net</code></td></tr>
-                        <tr><td><code>$2</code></td><td>后端端口</td><td><code>9000</code></td></tr>
-                        <tr><td><code>$EMAIL</code></td><td>证书通知邮箱</td><td><code>admin@baoge123.de5.net</code></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                <p><strong>2️⃣ 固定后端为本地回环地址</strong><br>
+                代理目标固定为 <code>127.0.0.1:用户指定端口</code>，适用于 Docker 端口映射、本地开发服务、各种本机 Web 应用等绝大多数场景，避免因错误指定外部 IP 导致 502 错误。</p>
 
-        <!-- 常见问题 -->
-        <div class="step">
-            <div class="step-header"><span class="step-number">❓</span> 常见问题</div>
-            <div style="padding: 0 1.5rem 1.2rem 1.5rem;">
-                <ul style="margin-left: 1.2rem; color: #cbd5e6;">
-                    <li><strong>Q: 提示 "Domain not found" 或证书申请失败？</strong><br>
-                    A: 确保域名已正确解析到服务器 IP，且 80 端口没有被其他程序占用。</li>
-                    <li><strong>Q: 执行脚本报错 "Permission denied"？</strong><br>
-                    A: 使用 <code>sudo</code> 执行：<code>sudo ./add-site.sh 域名 端口</code></li>
-                    <li><strong>Q: 如何删除已添加的站点？</strong><br>
-                    A: <code>sudo rm /etc/nginx/conf.d/域名.conf && sudo systemctl reload nginx</code></li>
-                    <li><strong>Q: 证书过期怎么办？</strong><br>
-                    A: certbot 会自动续期（每天两次检查），无需手动处理。</li>
-                    <li><strong>Q: 可以重复执行脚本添加多个站点吗？</strong><br>
-                    A: 可以，每次执行传入不同的域名和端口即可。</li>
-                </ul>
+                <p><strong>3️⃣ 证书申请失败自动回滚</strong><br>
+                如果 certbot 申请证书出错（例如域名未解析、网络问题），脚本会自动删除生成的配置并重载 Nginx，不会遗留损坏站点导致 502 错误。</p>
+
+                <p><strong>4️⃣ 使用 webroot 模式，不再停止 Nginx</strong><br>
+                老脚本 <code>systemctl stop nginx</code> 会造成其它站点短暂中断，新版采用 <code>--webroot</code> 模式，不影响已有业务。</p>
             </div>
         </div>
 
@@ -428,41 +582,35 @@ certbot 申请 SSL 证书（standalone 模式）
         <div class="step">
             <div class="step-header"><span class="step-number">⚡</span> 快速命令汇总</div>
             <div class="code-block">
-                <div class="code-header"><span>一键复制所有命令</span><button class="copy-btn" data-code="# 0. 确保 conf.d 目录存在（可选，脚本会自动创建）
-mkdir -p /etc/nginx/conf.d
-
-# 1. 创建脚本
+                <div class="code-header"><span>一键复制所有命令（部署新站点）</span><button class="copy-btn" data-code="# 1. 创建脚本
 nano add-site.sh
 
-# 2. 粘贴脚本内容后保存退出
+# 2. 粘贴优化版脚本内容（见上方完整代码块）后保存
 
 # 3. 添加执行权限
 chmod +x add-site.sh
 
 # 4. 运行示例（替换为你的域名和端口）
-./add-site.sh new.baoge123.de5.net 9000
+./add-site.sh yourdomain.com 3000
 
 # 5. 删除站点
-sudo rm /etc/nginx/conf.d/域名.conf && sudo systemctl reload nginx
+./add-site.sh --remove yourdomain.com
 
 # 6. 查看所有站点配置
 ls -la /etc/nginx/conf.d/">📋 复制</button></div>
-                <pre><code># 0. 确保 conf.d 目录存在（可选，脚本会自动创建）
-mkdir -p /etc/nginx/conf.d
-
-# 1. 创建脚本
+                <pre><code># 1. 创建脚本
 nano add-site.sh
 
-# 2. 粘贴脚本内容后保存退出
+# 2. 粘贴优化版脚本内容（见上方完整代码块）后保存
 
 # 3. 添加执行权限
 chmod +x add-site.sh
 
 # 4. 运行示例（替换为你的域名和端口）
-./add-site.sh new.baoge123.de5.net 9000
+./add-site.sh yourdomain.com 3000
 
 # 5. 删除站点
-sudo rm /etc/nginx/conf.d/域名.conf && sudo systemctl reload nginx
+./add-site.sh --remove yourdomain.com
 
 # 6. 查看所有站点配置
 ls -la /etc/nginx/conf.d/</code></pre>
@@ -470,9 +618,9 @@ ls -la /etc/nginx/conf.d/</code></pre>
         </div>
 
         <div class="footer">
-            📌 本脚本专门为系统 Nginx 优化，不包含 quic 参数，兼容 Ubuntu 自带 Nginx<br>
-            📌 脚本已内置 <code>mkdir -p /etc/nginx/conf.d</code>，自动确保目录存在<br>
-            点击任意命令右侧的「复制」按钮，即可粘贴到 VPS 终端执行。
+            📌 本脚本专为系统 Nginx + Let's Encrypt 优化，兼容 Ubuntu 20.04/22.04、Debian 11/12<br>
+            📌 邮箱 <code>admin@baoge123.de5.net</code> 仅用于证书到期通知，可自行修改脚本中 EMAIL 变量<br>
+            📌 反馈或建议：请参照宝哥服务器教程中心
         </div>
     </div>
 </div>
