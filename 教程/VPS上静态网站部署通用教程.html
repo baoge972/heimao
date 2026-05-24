@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>静态网站部署通用教程 | 宝哥运维笔记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem 1.5rem;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 2rem 2rem 2.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d4a6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            border-left: 5px solid #3b82f6;
+            padding-left: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e40af;
+            margin-right: 8px;
+        }
+
+        .badge.success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 1rem 0 1.8rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-card {
+            background: #f1f5f9;
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin: 1rem 0 2rem 0;
+            border: 1px solid #e2e8f0;
+        }
+        .form-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 180px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            background: white;
+            transition: 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 10px;
+        }
+        .btn-secondary:hover {
+            background: #475569;
+        }
+        .preview-note {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1.8rem 0 1rem 0;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #eef2ff;
+        }
+
+        .code-block {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1rem 1.2rem;
+            border-radius: 20px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin: 0.8rem 0 1rem 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            position: relative;
+        }
+
+        .copy-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            float: right;
+            margin-top: -0.5rem;
+            margin-right: 0.5rem;
+            transition: 0.1s;
+        }
+
+        .copy-btn:hover {
+            background: #1e293b;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .note {
+            background: #fef9e3;
+            border-left: 4px solid #f59e0b;
+            padding: 0.8rem 1.2rem;
+            border-radius: 16px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .tip {
+            background: #e6f7ec;
+            border-left: 4px solid #10b981;
+            padding: 0.8rem 1.2rem;
+            border-radius: 16px;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .footer {
+            margin-top: 2.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #5b6e8c;
+            border-top: 1px solid #eef2ff;
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .container { padding: 1.2rem; }
+            .code-block { font-size: 0.7rem; }
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📁 静态网站部署通用教程<br><span style="font-size:1rem; color:#475569;">基于 Nginx + Python HTTP Server + SSL (Let's Encrypt)</span></h1>
+    <div class="info-bar">
+        <span class="badge success">✅ 适用所有静态站点</span>
+        <span class="badge">🔧 框架: Vue / React / Hexo / Hugo / 纯 HTML</span>
+        <span class="badge">🖥️ 系统: Ubuntu / Debian</span>
+    </div>
+
+    <!-- 配置表单 -->
+    <div class="form-card">
+        <div class="form-title">
+            <span>⚙️</span> 填写你的配置信息（所有代码将自动替换）
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>🌐 域名</label>
+                <input type="text" id="domain" placeholder="example.com" value="example.com">
+            </div>
+            <div class="form-group">
+                <label>📧 邮箱（用于证书通知）</label>
+                <input type="email" id="email" placeholder="admin@baoge123.de5.net" value="admin@baoge123.de5.net">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>📁 服务器站点目录</label>
+                <input type="text" id="siteDir" placeholder="/" value="/">
+            </div>
+            <div class="form-group">
+                <label>🔌 Python 服务端口</label>
+                <input type="number" id="port" placeholder="8080" value="8080">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>🖥️ 服务器 IP</label>
+                <input type="text" id="serverIp" placeholder="你的服务器公网IP" value="">
+            </div>
+        </div>
+        <div class="form-row">
+            <button class="btn-primary" id="applyBtn">🔄 应用配置并刷新代码</button>
+            <button class="btn-secondary" id="resetBtn">🗑️ 重置默认值</button>
+        </div>
+        <div class="preview-note">
+            💡 修改以上任意值后点击「应用配置」，下方所有代码块中的域名、端口、目录等会自动替换。
+        </div>
+    </div>
+
+    <!-- 步骤1：一键安装环境 -->
+    <h2>1️⃣ 一键准备完整环境（新服务器执行）</h2>
+    <div class="code-block" id="codeEnv">
+        <button class="copy-btn" onclick="copyToClipboard('codeEnv')">📋 复制</button>
+        <pre id="codeEnvContent"></pre>
+    </div>
+
+    <h2>2️⃣ 准备工作</h2>
+    <div class="code-block" id="code1">
+        <button class="copy-btn" onclick="copyToClipboard('code1')">📋 复制</button>
+        <pre id="code1Content"></pre>
+    </div>
+
+    <h2>3️⃣ 启动简易 HTTP 服务 (Python)</h2>
+    <div class="code-block" id="code2">
+        <button class="copy-btn" onclick="copyToClipboard('code2')">📋 复制</button>
+        <pre id="code2Content"></pre>
+    </div>
+    <div class="note">
+        📌 说明：<code>nohup</code> 保证退出终端后服务继续运行。
+    </div>
+
+    <h2>4️⃣ 配置 Nginx 反向代理 (HTTP 阶段)</h2>
+    <div class="code-block" id="code3">
+        <button class="copy-btn" onclick="copyToClipboard('code3')">📋 复制</button>
+        <pre id="code3Content"></pre>
+    </div>
+
+    <h2>5️⃣ 申请 SSL 证书 &amp; 启用 HTTPS</h2>
+    <div class="code-block" id="code4">
+        <button class="copy-btn" onclick="copyToClipboard('code4')">📋 复制</button>
+        <pre id="code4Content"></pre>
+    </div>
+    <div class="code-block" id="code5">
+        <button class="copy-btn" onclick="copyToClipboard('code5')">📋 复制</button>
+        <pre id="code5Content"></pre>
+    </div>
+
+    <h2>6️⃣ 常用维护命令</h2>
+    <table id="commandsTable">
+        <thead>
+            <tr><th>场景</th><th>命令</th></tr>
+        </thead>
+        <tbody id="commandsBody"></tbody>
+    </table>
+
+    <h2>7️⃣ 更新网站内容</h2>
+    <div class="code-block" id="code7">
+        <button class="copy-btn" onclick="copyToClipboard('code7')">📋 复制</button>
+        <pre id="code7Content"></pre>
+    </div>
+
+    <div class="footer">
+        📝 填写上方表单后点击「应用配置」，所有代码中的域名、端口、目录等会自动替换。
+    </div>
+</div>
+
+<script>
+    // DOM 元素
+    const domainInput = document.getElementById('domain');
+    const emailInput = document.getElementById('email');
+    const siteDirInput = document.getElementById('siteDir');
+    const portInput = document.getElementById('port');
+    const serverIpInput = document.getElementById('serverIp');
+    const applyBtn = document.getElementById('applyBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // 默认值
+    const defaults = {
+        domain: 'example.com',
+        email: 'admin@baoge123.de5.net',
+        siteDir: '/',
+        port: '8080',
+        serverIp: ''
+    };
+
+    // 加载存储的值
+    function loadFromStorage() {
+        domainInput.value = localStorage.getItem('deploy_domain') || defaults.domain;
+        emailInput.value = localStorage.getItem('deploy_email') || defaults.email;
+        siteDirInput.value = localStorage.getItem('deploy_siteDir') || defaults.siteDir;
+        portInput.value = localStorage.getItem('deploy_port') || defaults.port;
+        serverIpInput.value = localStorage.getItem('deploy_serverIp') || defaults.serverIp;
+    }
+
+    // 保存到存储
+    function saveToStorage() {
+        localStorage.setItem('deploy_domain', domainInput.value);
+        localStorage.setItem('deploy_email', emailInput.value);
+        localStorage.setItem('deploy_siteDir', siteDirInput.value);
+        localStorage.setItem('deploy_port', portInput.value);
+        localStorage.setItem('deploy_serverIp', serverIpInput.value);
+    }
+
+    // 重置
+    function resetToDefaults() {
+        domainInput.value = defaults.domain;
+        emailInput.value = defaults.email;
+        siteDirInput.value = defaults.siteDir;
+        portInput.value = defaults.port;
+        serverIpInput.value = defaults.serverIp;
+        saveToStorage();
+        updateAllCodes();
+    }
+
+    function getValues() {
+        return {
+            domain: domainInput.value.trim(),
+            email: emailInput.value.trim(),
+            siteDir: siteDirInput.value.trim(),
+            port: portInput.value.trim(),
+            serverIp: serverIpInput.value.trim()
+        };
+    }
+
+    function updateAllCodes() {
+        const v = getValues();
+        // 如果站点目录是 /，则使用 /var/www/html 作为实际部署目录
+        const siteDirForUpload = v.siteDir === '/' ? '/var/www/html' : v.siteDir;
+
+        // 环境安装
+        document.getElementById('codeEnvContent').innerText = `# 更新系统并安装必要软件
+sudo apt update && sudo apt install -y nginx python3 certbot
+
+# 确保 Nginx 开机自启
+systemctl enable nginx
+systemctl start nginx
+
+# 创建站点目录
+mkdir -p ${siteDirForUpload}`;
+
+        // 准备工作
+        document.getElementById('code1Content').innerText = `# 查看服务器公网 IP
+curl -4 ifconfig.me
+
+# 创建站点目录（如已存在可跳过）
+mkdir -p ${siteDirForUpload}
+
+# 本地执行：上传静态文件到服务器
+# scp -r 本地静态目录/* root@${v.serverIp}:${siteDirForUpload}/`;
+
+        // Python HTTP 服务
+        document.getElementById('code2Content').innerText = `# 进入静态文件目录
+cd ${siteDirForUpload}
+
+# 后台启动 HTTP 服务（端口 ${v.port}）
+nohup python3 -m http.server ${v.port} > /dev/null 2>&1 &
+
+# 验证服务是否正常
+curl -I http://127.0.0.1:${v.port}`;
+
+        // Nginx HTTP 配置
+        document.getElementById('code3Content').innerText = `# 创建 Nginx 配置文件
+cat > /etc/nginx/conf.d/${v.domain}.conf << 'EOF'
+server {
+    listen 80;
+    server_name ${v.domain};
+
+    location / {
+        proxy_pass http://127.0.0.1:${v.port};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# 测试并重载
+nginx -t && systemctl reload nginx
+
+# 测试访问
+curl -I http://${v.domain}`;
+
+        // 申请证书
+        document.getElementById('code4Content').innerText = `# 停止 Nginx（standalone 模式需要 80 端口）
+systemctl stop nginx
+
+# 申请证书
+certbot certonly --standalone -d ${v.domain} \\
+  --non-interactive --agree-tos --email ${v.email}`;
+
+        // HTTPS 配置
+        document.getElementById('code5Content').innerText = `# 更新 Nginx 配置
+cat > /etc/nginx/conf.d/${v.domain}.conf << 'EOF'
+server {
+    listen 80;
+    server_name ${v.domain};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${v.domain};
+
+    ssl_certificate /etc/letsencrypt/live/${v.domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${v.domain}/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:${v.port};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# 启动 Nginx 并测试
+systemctl start nginx
+nginx -t && systemctl reload nginx
+
+# 验证 HTTPS
+curl -I https://${v.domain}`;
+
+        // 更新网站内容（去掉构建命令示例）
+        document.getElementById('code7Content').innerText = `# 本地执行：上传静态文件到服务器
+scp -r 本地静态目录/* root@${v.serverIp}:${siteDirForUpload}/
+
+# 服务器端无需任何操作，网站即已更新`;
+
+        // 维护表格
+        document.getElementById('commandsBody').innerHTML = `
+            <tr><td>检查 Python 服务</td><td><code>ps aux | grep "http.server ${v.port}"</code></td></tr>
+            <tr><td>重启 Python 服务</td><td><code>pkill -f "python3 -m http.server ${v.port}" && cd ${siteDirForUpload} && nohup python3 -m http.server ${v.port} > /dev/null 2>&1 &</code></td></tr>
+            <tr><td>查看 Nginx 错误日志</td><td><code>tail -f /var/log/nginx/error.log</code></td></tr>
+            <tr><td>重载 Nginx</td><td><code>systemctl reload nginx</code></td></tr>
+            <tr><td>续期 SSL 证书</td><td><code>certbot renew</code></td></tr>
+            <tr><td>查看端口监听</td><td><code>ss -tlnp | grep ${v.port}</code></td></tr>
+            <tr><td>防火墙放行端口</td><td><code>ufw allow 80/tcp; ufw allow 443/tcp</code></td></tr>
+        `;
+    }
+
+    function copyToClipboard(elementId) {
+        const el = document.getElementById(elementId);
+        const text = el.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = el.parentElement.querySelector('.copy-btn');
+            const original = btn.innerText;
+            btn.innerText = '✅ 已复制';
+            setTimeout(() => { btn.innerText = original; }, 1800);
+        });
+    }
+
+    applyBtn.addEventListener('click', () => { saveToStorage(); updateAllCodes(); });
+    resetBtn.addEventListener('click', resetToDefaults);
+
+    loadFromStorage();
+    updateAllCodes();
+</script>
+</body>
+</html>
