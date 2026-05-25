@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pi Node 故障排查完全指南 | 测试网 · 卡住 · 网络分区</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Roboto', sans-serif;
+            padding: 30px 20px;
+            color: #0c2b3b;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0a2f44, #145c7a);
+            border-radius: 36px;
+            padding: 28px 34px;
+            margin-bottom: 32px;
+            color: white;
+            box-shadow: 0 12px 20px -8px rgba(0,0,0,0.2);
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+            border-radius: 60px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        .header p {
+            margin-top: 14px;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 32px;
+            margin-bottom: 28px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e2edf7;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 18px 28px 8px 28px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 2px solid #eef2fa;
+        }
+        .card-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #15597c;
+        }
+        .tag {
+            background: #e7f0f9;
+            border-radius: 40px;
+            padding: 4px 14px;
+            font-size: 0.7rem;
+            font-family: monospace;
+            font-weight: 600;
+            color: #1e6a8c;
+        }
+        .cmd-box {
+            margin: 20px 28px;
+            background: #0f172a;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .cmd-header {
+            background: #1e293b;
+            padding: 8px 18px;
+            font-size: 0.7rem;
+            color: #9ab3d5;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+        }
+        .cmd-content {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #0f172a;
+        }
+        .command {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            word-break: break-all;
+            white-space: pre-wrap;
+            flex: 1;
+        }
+        .copy-btn {
+            background: #2d3a4e;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .copy-btn:hover {
+            background: #3e506e;
+        }
+        .info-note {
+            background: #f8fafc;
+            margin: 16px 28px 22px 28px;
+            padding: 14px 20px;
+            border-radius: 20px;
+            border-left: 4px solid #2c7a6e;
+            font-size: 0.85rem;
+            color: #1f5e6b;
+        }
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 18px;
+            margin: 20px 28px;
+        }
+        .scenario-card {
+            background: #fefefe;
+            border-radius: 24px;
+            border: 1px solid #e6edf4;
+            padding: 18px;
+            transition: all 0.1s;
+        }
+        .scenario-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .prob-high { background: #ffe9db; color: #b45116; border-radius: 30px; padding: 2px 12px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
+        .prob-mid { background: #fff0db; color: #b47c2e; border-radius: 30px; padding: 2px 12px; font-size: 0.7rem; font-weight: bold; }
+        .prob-low { background: #e3f0ec; color: #2c6b5e; border-radius: 30px; padding: 2px 12px; font-size: 0.7rem; font-weight: bold; }
+        .footer {
+            background: #eaf4fc;
+            border-radius: 28px;
+            padding: 20px 28px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #145c7a;
+        }
+        .step-box {
+            background: #f0f6fa;
+            border-radius: 20px;
+            padding: 16px 22px;
+            margin: 16px 28px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #145c7a;
+            color: white;
+            border-radius: 30px;
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            line-height: 28px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        @media (max-width: 700px) {
+            .cmd-content { flex-direction: column; align-items: flex-start; }
+            .command { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>
+            🧰 Pi Node 排障急救手册
+            <span class="badge">testnet2 · 历史档案修复 · 卡顿自救</span>
+        </h1>
+        <p>✅ 覆盖「测试网暂停出块」「状态文件卡死」「网络分区/节点孤立」「频繁重启」等真实场景。<br>
+        所有命令均在 <strong>Windows PowerShell</strong> 中执行。</p>
+    </div>
+
+    <!-- 黄金诊断卡片 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🔍 第一反应 · 黄金诊断</h2>
+            <span class="tag">30秒找出病因</span>
+        </div>
+        
+        <!-- 方法一：进入容器（最可靠） -->
+        <div class="step-box">
+            <p><span class="step-number">⭐</span> <strong>方法一：进入容器查看（最可靠，推荐）</strong></p>
+            <div class="cmd-box" style="margin: 12px 0;">
+                <div class="cmd-content">
+                    <div class="command" id="cmdEnterContainer">docker exec -it testnet2 bash</div>
+                    <button class="copy-btn" data-cmd="cmdEnterContainer">📋 复制</button>
+                </div>
+            </div>
+            <p style="margin: 8px 0 4px 0;">进入容器后，运行：</p>
+            <div class="cmd-box" style="margin: 12px 0;">
+                <div class="cmd-content">
+                    <div class="command" id="cmdInsideInfo">/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E "state|num|age|status|authenticated_count"</div>
+                    <button class="copy-btn" data-cmd="cmdInsideInfo">📋 复制</button>
+                </div>
+            </div>
+            <p style="margin: 8px 0 0 0;">查看完成后输入 <code>exit</code> 退出容器。</p>
+        </div>
+
+        <!-- 方法二：PowerShell 单行命令 -->
+        <div class="cmd-box">
+            <div class="cmd-header"><span>📋 方法二：PowerShell 单行命令（不进容器）</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdHealth">docker exec -it testnet2 bash -c "/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info" | findstr "state num age status authenticated_count"</div>
+                <button class="copy-btn" data-cmd="cmdHealth">📋 复制</button>
+            </div>
+        </div>
+
+        <div class="info-note">
+            💡 <strong>结果解读宝典</strong><br>
+            • <code>"state": "Synced!"</code> → 完美同步 ✅<br>
+            • <code>"state": "Catching up"</code> + 状态文件不断变化 → 正常追赶 ✅<br>
+            • <code>"state": "Connected"</code> 持续超过5分钟 → 卡在初始化 ⚠️<br>
+            • <code>"state": "Joining SCP"</code> → 正在加入共识，几分钟后变 Synced! ✅<br>
+            • <code>"age"</code> 大于 1200秒 → 超过20分钟未更新区块 ⚠️<br>
+            • <code>authenticated_count</code> 为 0 → 网络孤立/无对等节点 ❌
+        </div>
+    </div>
+
+    <!-- 三大故障情景 + 解决方案 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>⚠️ 典型故障 & 定向修复</h2>
+            <span class="tag">对症下药</span>
+        </div>
+        <div class="scenario-grid">
+            <div class="scenario-card">
+                <h3>🌐 Pi Testnet 暂停出块 <span class="prob-high">概率较高</span></h3>
+                <p><strong>特征：</strong> 节点显示 <code>Synced!</code> 但 <code>age</code> 超过 1 小时，Latest block 长时间不变，对等节点正常（≥5）。</p>
+                <p><strong>本质：</strong> 测试网官方共识停顿，非节点故障。</p>
+                <p>✅ <strong>解决方案：</strong> 无需操作，等待官方恢复。每日用诊断命令观察 <code>age</code> 即可。</p>
+            </div>
+            <div class="scenario-card">
+                <h3>⛔ 状态文件卡住 <span class="prob-mid">概率中等</span></h3>
+                <p><strong>特征：</strong> <code>state: Catching up</code> 但状态文件名一直不变，<code>age</code> 持续增长（>30分钟无推进）。</p>
+                <p><strong>根源：</strong> 不支持断点续传 + 网络波动导致任务僵死。</p>
+                <p>🔧 <strong>快速恢复（按顺序）</strong></p>
+                <ul style="margin-left: 20px; margin-top: 6px;">
+                    <li>① 重启 stellar-core</li>
+                    <li>② 清理临时下载文件</li>
+                    <li>③ 完整重启容器</li>
+                </ul>
+            </div>
+            <div class="scenario-card">
+                <h3>🔌 网络分区 / 孤立 <span class="prob-low">概率较低</span></h3>
+                <p><strong>特征：</strong> <code>authenticated_count : 0</code>，节点无法同步。</p>
+                <p><strong>原因：</strong> 防火墙/端口限制、DNS问题、ISP阻断。</p>
+                <p>🛠️ <strong>修复手段：</strong> 检查路由器端口映射 (31400-31403)，重启路由器+电脑，重启 stellar-core。</p>
+            </div>
+        </div>
+        <div class="info-note">
+            🧩 <strong>黄金法则：</strong> 无论哪种故障，<strong>优先执行「重启 stellar-core」</strong>，70% 的卡死问题可以瞬间解决。
+        </div>
+    </div>
+
+    <!-- 核心修复命令集 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>⚡ 万能修复工具箱</h2>
+            <span class="tag">一键复制 · 立即执行</span>
+        </div>
+        
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🔄 重启核心服务 (最常用)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdRestartCore">docker exec -it testnet2 supervisorctl restart stellar-core</div>
+                <button class="copy-btn" data-cmd="cmdRestartCore">📋 复制</button>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🧹 清理临时下载 + 重启 (卡状态文件时必用)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdCleanRestart">docker exec -it testnet2 bash -c "supervisorctl stop stellar-core; rm -rf /opt/stellar/core/buckets/tmp/*; supervisorctl start stellar-core"</div>
+                <button class="copy-btn" data-cmd="cmdCleanRestart">📋 复制</button>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="cmd-header"><span>♻️ 完全重启容器 (网络彻底重置)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdDockerRestart">docker restart testnet2</div>
+                <button class="copy-btn" data-cmd="cmdDockerRestart">📋 复制</button>
+            </div>
+        </div>
+
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🔗 检查对等节点数量</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdPeers">docker exec -it testnet2 bash -c "/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info" | findstr "authenticated_count pending_count"</div>
+                <button class="copy-btn" data-cmd="cmdPeers">📋 复制</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史档案修复 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📜 根本性修复：历史档案 URL 证书错误</h2>
+            <span class="tag">一次配置 · 永久生效</span>
+        </div>
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🚀 一键替换错误域名 (解决SSL/下载卡死根源)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdFixURL">docker exec -it testnet2 bash -c "sed -i 's/history.temp.testnet2.minepi.com/history.testnet2.minepi.com/g' /opt/stellar/core/etc/stellar-core.cfg && supervisorctl restart stellar-core"</div>
+                <button class="copy-btn" data-cmd="cmdFixURL">📋 复制</button>
+            </div>
+        </div>
+        <div class="info-note">
+            🧠 <strong>为什么这很重要？</strong> Pi Node 默认可能指向临时历史归档 <code>temp.testnet2</code>，其 HTTPS 证书已失效，导致状态文件下载永久卡住。<br>
+            替换为正式域名 <code>history.testnet2.minepi.com</code> 后，90% 的同步卡死问题都会彻底消失。
+        </div>
+    </div>
+
+    <!-- 频繁重启诊断 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📉 频繁崩溃/自动重启 诊断</h2>
+            <span class="tag">stuck in crash loop</span>
+        </div>
+        <div class="cmd-box">
+            <div class="cmd-header"><span>👀 查看最近重启记录</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdCrashLog">docker exec -it testnet2 tail -40 /var/log/supervisor/supervisord.log | findstr "exited spawned FATAL"</div>
+                <button class="copy-btn" data-cmd="cmdCrashLog">📋 复制</button>
+            </div>
+        </div>
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🩺 检查容器资源</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdStats">docker stats testnet2 --no-stream</div>
+                <button class="copy-btn" data-cmd="cmdStats">📋 复制</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 完整排障流程 -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🧭 完整排障决策树</h2>
+            <span class="tag">3 步定位问题</span>
+        </div>
+        <div class="info-note" style="margin-bottom: 8px;">
+            <strong>🚦 步骤1：</strong> 运行「黄金诊断」（推荐进入容器方式）→ 查看 state / age / 状态文件。<br>
+            <strong>🔍 步骤2：</strong> 根据症状选择场景：<br>
+            &nbsp;&nbsp;➜ <code>age > 1800秒</code> + <code>state: Synced!</code> → 测试网暂停，等待恢复。<br>
+            &nbsp;&nbsp;➜ <code>state: Catching up</code> + 状态文件不变 → 下载卡死 → 清理临时文件+重启。<br>
+            &nbsp;&nbsp;➜ <code>state: Connected</code> 超过5分钟 → 卡在初始化 → 重启 stellar-core。<br>
+            &nbsp;&nbsp;➜ <code>authenticated_count = 0</code> → 网络分区 → 重启路由器+电脑。<br>
+            <strong>⚙️ 步骤3：</strong> 以上无效，执行「历史档案 URL 修复」。
+        </div>
+        <div class="cmd-box">
+            <div class="cmd-header"><span>🏁 终极恢复 (顽固卡顿)</span></div>
+            <div class="cmd-content">
+                <div class="command" id="cmdNuclear">docker exec -it testnet2 bash -c "sed -i 's/history.temp.testnet2.minepi.com/history.testnet2.minepi.com/g' /opt/stellar/core/etc/stellar-core.cfg && supervisorctl stop all && rm -rf /opt/stellar/core/buckets/tmp/* && supervisorctl start all"</div>
+                <button class="copy-btn" data-cmd="cmdNuclear">📋 复制</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        📌 <strong>经验备忘录：</strong> 网络故障后最容易出现「状态文件卡死」+「age 飙升」。<br>
+        ⚡ 最快恢复命令：<code>docker exec -it testnet2 supervisorctl restart stellar-core</code>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmdId = btn.getAttribute('data-cmd');
+            const cmdElem = document.getElementById(cmdId);
+            if (cmdElem) {
+                const cmdText = cmdElem.innerText;
+                navigator.clipboard.writeText(cmdText).then(() => {
+                    const origText = btn.innerHTML;
+                    btn.innerHTML = '✅ 已复制';
+                    setTimeout(() => {
+                        btn.innerHTML = origText;
+                    }, 1500);
+                }).catch(() => {
+                    alert('手动复制命令即可');
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>
