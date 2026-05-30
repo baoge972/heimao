@@ -1,0 +1,24 @@
+pi node
+
+systemctl status hexo     # 查看服务状态（是死是活）
+systemctl start hexo      # 启动服务
+systemctl stop hexo       # 停止服务
+systemctl restart hexo    # 重启服务
+systemctl enable hexo     # 设置开机自启
+systemctl disable hexo    # 取消开机自启
+
+
+
+RN
+
+systemctl status solitude-http      # 查看服务状态（是死是活）
+systemctl start solitude-http       # 启动服务
+systemctl stop solitude-http        # 停止服务
+systemctl restart solitude-http     # 重启服务
+systemctl enable solitude-http      # 设置开机自启
+systemctl disable solitude-http     # 取消开机自启
+
+
+ls /etc/systemd/system/*.service
+
+可以查询到   hexo    或者    solitude-http
