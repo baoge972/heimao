@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>书签图标添加工具</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        h1 { margin: 0 0 8px 0; font-size: 24px; color: #333; }
+        .sub { color: #666; font-size: 14px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+        .file-area { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #555; }
+        input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #ddd; border-radius: 12px; background: #f9f9f9; cursor: pointer; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .result { margin-top: 24px; padding-top: 20px; border-top: 1px solid #eee; }
+        .info { background: #e8f5e9; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 16px; }
+        .success { color: #2e7d32; font-weight: 600; }
+        .icon-source { font-size: 12px; color: #888; margin-top: 16px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔖 书签图标添加工具</h1>
+        <div class="sub">自动为每个书签添加网站自带图标</div>
+
+        <div class="file-area">
+            <label>📂 选择书签文件 (bookmarks.html)</label>
+            <input type="file" id="fileInput" accept=".html">
+        </div>
+
+        <button id="processBtn">✨ 添加图标并导出</button>
+
+        <div class="result" id="result"></div>
+        <div class="icon-source">图标来源：网站自带的 /favicon.ico（最稳定）</div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const resultDiv = document.getElementById('result');
+
+        // 获取图标URL - 使用网站自带的 favicon.ico
+        function getIconUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const origin = urlObj.origin;
+                return `${origin}/favicon.ico`;
+            } catch(e) {
+                return '';
+            }
+        }
+
+        // 为书签添加 ICON 属性
+        function addIconsToBookmark(html) {
+            let cleanedHtml = html.replace(/ICON="[^"]*"/gi, '');
+            const aTagRegex = /(<A\s+[^>]*HREF="([^"]+)"[^>]*)(>)/gi;
+            let addedCount = 0;
+            
+            const newHtml = cleanedHtml.replace(aTagRegex, (match, beforeHref, url, closing) => {
+                const iconUrl = getIconUrl(url);
+                if (iconUrl) {
+                    addedCount++;
+                    return `${beforeHref} ICON="${iconUrl}"${closing}`;
+                }
+                return match;
+            });
+            
+            return { html: newHtml, count: addedCount };
+        }
+
+        function downloadFile(content, fileName) {
+            const blob = new Blob([content], { type: 'text/html' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        processBtn.onclick = async () => {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<div class="info" style="background:#ffebee;color:#c62828;">⚠️ 请先选择书签文件</div>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<div class="info">⏳ 正在处理，请稍候...</div>';
+
+            try {
+                const content = await file.text();
+                const { html: newHtml, count } = addIconsToBookmark(content);
+                const newFileName = file.name.replace(/\.html$/i, '_with_icon.html');
+                const sizeKB = (new Blob([newHtml]).size / 1024).toFixed(1);
+                
+                resultDiv.innerHTML = `
+                    <div class="info">
+                        <div class="success">✅ 处理完成！</div>
+                        <div>📊 添加图标数量：${count} 个</div>
+                        <div>📦 文件大小：${sizeKB} KB</div>
+                        <div>🔗 图标来源：网站自带的 /favicon.ico</div>
+                    </div>
+                `;
+                
+                downloadFile(newHtml, newFileName);
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="info" style="background:#ffebee;color:#c62828;">❌ 处理失败：' + e.message + '</div>';
+            }
+        };
+    </script>
+</body>
+</html>
