@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sub-Store 完全教程 | Termux 部署 + PWA 网页版使用指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f1f5f9;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            line-height: 1.6;
+            color: #0f172a;
+            padding: 24px 16px 48px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .header h1 {
+            font-size: 1.9rem;
+            background: linear-gradient(135deg, #0b3b3f, #2c7a5e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .badge {
+            background: #e2f0ec;
+            color: #1e6f5c;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 24px;
+            border: 1px solid #e4e9f0;
+        }
+        .card-header {
+            padding: 16px 22px;
+            border-bottom: 1px solid #edf2f7;
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fefefe;
+            border-radius: 24px 24px 0 0;
+        }
+        .step-num {
+            background: #1f6e5c;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 18px 22px;
+        }
+        .code-block {
+            background: #0e1e2c;
+            color: #eef2ff;
+            padding: 14px 16px;
+            border-radius: 16px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin: 16px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .inline-code {
+            background: #eef2ff;
+            color: #1f4a6e;
+            padding: 0.2rem 0.45rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        .tip {
+            background: #e6f7f0;
+            border-left: 4px solid #2c7a5e;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        .warning {
+            background: #fff1e6;
+            border-left: 4px solid #e67e22;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        .btn-copy {
+            background: #334155;
+            border: none;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-copy:hover {
+            background: #1f6e5c;
+        }
+        .step-list {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .step-list li {
+            margin: 8px 0;
+        }
+        hr {
+            margin: 20px 0;
+            border: none;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 36px;
+            color: #5b6e8c;
+            font-size: 0.8rem;
+        }
+        @media (max-width: 640px) {
+            .card-body {
+                padding: 14px;
+            }
+            .code-block {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📦 Sub-Store 完全教程</h1>
+        <div class="badge">Termux 本地部署后端 · PWA 网页版前端操作指南</div>
+        <p style="margin-top: 12px; color: #475569;">本地生成 + 本地使用 · 数据完全掌握在自己手机中</p>
+    </div>
+
+    <!-- ========== 第一部分：Termux 部署后端 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">①</span> Termux 中部署 Sub-Store 后端
+        </div>
+        <div class="card-body">
+            <p>以下命令在 Termux 中依次执行：</p>
+            <div class="code-block" id="code-full">
+                # 1. 更新环境并安装必要工具<br>
+                pkg update && pkg upgrade -y<br>
+                pkg install nodejs-lts git -y<br>
+                <br>
+                # 2. 安装 pnpm（官方推荐）<br>
+                npm install -g pnpm<br>
+                <br>
+                # 3. 克隆 Sub-Store 后端仓库<br>
+                cd ~<br>
+                git clone https://github.com/sub-store-org/Sub-Store.git<br>
+                cd Sub-Store/backend<br>
+                <br>
+                # 4. 安装依赖<br>
+                pnpm i<br>
+                <br>
+                # 5. 启动服务<br>
+                pnpm start
+            </div>
+            <button class="btn-copy" data-copy="code-full">📋 复制全部命令</button>
+            <div class="tip">
+                ✅ 启动成功会显示：<span class="inline-code">Server is running on http://localhost:3000</span><br>
+                📱 后端地址即为：<span class="inline-code">http://127.0.0.1:3000</span>（本机访问）或 <span class="inline-code">http://手机IP:3000</span>（局域网访问）
+            </div>
+            <div class="warning">
+                ⚠️ 保持 Termux 运行状态。如需后台保活，可使用 <span class="inline-code">tmux</span>（见文末进阶）。
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第二部分：PWA 网页版前端说明 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">②</span> Sub-Store PWA 网页版前端
+        </div>
+        <div class="card-body">
+            <p><strong>前端地址（官方 PWA 网页版）：</strong></p>
+            <div class="code-block" style="background: #1a2a32; text-align: center; font-size: 1rem;">
+                🔗 https://sub-store.vercel.app/subs
+            </div>
+            <p><strong>这个网页的作用：</strong></p>
+            <ul class="step-list">
+                <li>它是一个<strong>纯前端界面</strong>（遥控器），本身不处理订阅数据</li>
+                <li>需要连接到你刚才在 Termux 中启动的<strong>后端</strong>（电视机）才能工作</li>
+                <li>所有订阅链接、节点信息都通过你自己的后端处理，<strong>不会上传到任何第三方</strong></li>
+            </ul>
+            <div class="tip">
+                💡 你可以把该网页添加到手机桌面（PWA 特性），使用体验接近原生 App。
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第三部分：配置后端连接 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">③</span> 在网页中配置后端地址
+        </div>
+        <div class="card-body">
+            <p>首次打开 <span class="inline-code">https://sub-store.vercel.app/subs</span> 时，会提示「后端连接配置」：</p>
+            <ol class="step-list">
+                <li>输入框中填写你的后端地址：<span class="inline-code">http://127.0.0.1:3000</span></li>
+                <li>点击「确认」或「保存」</li>
+                <li>页面正常加载后即可使用</li>
+            </ol>
+            <div class="code-block" id="code-backend-url">
+                http://127.0.0.1:3000
+            </div>
+            <button class="btn-copy" data-copy="code-backend-url">📋 复制后端地址</button>
+            <div class="warning">
+                ⚠️ 如果提示「网络错误或后端异常」：<br>
+                1. 检查 Termux 中的后端是否已启动（显示 Server is running）<br>
+                2. 确认手机未开启 VPN 或代理拦截了本地回环<br>
+                3. 尝试用 <span class="inline-code">http://localhost:3000</span> 替代 127.0.0.1
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第四部分：添加单链接（单个订阅地址）========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">④</span> 添加单链接（单个订阅地址）
+        </div>
+        <div class="card-body">
+            <p>「单链接」就是你的机场订阅 URL、V2Ray 链接、Clash 链接等原始订阅地址。</p>
+            <ol class="step-list">
+                <li>打开 Sub-Store 网页后，点击底部菜单栏的 <strong>「订阅」</strong> 或 <strong>「Subscriptions」</strong></li>
+                <li>点击右下角的 <strong>「+」</strong> 按钮（添加订阅）</li>
+                <li>填写以下信息：
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        <li><strong>名称</strong>：自定义，例如「我的机场」</li>
+                        <li><strong>链接</strong>：粘贴你的原始订阅 URL</li>
+                        <li><strong>格式</strong>：选择「自动」（程序会自动识别）</li>
+                    </ul>
+                </li>
+                <li>点击 <strong>「保存」</strong> 或 <strong>「确定」</strong></li>
+                <li>系统会自动拉取并解析该订阅的节点列表</li>
+            </ol>
+            <div class="tip">
+                📌 添加成功后，你可以在「订阅」页面看到该条记录，点击可查看节点详情。
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第五部分：添加集合（组合多个订阅）========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">⑤</span> 添加集合（组合多个订阅）
+        </div>
+        <div class="card-body">
+            <p>「集合」也叫「组合订阅」，可以将多个单链接合并、筛选、重命名后，生成一个新的订阅链接给代理软件使用。</p>
+            
+            <h3 style="margin: 16px 0 8px 0;">基础操作步骤：</h3>
+            <ol class="step-list">
+                <li>点击底部菜单栏的 <strong>「组合」</strong> 或 <strong>「Combinations」</strong></li>
+                <li>点击右下角的 <strong>「+」</strong> 按钮</li>
+                <li>填写组合信息：
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        <li><strong>名称</strong>：例如「日常组合」</li>
+                        <li><strong>选择订阅</strong>：勾选你之前添加的一个或多个单链接</li>
+                    </ul>
+                </li>
+                <li>（可选）点击「添加规则」进行高级配置：
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        <li><strong>节点筛选</strong>：只保留某些地区或关键词的节点</li>
+                        <li><strong>节点重命名</strong>：批量添加前缀/后缀</li>
+                        <li><strong>策略组调整</strong>：针对 Clash/Surge 的规则配置</li>
+                    </ul>
+                </li>
+                <li>点击 <strong>「保存」</strong></li>
+            </ol>
+
+            <h3 style="margin: 20px 0 8px 0;">导出订阅链接给代理软件：</h3>
+            <ol class="step-list">
+                <li>在「组合」页面，点击你刚创建的组合条目</li>
+                <li>选择 <strong>「导出」</strong> 或点击分享/复制图标</li>
+                <li>根据你的代理软件选择格式：
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        <li><strong>Clash / Clash Meta (Mihomo)</strong> → 选 <code>Clash</code></li>
+                        <li><strong>Sing-box</strong> → 选 <code>sing-box</code></li>
+                        <li><strong>Surge</strong> → 选 <code>Surge</code></li>
+                        <li><strong>Loon / Quantumult X</strong> → 对应选项</li>
+                    </ul>
+                </li>
+                <li>点击「复制链接」，将链接粘贴到你的代理 App 的订阅地址中</li>
+            </ol>
+
+            <div class="tip">
+                🔁 进阶技巧：<strong>集合的集合</strong> — 你可以先创建组合 A（包含订阅1+订阅2），再创建组合 B，在「选择订阅」时直接勾选组合 A，这样 B 就包含了 A 里的所有节点。
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第六部分：界面功能速查 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">⑥</span> 界面功能速查表
+        </div>
+        <div class="card-body">
+            <p>Sub-Store PWA 网页版底部菜单栏说明：</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                <tr style="background: #eef2ff;">
+                    <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">菜单</th>
+                    <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">作用</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>订阅</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">管理原始订阅链接（单链接），查看节点列表</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>组合</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">创建组合订阅、合并多个源、筛选节点、导出代理链接</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>脚本</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">添加自定义 JS 脚本，实现高级节点处理</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>我的</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">后端管理、备份/恢复、偏好设置</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== 第七部分：进阶保活 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">🔧</span> 进阶 · Termux 后台保活
+        </div>
+        <div class="card-body">
+            <p>使用 <span class="inline-code">tmux</span> 让后端在后台持续运行：</p>
+            <div class="code-block" id="code-tmux">
+                pkg install tmux -y<br>
+                tmux new -s substore<br>
+                # 进入会话后执行 cd ~/Sub-Store/backend && pnpm start<br>
+                # 按 Ctrl+B 然后按 D 脱离会话（服务继续运行）<br>
+                # 重新进入：tmux attach -t substore<br>
+                # 查看所有会话：tmux ls
+            </div>
+            <button class="btn-copy" data-copy="code-tmux">📋 复制 tmux 命令</button>
+            <div class="warning">
+                🔋 Android 系统可能会杀后台进程，请在系统设置中将 Termux 加入「电池优化白名单」并锁定任务卡片。
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 第八部分：常见问题 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">❓</span> 常见问题排查
+        </div>
+        <div class="card-body">
+            <p><strong>Q1: 网页提示「网络错误或后端异常」怎么办？</strong></p>
+            <p>A: ①确认 Termux 中后端已启动（显示 Server running）；②确认填写的是 <span class="inline-code">http://127.0.0.1:3000</span> 而非 https；③关闭手机 VPN 或代理软件后再试。</p>
+            
+            <p><strong>Q2: pnpm i 安装失败或速度慢？</strong></p>
+            <p>A: 切换国内镜像源：<span class="inline-code">pnpm config set registry https://registry.npmmirror.com</span></p>
+            
+            <p><strong>Q3: 添加订阅后看不到节点？</strong></p>
+            <p>A: 检查原始订阅链接是否有效（可以在浏览器中打开看是否有返回内容）；确认订阅格式选择正确。</p>
+            
+            <p><strong>Q4: 代理软件导入组合链接后无法更新？</strong></p>
+            <p>A: 先用手机浏览器访问该组合链接，看能否正常返回配置内容；检查代理软件是否填写了正确的订阅地址。</p>
+            
+            <p><strong>Q5: 如何更新 Sub-Store 到最新版？</strong></p>
+            <p>A: <span class="inline-code">cd ~/Sub-Store/backend && git pull && pnpm i</span>，然后重启服务。</p>
+        
+            <p><strong>Q6：修改启动配置，让它监听同一WIFI下所有网络接口</strong></p>
+            <p>A: # 1. 停止当前运行的服务 (Ctrl+C)
+# 2. 设置环境变量并重新启动：<span class="inline-code">SUB_STORE_BACKEND_HOST="0.0.0.0" pnpm start</span></p>
+
+
+
+        </div>
+    </div>
+
+    <!-- ========== 总结 ========== -->
+    <div class="card">
+        <div class="card-header">
+            <span class="step-num">📌</span> 完整工作流程回顾
+        </div>
+        <div class="card-body">
+            <ol class="step-list">
+                <li><strong>Termux 中启动后端</strong>：<span class="inline-code">cd ~/Sub-Store/backend && pnpm start</span></li>
+                <li><strong>打开前端网页</strong>：<span class="inline-code">https://sub-store.vercel.app/subs</span></li>
+                <li><strong>配置后端地址</strong>：填入 <span class="inline-code">http://127.0.0.1:3000</span></li>
+                <li><strong>添加单链接</strong>：订阅页面 → + → 输入名称和订阅 URL</li>
+                <li><strong>创建集合</strong>：组合页面 → + → 勾选订阅 → 保存</li>
+                <li><strong>导出并使用</strong>：点击组合 → 选择格式 → 复制链接 → 粘贴到代理软件</li>
+            </ol>
+            <div class="tip">
+                🎯 一次配置完成后，日常使用只需要：保持 Termux 后端运行 → 打开网页前端 → 更新/添加订阅即可。
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        🔗 前端地址：<a href="https://sub-store.vercel.app/subs" target="_blank">https://sub-store.vercel.app/subs</a><br>
+        🔗 后端仓库：<a href="https://github.com/sub-store-org/Sub-Store" target="_blank">github.com/sub-store-org/Sub-Store</a><br>
+        本教程适用于 Android Termux 本地部署 + PWA 网页版，所有数据处理均在本地完成。
+    </footer>
+</div>
+
+<script>
+    document.querySelectorAll('.btn-copy').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-copy');
+            const codeElem = document.getElementById(targetId);
+            if (!codeElem) return;
+            navigator.clipboard.writeText(codeElem.innerText).then(() => {
+                const original = btn.innerText;
+                btn.innerText = '✅ 已复制';
+                setTimeout(() => btn.innerText = original, 1500);
+            }).catch(() => alert('手动复制'));
+        });
+    });
+</script>
+</body>
+</html>
