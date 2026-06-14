@@ -1,0 +1,35 @@
+重新构建并应用新 index.html
+1. 首先清理旧容器和镜像
+bash
+cd ~/jizhang
+
+# 停止并移除容器
+docker-compose down                                                                   1
+
+# 移除旧镜像（强制重新构建）
+docker rmi jizhang_app:latest                                                        2
+
+# 确认没有残留容器
+docker ps -a | grep accounting
+2. 确认新文件存在
+bash
+# 查看新的 index.html
+ls -la index.html
+cat index.html | head -10  # 查看前10行确认内容
+3. 重新构建并启动
+bash
+# 重新构建镜像（不使用缓存，确保新文件被打包）
+docker-compose build --no-cache                                                3
+
+# 启动容器
+docker-compose up -d                                                                     4
+4. 验证是否成功
+bash
+# 查看容器状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs
+
+# 测试访问（假设端口是3000）
+curl http://localhost:3000
