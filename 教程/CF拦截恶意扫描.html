@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare WAF 拦截规则设置教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        h2 {
+            font-size: 22px;
+            margin: 25px 0 15px 0;
+            color: #f0a500;
+            border-left: 4px solid #f0a500;
+            padding-left: 15px;
+        }
+        h3 {
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            color: #ffd369;
+        }
+        .step {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 3px solid #f0a500;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #f0a500;
+            color: #1a1a2e;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        code {
+            background: #2d2d2d;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #ffd369;
+        }
+        pre {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            border: 1px solid #333;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background: #f0a500;
+            color: #1a1a2e;
+        }
+        .note {
+            background: rgba(240,165,0,0.2);
+            border-left: 4px solid #f0a500;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: rgba(76,175,80,0.2);
+            border-left-color: #4CAF50;
+        }
+        .btn {
+            display: inline-block;
+            background: #f0a500;
+            color: #1a1a2e;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #ffc107;
+            transform: translateY(-2px);
+        }
+        hr {
+            border-color: #333;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+        }
+        .badge {
+            display: inline-block;
+            background: #4CAF50;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🛡️ Cloudflare WAF 拦截规则设置教程</h1>
+            <p>本教程将指导您在 Cloudflare 仪表盘中设置 WAF 规则，拦截恶意扫描请求，<strong>不消耗 Workers 请求额度</strong>。</p>
+            <p>适用场景：拦截 <code>/files/</code>、<code>/storage/</code>、<code>/api/v1/</code> 等恶意路径扫描。</p>
+            <a href="https://dash.cloudflare.com/" target="_blank" class="btn">👉 打开 Cloudflare 仪表盘</a>
+        </div>
+
+        <div class="card">
+            <h2>📋 步骤 1：进入 WAF 设置</h2>
+            <div class="step">
+                <p><span class="step-number">1</span> 登录 <a href="https://dash.cloudflare.com/" target="_blank" style="color:#f0a500;">Cloudflare 仪表盘</a></p>
+                <p><span class="step-number">2</span> 点击您要设置的<strong>域名</strong>（例如：<code>baoge456.dpdns.org</code>）</p>
+                <p><span class="step-number">3</span> 左侧菜单点击 <strong>安全性</strong> → <strong>WAF</strong></p>
+                <p><span class="step-number">4</span> 点击 <strong>创建规则</strong> 按钮</p>
+            </div>
+            <div class="note">
+                💡 <strong>提示</strong>：如果您使用的是免费套餐，WAF 功能仍然可用。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 步骤 2：填写规则内容</h2>
+            
+            <h3>规则名称</h3>
+            <div class="step">
+                <code>拦截恶意扫描 - 敏感目录</code>
+            </div>
+
+            <h3>规则条件（按顺序添加）</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>字段</th><th>运算符</th><th>值</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>URI 路径</code></td><td><code>包含</code></td><td><code>/files/</code></td></tr>
+                        <tr style="background:#2a2a2a;"><td colspan="3" style="text-align:center">🔽 点击 <strong>Or</strong> 添加第二条</td></tr>
+                        <tr><td><code>URI 路径</code></td><td><code>包含</code></td><td><code>/storage/</code></td></tr>
+                        <tr style="background:#2a2a2a;"><td colspan="3" style="text-align:center">🔽 点击 <strong>Or</strong> 添加第三条</td></tr>
+                        <tr><td><code>URI 路径</code></td><td><code>包含</code></td><td><code>/api/v1/</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>操作</h3>
+            <div class="step">
+                <code>阻止</code>
+            </div>
+
+            <div class="note">
+                ✅ 配置完成后点击 <strong>部署</strong> 按钮保存规则。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 步骤 3：添加更多拦截路径（可选）</h2>
+            <p>您可以根据日志中发现的恶意请求，继续添加更多拦截条件：</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>常见恶意路径</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>/api/backup_full.</code></td><td>备份文件扫描</td></tr>
+                        <tr><td><code>/api/credentials.</code></td><td>凭证文件扫描</td></tr>
+                        <tr><td><code>/wp-content/</code></td><td>WordPress 漏洞扫描</td></tr>
+                        <tr><td><code>/.env</code></td><td>环境变量文件扫描</td></tr>
+                        <tr><td><code>/admin/</code></td><td>后台路径扫描</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="note">
+                💡 <strong>建议</strong>：观察一段时间 Workers 日志，针对性地添加拦截规则。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 步骤 4：验证规则是否生效</h2>
+            <div class="step">
+                <p>在浏览器中访问以下地址：</p>
+                <pre>https://您的域名/files/test.txt</pre>
+                <p>如果看到 <strong>403 Forbidden</strong> 页面，说明规则生效 ✅</p>
+                <p>如果看到 <strong>404 Not Found</strong>，说明请求没有被拦截，请检查规则配置。</p>
+            </div>
+        </div>
+
+        <div class="card success">
+            <h2>🎯 预期效果</h2>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li>✅ 恶意扫描请求在到达 Worker 前被拦截</li>
+                <li>✅ 不消耗 Workers 免费请求额度</li>
+                <li>✅ 正常用户访问不受影响</li>
+                <li>✅ Worker 日志中不再出现大量恶意请求</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>📊 查看拦截效果</h2>
+            <div class="step">
+                <p>1. 在 Cloudflare 仪表盘左侧菜单点击 <strong>安全性</strong> → <strong>事件</strong></p>
+                <p>2. 可以查看被 WAF 拦截的请求记录</p>
+                <p>3. 筛选条件：操作 = 阻止</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⚠️ 注意事项</h2>
+            <div class="note">
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>WAF 规则对免费套餐同样有效</li>
+                    <li>规则生效后，这些路径的所有请求都会被拦截（包括正常请求）</li>
+                    <li>如果您的网站确实需要 <code>/files/</code> 等路径，请使用其他路径名称</li>
+                    <li>建议先测试，确认不影响正常功能后再正式部署</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🔧 规则配置截图参考</h2>
+            <pre style="background: #0d0d0d; color: #ccc;">
+规则名称: 拦截恶意扫描 - 敏感目录
+表达式: 
+    (http.request.uri.path contains "/files/") 
+    or (http.request.uri.path contains "/storage/") 
+    or (http.request.uri.path contains "/api/v1/")
+操作: 阻止</pre>
+            <div class="note">
+                💡 您也可以在 WAF 中使用 <strong>表达式编辑器</strong> 直接粘贴上述表达式。
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Cloudflare WAF 规则教程 | 拦截恶意扫描 | 节省 Workers 额度</p>
+            <p>如有问题，请在 Cloudflare 仪表盘中查看 <strong>安全性 → 事件</strong> 日志分析。</p>
+        </div>
+    </div>
+</body>
+</html>
