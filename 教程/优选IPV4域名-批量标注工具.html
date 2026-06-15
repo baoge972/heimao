@@ -450,8 +450,8 @@
     </div>
 
     <div class="description">
-        <p><strong>功能说明：</strong>本工具支持批量标注IPV4地址和域名数据，可解析「延迟 ms：域名」格式（自动去除数字/ms前缀），也支持纯IP/纯域名标注。</p>
-        <p><strong>输入格式：</strong>1. 纯IPv4地址 2. 纯域名 3. 「数字 ms：域名」混合格式（支持杂乱排列）</p>
+        <p><strong>功能说明：</strong>本工具支持批量标注IPV4地址和域名数据，可解析多种格式：纯IP、纯域名、「数字 ms：域名」、以及「IP:端口#国家」等格式。</p>
+        <p><strong>输入格式：</strong>1. 纯IPv4地址 2. 纯域名 3. 「数字 ms：域名」混合格式 4. 「IP:端口#国家」节点列表格式</p>
         <p><strong>输出格式：</strong>IP/域名#自定义关键词1（序号从1开始递增）</p>
     </div>
 
@@ -466,7 +466,7 @@
             <button id="refreshBtn">🔄 刷新</button>
         </div>
         <div class="input-container">
-            <textarea id="inputData" placeholder="支持纯IP、纯域名、延迟+域名格式，例如：&#10;57.673 ms：www.udacity.com&#10;192.168.1.1&#10;download.yunzhongzhuan.com"></textarea>
+            <textarea id="inputData" placeholder="支持多种格式，例如：&#10;103.118.42.16:8443#🇭🇰中国香港&#10;57.673 ms：www.udacity.com&#10;192.168.1.1&#10;download.yunzhongzhuan.com"></textarea>
             <button class="clear-btn" id="clearInput">清空</button>
         </div>
     </div>
@@ -523,7 +523,7 @@
         const fileIdentifier = document.getElementById('fileIdentifier');
         const confirmExport = document.getElementById('confirmExport');
         const cancelExport = document.getElementById('cancelExport');
-        const friendLinkBtn = document.getElementById('friendLinkBtn'); // 友链符号按键
+        const friendLinkBtn = document.getElementById('friendLinkBtn');
 
         // 消息元素
         const successMsg = document.getElementById('successMessage');
@@ -540,59 +540,115 @@
             }, duration);
         }
 
-        // 核心提取函数：从杂乱文本中提取 IPv4 和 域名（支持 "数字 ms：域名"）
+        /**
+         * 优化版提取函数：支持多种格式
+         * 1. 纯IPv4地址
+         * 2. 纯域名
+         * 3. 延迟格式：57.673 ms：www.udacity.com
+         * 4. 节点格式：103.118.42.16:8443#🇭🇰中国香港
+         * 5. IP:端口 格式
+         */
         function extractAllTargets(rawText) {
             if (!rawText || !rawText.trim()) return [];
-            // 按空白字符（换行、空格、制表等）拆分成片段
-            const tokens = rawText.split(/[\n\s\t]+/).filter(t => t.trim().length > 0);
+            
             const targets = [];
             const seen = new Set();
-
-            // 规则优先级：延迟+域名 > IPv4 > 纯域名
-            // 正则：匹配数字 ms：域名 （中文冒号或英文冒号兼容）
+            
+            // 按行分割（支持逗号分隔、空格、换行等多种分隔符）
+            // 先按换行分割，再按逗号分割，再按空格/制表符分割
+            let lines = rawText.split(/\r?\n/);
+            let allTokens = [];
+            
+            for (let line of lines) {
+                if (line.includes(',')) {
+                    // 逗号分隔
+                    let parts = line.split(',');
+                    for (let part of parts) {
+                        if (part.trim()) allTokens.push(part.trim());
+                    }
+                } else if (line.trim()) {
+                    // 按空白字符分割
+                    let spaceTokens = line.split(/[\s\t]+/);
+                    for (let token of spaceTokens) {
+                        if (token.trim()) allTokens.push(token.trim());
+                    }
+                }
+            }
+            
+            // IPv4 严格匹配（不带端口）
+            const pureIpv4Regex = /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\b/;
+            
+            // 带端口的IP格式: IP:端口 或 IP:端口#国家
+            const ipWithPortRegex = /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(?::\d+)?(?:#[\w\ud800-\udfff]+)?/g;
+            
+            // 延迟+域名正则
             const delayDomainRegex = /\d+(?:\.\d+)?\s*ms\s*[：:]\s*([a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9])/i;
-            // IPv4 严格匹配
-            const ipv4Regex = /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))\b/;
+            
             // 域名匹配（支持多级，不含协议）
             const domainRegex = /\b([a-zA-Z0-9][a-zA-Z0-9-]{0,62}\.)+[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?\b/;
-
-            for (let token of tokens) {
-                let matched = false;
-                // 1) 延迟+域名
-                let match = token.match(delayDomainRegex);
-                if (match && match[1]) {
-                    let domain = match[1].trim();
+            
+            for (let token of allTokens) {
+                let extracted = false;
+                
+                // 1. 优先处理延迟+域名格式
+                let delayMatch = token.match(delayDomainRegex);
+                if (delayMatch && delayMatch[1]) {
+                    let domain = delayMatch[1].trim();
                     if (domain && !seen.has(domain)) {
                         seen.add(domain);
                         targets.push(domain);
                     }
-                    matched = true;
+                    extracted = true;
+                    continue;
                 }
-                // 2) IPv4
-                if (!matched) {
-                    match = token.match(ipv4Regex);
-                    if (match && match[1]) {
-                        let ip = match[1].trim();
+                
+                // 2. 处理IP格式（带端口或不带端口）
+                // 先尝试匹配带端口的完整模式，提取IP部分
+                let ipMatch = token.match(ipWithPortRegex);
+                if (ipMatch) {
+                    // 提取纯IP（去掉端口和国家后缀）
+                    let fullMatch = ipMatch[0];
+                    let pureIpMatch = fullMatch.match(pureIpv4Regex);
+                    if (pureIpMatch && pureIpMatch[1]) {
+                        let ip = pureIpMatch[1];
                         if (!seen.has(ip)) {
                             seen.add(ip);
                             targets.push(ip);
                         }
-                        matched = true;
+                        extracted = true;
+                        continue;
                     }
                 }
-                // 3) 纯域名（且不能是纯数字）
-                if (!matched) {
-                    match = token.match(domainRegex);
-                    if (match && match[0]) {
-                        let domain = match[0].trim();
-                        // 过滤掉看起来像IPv4片段但不是完整IP的干扰
+                
+                // 3. 尝试匹配纯IPv4（无端口）
+                if (!extracted) {
+                    let pureMatch = token.match(pureIpv4Regex);
+                    if (pureMatch && pureMatch[1]) {
+                        let ip = pureMatch[1];
+                        if (!seen.has(ip)) {
+                            seen.add(ip);
+                            targets.push(ip);
+                        }
+                        extracted = true;
+                        continue;
+                    }
+                }
+                
+                // 4. 尝试匹配纯域名
+                if (!extracted) {
+                    let domainMatch = token.match(domainRegex);
+                    if (domainMatch && domainMatch[0]) {
+                        let domain = domainMatch[0];
+                        // 过滤掉像IP的假域名
                         if (!/^\d+\.\d+\.\d+\.\d+$/.test(domain) && !seen.has(domain)) {
                             seen.add(domain);
                             targets.push(domain);
                         }
+                        extracted = true;
                     }
                 }
             }
+            
             return targets;
         }
 
@@ -611,7 +667,7 @@
             const keyword = keywordInput.value.trim() || '宝哥优选';
             const targets = extractAllTargets(raw);
             if (targets.length === 0) {
-                alert('未提取到任何有效IP/域名！');
+                alert('未提取到任何有效IP/域名！\n\n支持格式：\n- 纯IP地址\n- 纯域名\n- IP:端口#国家\n- 数字 ms：域名');
                 outputData.value = '';
                 updateCounter(0);
                 return;
@@ -657,7 +713,6 @@
                 await navigator.clipboard.writeText(content);
                 showMessage(successMsg);
             } catch (err) {
-                // 降级方案
                 outputData.select();
                 document.execCommand('copy');
                 showMessage(successMsg);
@@ -679,7 +734,7 @@
             exportModal.style.display = 'none';
         }
 
-        // 安全化文件名：替换掉Windows/Linux下文件名非法字符
+        // 安全化文件名
         function sanitizeForFilename(str) {
             if (!str) return '';
             return str.replace(/[\\/:*?"<>|]/g, '_');
@@ -719,13 +774,13 @@
             showMessage(exportMsg);
         }
 
-        // 清空输入框（不清空输出）
+        // 清空输入框
         function clearInputOnly() {
             inputData.value = '';
             inputData.focus();
         }
 
-        // 友链符号按键：打开指定链接
+        // 友链符号按键
         function openFriendLink() {
             window.open('https://symbols.cool/tw', '_blank');
         }
@@ -746,12 +801,12 @@
             if(e.target === exportModal) closeModal();
         });
 
-        // 粘贴后稍微清理多余空白（非必须，提升体验）
+        // 粘贴后清理多余空白
         inputData.addEventListener('paste', () => {
             setTimeout(() => {
                 let val = inputData.value;
                 if (val) {
-                    val = val.replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n +/g, '\n');
+                    val = val.replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ');
                     inputData.value = val;
                 }
             }, 20);
