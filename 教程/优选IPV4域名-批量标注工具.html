@@ -44,27 +44,58 @@
             background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
         }
 
-        /* 标题 */
-        h1 {
-            text-align: center;
+        /* 标题区域 - 加入友链符号按钮行 */
+        .title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
             margin-bottom: 25px;
-            color: #2c3e50;
-            padding-bottom: 15px;
             border-bottom: 2px solid #e1e8ed;
-            position: relative;
-            font-weight: 700;
-            font-size: 28px;
+            padding-bottom: 15px;
         }
 
-        h1::after {
-            content: "";
-            position: absolute;
-            bottom: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 2px;
-            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+        h1 {
+            margin: 0;
+            padding: 0;
+            border-bottom: none;
+            color: #2c3e50;
+            font-weight: 700;
+            font-size: 28px;
+            flex: 1;
+        }
+
+        /* 友链符号按键样式 */
+        .friend-link-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            flex: 0 0 auto;
+        }
+
+        .friend-link-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46a0 100%);
+        }
+
+        .friend-link-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .friend-link-btn .link-icon {
+            font-size: 18px;
         }
 
         /* 描述区域 */
@@ -353,6 +384,14 @@
             background-color: #7f8c8d;
         }
 
+        /* 确认导出按钮 - 绿色高亮 */
+        #confirmExport {
+            background-color: #2ecc71;
+        }
+        #confirmExport:hover {
+            background-color: #58d68d;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -384,6 +423,13 @@
             #refreshBtn {
                 align-self: flex-end;
             }
+            .title-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .friend-link-btn {
+                justify-content: center;
+            }
         }
 
         .icon {
@@ -395,7 +441,13 @@
 </head>
 <body>
 <div class="container">
-    <h1>优选IPV4/域名-批量标注工具</h1>
+    <!-- 顶部区域：标题 + 友链符号按键 -->
+    <div class="title-section">
+        <h1>优选IPV4/域名-批量标注工具</h1>
+        <button id="friendLinkBtn" class="friend-link-btn" title="打开符号库网站">
+            <span class="link-icon">🔗</span> 友链符号库
+        </button>
+    </div>
 
     <div class="description">
         <p><strong>功能说明：</strong>本工具支持批量标注IPV4地址和域名数据，可解析「延迟 ms：域名」格式（自动去除数字/ms前缀），也支持纯IP/纯域名标注。</p>
@@ -445,8 +497,8 @@
 <div id="exportModal" class="modal">
     <div class="modal-content">
         <h3>导出文件命名</h3>
-        <p>请输入文件编号（例如：1, 2, 3...）</p>
-        <input type="number" id="fileNumber" min="1" value="1" placeholder="输入文件编号">
+        <p>请输入文件标识（可选，支持文字、字母、数字）</p>
+        <input type="text" id="fileIdentifier" placeholder="留空或输入任意标识（如：1、v2、最终版）">
         <div class="modal-buttons">
             <button id="confirmExport">确认导出</button>
             <button id="cancelExport" class="modal-cancel">取消</button>
@@ -468,9 +520,10 @@
         const refreshBtn = document.getElementById('refreshBtn');
         const clearInputBtn = document.getElementById('clearInput');
         const exportModal = document.getElementById('exportModal');
-        const fileNumber = document.getElementById('fileNumber');
+        const fileIdentifier = document.getElementById('fileIdentifier');
         const confirmExport = document.getElementById('confirmExport');
         const cancelExport = document.getElementById('cancelExport');
+        const friendLinkBtn = document.getElementById('friendLinkBtn'); // 友链符号按键
 
         // 消息元素
         const successMsg = document.getElementById('successMessage');
@@ -618,26 +671,40 @@
                 return;
             }
             exportModal.style.display = 'flex';
-            fileNumber.value = '1';
-            fileNumber.focus();
+            fileIdentifier.value = '';
+            fileIdentifier.focus();
         }
 
         function closeModal() {
             exportModal.style.display = 'none';
         }
 
+        // 安全化文件名：替换掉Windows/Linux下文件名非法字符
+        function sanitizeForFilename(str) {
+            if (!str) return '';
+            return str.replace(/[\\/:*?"<>|]/g, '_');
+        }
+
         function performExport() {
-            let num = parseInt(fileNumber.value, 10);
-            if (isNaN(num) || num < 1) {
-                alert('请输入有效的文件编号 (≥1 的数字)');
-                return;
+            let identifierRaw = fileIdentifier.value.trim();
+            let safeIdentifier = '';
+            if (identifierRaw !== '') {
+                safeIdentifier = sanitizeForFilename(identifierRaw);
+                if (safeIdentifier === '') safeIdentifier = '';
             }
+            
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const dateStr = `${year}${month}${day}`;
-            const filename = `${dateStr}-${num}.txt`;
+            
+            let filename = `${dateStr}`;
+            if (safeIdentifier) {
+                filename += `-${safeIdentifier}`;
+            }
+            filename += '.txt';
+            
             const content = outputData.value;
             const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
             const url = URL.createObjectURL(blob);
@@ -658,6 +725,11 @@
             inputData.focus();
         }
 
+        // 友链符号按键：打开指定链接
+        function openFriendLink() {
+            window.open('https://symbols.cool/tw', '_blank');
+        }
+
         // 事件绑定
         processBtn.addEventListener('click', annotateData);
         autoFormatBtn.addEventListener('click', autoExtract);
@@ -667,6 +739,8 @@
         clearInputBtn.addEventListener('click', clearInputOnly);
         confirmExport.addEventListener('click', performExport);
         cancelExport.addEventListener('click', closeModal);
+        friendLinkBtn.addEventListener('click', openFriendLink);
+        
         // 点击模态框背景关闭
         exportModal.addEventListener('click', (e) => {
             if(e.target === exportModal) closeModal();
@@ -677,7 +751,6 @@
             setTimeout(() => {
                 let val = inputData.value;
                 if (val) {
-                    // 不破坏原有结构，只把连续空白/换行整理一下，避免过多空行
                     val = val.replace(/[\r\n]+/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n +/g, '\n');
                     inputData.value = val;
                 }
