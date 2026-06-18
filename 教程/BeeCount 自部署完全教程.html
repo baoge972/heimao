@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeCount 自部署完全教程</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f2f5f9;
+            padding: 30px 20px;
+            color: #1a2a3a;
+            line-height: 1.7;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 20, 30, 0.25);
+            padding: 40px 42px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0b2b3b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 3px solid #f1b24a;
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+        h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #6a7f8f;
+            margin-left: auto;
+        }
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a4055;
+            margin-top: 38px;
+            margin-bottom: 14px;
+            padding-left: 14px;
+            border-left: 6px solid #f1b24a;
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e3b4c;
+            margin-top: 28px;
+            margin-bottom: 10px;
+        }
+        p {
+            margin-bottom: 14px;
+            color: #2d4659;
+        }
+        ul, ol {
+            margin: 10px 0 18px 24px;
+            color: #2d4659;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        .code-block {
+            background: #0e1e2b;
+            color: #e3edf5;
+            padding: 18px 22px;
+            border-radius: 14px;
+            font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 16px 0 22px 0;
+            border: 1px solid #1f3a4b;
+            line-height: 1.6;
+            position: relative;
+        }
+        .code-block .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: #2a4a5e;
+            color: #cbdae6;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .code-block .copy-btn:hover {
+            background: #3a5f77;
+            color: #ffffff;
+        }
+        .code-block .cmd-prompt {
+            color: #a0c0d4;
+            user-select: none;
+        }
+        .code-block .highlight {
+            color: #f1b24a;
+        }
+        .note-box {
+            background: #fefaf2;
+            border-left: 5px solid #f1b24a;
+            padding: 16px 22px;
+            border-radius: 0 14px 14px 0;
+            margin: 20px 0 24px 0;
+            border: 1px solid #f5e6d0;
+            border-left-width: 6px;
+        }
+        .warning-box {
+            background: #fdf3f0;
+            border-left: 5px solid #d95b43;
+            padding: 16px 22px;
+            border-radius: 0 14px 14px 0;
+            margin: 20px 0 24px 0;
+            border: 1px solid #f5d6ce;
+            border-left-width: 6px;
+        }
+        .success-box {
+            background: #e9f4ee;
+            border-left: 5px solid #2b8c6e;
+            padding: 16px 22px;
+            border-radius: 0 14px 14px 0;
+            margin: 20px 0 24px 0;
+            border: 1px solid #c5e0d4;
+            border-left-width: 6px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #f1b24a;
+            color: #0b2b3b;
+            font-weight: 700;
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            line-height: 28px;
+            border-radius: 40px;
+            margin-right: 10px;
+            font-size: 15px;
+        }
+        .toc {
+            background: #f6f9fc;
+            padding: 16px 24px 10px 24px;
+            border-radius: 18px;
+            margin-bottom: 30px;
+            border: 1px solid #e3eaf2;
+        }
+        .toc a {
+            color: #1a5a7a;
+            text-decoration: none;
+            border-bottom: 1px dashed #b8cedf;
+        }
+        .toc a:hover {
+            color: #0b2b3b;
+            border-bottom-color: #f1b24a;
+        }
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 6px 0 6px 0;
+        }
+        .toc ul li {
+            padding: 4px 0;
+        }
+        hr {
+            border: none;
+            border-top: 2px dashed #dce6ef;
+            margin: 36px 0 20px 0;
+        }
+        .footer-meta {
+            margin-top: 44px;
+            padding-top: 20px;
+            border-top: 1px solid #e7eef6;
+            font-size: 15px;
+            color: #6a7f8f;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tag {
+            background: #eef3f8;
+            padding: 2px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #1f3a4b;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 22px 18px; }
+            h1 { font-size: 26px; flex-wrap: wrap; }
+            h1 small { margin-left: 0; }
+            .code-block { font-size: 13px; padding: 14px 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="top">
+    <h1>
+        🐝 BeeCount 自部署完全教程
+        <small>个人记账 · 数据自主 · 多端同步</small>
+    </h1>
+
+    <!-- 目录 -->
+    <div class="toc">
+        <strong style="font-size:16px;">📑 本文目录</strong>
+        <ul>
+            <li><a href="#part1">1. 准备工作</a></li>
+            <li><a href="#part2">2. 一键部署 BeeCount</a></li>
+            <li><a href="#part3">3. 获取管理员密码 &amp; 登录</a></li>
+            <li><a href="#part4">4. 配置 HTTPS 域名访问</a></li>
+            <li><a href="#part5">5. 清空所有数据（重置）</a></li>
+            <li><a href="#part6">6. 获取重置后的新密码</a></li>
+            <li><a href="#part7">7. 常用维护命令</a></li>
+        </ul>
+    </div>
+
+    <!-- ==================== PART 1 ==================== -->
+    <h2 id="part1">1. 准备工作</h2>
+    <p>在开始部署之前，请确保你具备以下条件：</p>
+    <ul>
+        <li><strong>一台 VPS 服务器</strong>（Ubuntu / Debian 系统），拥有 root 或 sudo 权限。</li>
+        <li><strong>已安装 Docker 和 Docker Compose</strong>。如果未安装，请先执行：<br>
+            <span class="code-block" style="display:inline-block; padding:8px 18px; background:#0e1e2b; color:#cbdae6; border-radius:10px; font-family:monospace; margin-top:6px;">curl -fsSL https://get.docker.com | sh</span>
+        </li>
+        <li><strong>一个域名</strong>（可选，但推荐），并将 DNS 解析到你的 VPS 公网 IP。</li>
+        <li>确保 VPS 防火墙 / 云安全组开放了 <strong>80</strong> 和 <strong>443</strong> 端口（用于 HTTP/HTTPS）。</li>
+    </ul>
+
+    <div class="note-box">
+        <strong>💡 本文示例域名：</strong> <code>bee.baoge.wang</code><br>
+        实际操作时请替换为你自己的域名。如果没有域名，也可以直接用 IP 访问（仅 HTTP，不推荐生产使用）。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 2 ==================== -->
+    <h2 id="part2">2. 一键部署 BeeCount</h2>
+    <p>在 VPS 上执行以下命令，即可完成部署。所有数据会持久化到 <code>~/beecount/data</code> 目录。</p>
+
+    <h3>步骤 2.1 创建工作目录并启动容器</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 创建目录并进入</span>
+        mkdir -p ~/beecount/data &amp;&amp; cd ~/beecount
+
+        <span class="cmd-prompt"># 运行 BeeCount 容器（端口映射 8869）</span>
+        docker run -d \
+            --name beecount \
+            --restart unless-stopped \
+            -p 8869:8080 \
+            -v ~/beecount/data:/data \
+            sunxiao0721/beecount-cloud:latest
+    </div>
+
+    <div class="note-box">
+        <strong>📌 参数说明：</strong><br>
+        • <code>-p 8869:8080</code> — 将容器内 8080 端口映射到宿主机 8869 端口。<br>
+        • <code>-v ~/beecount/data:/data</code> — 数据持久化，所有账本数据都保存在此目录。<br>
+        • <code>--restart unless-stopped</code> — 服务器重启后容器自动启动。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 3 ==================== -->
+    <h2 id="part3">3. 获取管理员密码 &amp; 登录</h2>
+    <p>首次启动时，BeeCount 会自动生成一个随机的管理员密码。你需要通过以下命令查看：</p>
+
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 查看初始管理员密码</span>
+        docker exec beecount cat /data/.initial_admin_password
+    </div>
+
+    <p>执行后会看到类似输出：</p>
+    <div class="code-block" style="background:#1a2f3d; color:#d4e2ed;">
+        邮箱:    owner@example.com
+        密码:    FIDodUnwprkw1zUi
+    </div>
+
+    <h3>登录地址</h3>
+    <ul>
+        <li><strong>有域名（推荐）：</strong> <code>https://你的域名</code>（如 <code>https://bee.baoge.wang</code>）</li>
+        <li><strong>无域名（仅测试）：</strong> <code>http://你的VPS公网IP:8869</code></li>
+    </ul>
+
+    <div class="warning-box">
+        <strong>⚠️ 安全提醒：</strong> 登录后请立即在「个人设置」中修改默认邮箱和密码，防止账号被盗。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 4 ==================== -->
+    <h2 id="part4">4. 配置 HTTPS 域名访问（强烈推荐）</h2>
+    <p>以下步骤使用 Let's Encrypt 免费证书，为你的域名启用 HTTPS。</p>
+
+    <h3>步骤 4.1 申请 SSL 证书</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 停止 Nginx（如果运行中）</span>
+        systemctl stop nginx
+
+        <span class="cmd-prompt"># 申请证书（替换 -d 后面的域名为你自己的）</span>
+        certbot certonly --standalone -d bee.baoge.wang \
+          --non-interactive --agree-tos --email admin@baoge123.de5.net
+    </div>
+
+    <h3>步骤 4.2 创建 Nginx 配置文件</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 创建配置文件（替换 bee.baoge.wang 为你的域名）</span>
+        cat &gt; /etc/nginx/sites-available/beecount &lt;&lt; 'EOF'
+        server {
+            listen 80;
+            server_name bee.baoge.wang;
+            return 301 https://$server_name$request_uri;
+        }
+
+        server {
+            listen 443 ssl http2;
+            server_name bee.baoge.wang;
+
+            ssl_certificate /etc/letsencrypt/live/bee.baoge.wang/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/bee.baoge.wang/privkey.pem;
+
+            location / {
+                proxy_pass http://127.0.0.1:8869;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+        }
+        EOF
+    </div>
+
+    <h3>步骤 4.3 启用配置并重载 Nginx</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        ln -s /etc/nginx/sites-available/beecount /etc/nginx/sites-enabled/
+        nginx -t
+        systemctl start nginx
+        systemctl reload nginx
+    </div>
+
+    <div class="success-box">
+        <strong>✅ 配置成功后：</strong> 浏览器访问 <code>https://你的域名</code>，即可通过 HTTPS 安全使用 BeeCount。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 5 ==================== -->
+    <h2 id="part5">5. 清空所有数据（重置）</h2>
+    <p>如果你想彻底清空所有记账数据，恢复到全新安装状态，请按以下步骤操作。</p>
+
+    <div class="warning-box">
+        <strong>⚠️ 危险操作警告：</strong> 此操作将 <strong>永久删除</strong> 所有账本、交易、账户、分类等数据，且 <strong>不可恢复</strong>。执行前请确认已做好备份。
+    </div>
+
+    <h3>方法一：仅删除数据库文件（保留配置目录）</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 停止容器</span>
+        docker stop beecount
+
+        <span class="cmd-prompt"># 删除 SQLite 数据库文件</span>
+        rm -f ~/beecount/data/*.db
+
+        <span class="cmd-prompt"># 重新启动容器</span>
+        docker start beecount
+    </div>
+
+    <h3>方法二：删除整个数据目录（更彻底）</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 停止容器</span>
+        docker stop beecount
+
+        <span class="cmd-prompt"># 删除整个数据目录</span>
+        rm -rf ~/beecount/data
+
+        <span class="cmd-prompt"># 重新创建目录并启动容器</span>
+        mkdir -p ~/beecount/data
+        docker start beecount
+    </div>
+
+    <div class="note-box">
+        <strong>📌 说明：</strong> 无论使用哪种方法，容器重启后都会自动创建一个全新的空数据库，并生成新的随机管理员密码。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 6 ==================== -->
+    <h2 id="part6">6. 获取重置后的新密码</h2>
+    <p>清空数据并重启容器后，BeeCount 会像初次安装一样，生成一个新的随机管理员密码。执行以下命令查看：</p>
+
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 查看新生成的初始密码</span>
+        docker exec beecount cat /data/.initial_admin_password
+    </div>
+
+    <p>输出示例：</p>
+    <div class="code-block" style="background:#1a2f3d; color:#d4e2ed;">
+        邮箱:    owner@example.com
+        密码:    Xy9kLm2nPq7s
+    </div>
+
+    <p>然后使用 <strong>邮箱 <code>owner@example.com</code></strong> 和这个新密码登录即可。</p>
+
+    <div class="note-box">
+        <strong>💡 提示：</strong> 如果你在重置前修改过默认邮箱，重置后邮箱会恢复为 <code>owner@example.com</code>，密码也会重新随机生成。
+    </div>
+
+    <hr>
+
+    <!-- ==================== PART 7 ==================== -->
+    <h2 id="part7">7. 常用维护命令</h2>
+    <p>以下是你日常维护 BeeCount 服务时可能用到的命令。</p>
+
+    <h3>容器管理</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 查看容器运行状态</span>
+        docker ps | grep beecount
+
+        <span class="cmd-prompt"># 查看实时日志</span>
+        docker logs -f beecount
+
+        <span class="cmd-prompt"># 重启容器</span>
+        docker restart beecount
+
+        <span class="cmd-prompt"># 停止容器</span>
+        docker stop beecount
+
+        <span class="cmd-prompt"># 启动容器</span>
+        docker start beecount
+
+        <span class="cmd-prompt"># 更新到最新版本</span>
+        docker pull sunxiao0721/beecount-cloud:latest
+        docker stop beecount &amp;&amp; docker rm beecount
+        <span class="cmd-prompt"># 然后重新执行部署命令（参考第 2 节）</span>
+    </div>
+
+    <h3>查看端口与访问</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 检查 BeeCount 端口是否正常监听</span>
+        ss -tulnp | grep 8869
+
+        <span class="cmd-prompt"># 测试本地访问</span>
+        curl -I http://127.0.0.1:8869
+
+        <span class="cmd-prompt"># 查看 Nginx 是否代理了 HTTPS</span>
+        ss -tulnp | grep -E ":80|:443"
+    </div>
+
+    <h3>数据备份与恢复</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <span class="cmd-prompt"># 手动备份数据目录</span>
+        tar -czf beecount-backup-$(date +%Y%m%d).tar.gz ~/beecount/data
+
+        <span class="cmd-prompt"># 恢复备份（先停止容器）</span>
+        docker stop beecount
+        rm -rf ~/beecount/data
+        tar -xzf beecount-backup-20260101.tar.gz -C ~/beecount/
+        docker start beecount
+    </div>
+
+    <div class="note-box">
+        <strong>📌 建议：</strong> 在 BeeCount Web 端「管理面板 → 备份系统」中配置自动加密备份到 S3 / WebDAV / Google Drive，更安全省心。
+    </div>
+
+    <hr>
+
+    <!-- ==================== FOOTER ==================== -->
+    <div class="footer-meta">
+        <span>🐝 BeeCount-Cloud · 自部署指南</span>
+        <span class="tag">版本 1.0</span>
+        <span>📅 更新于 2026-06-18</span>
+    </div>
+    <p style="margin-top: 16px; font-size: 14px; color: #8aa0b0; text-align: center;">
+        项目地址：<a href="https://github.com/TNT-Likely/BeeCount-Cloud" target="_blank" style="color:#1a6a8a;">github.com/TNT-Likely/BeeCount-Cloud</a>
+    </p>
+</div>
+
+<script>
+    function copyCode(btn) {
+        const block = btn.parentElement;
+        const text = block.textContent.replace('复制', '').trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const original = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            setTimeout(() => { btn.textContent = original; }, 1800);
+        }).catch(() => {
+            // 降级方案
+            const range = document.createRange();
+            range.selectNode(block);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            const original = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            setTimeout(() => { btn.textContent = original; }, 1800);
+        });
+    }
+</script>
+</body>
+</html>
