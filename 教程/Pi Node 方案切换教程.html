@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Node 方案切换教程：OpenVPN → Xray + Gost</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f0f2f5;
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            padding: 24px 16px;
+            color: #1e2a3a;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+            padding: 32px 28px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            text-align: center;
+            border-bottom: 4px solid #10b981;
+            padding-bottom: 16px;
+            margin-bottom: 28px;
+            color: #0b2b26;
+        }
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: normal;
+            color: #6b7a8f;
+            display: block;
+            margin-top: 6px;
+        }
+        h2 {
+            font-size: 1.3rem;
+            margin: 30px 0 14px 0;
+            padding-left: 14px;
+            border-left: 6px solid #10b981;
+            color: #0b2b26;
+            background: #ecfdf5;
+            border-radius: 4px;
+            line-height: 2.2;
+            padding: 4px 14px;
+        }
+        h3 {
+            font-size: 1.05rem;
+            margin: 22px 0 10px 0;
+            color: #1e2a3a;
+        }
+        p,
+        li {
+            line-height: 1.8;
+            color: #2d3f4f;
+        }
+        ul,
+        ol {
+            padding-left: 24px;
+            margin: 10px 0 16px 0;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        .note {
+            background: #fffbeb;
+            border-left: 5px solid #f59e0b;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+        .warning {
+            background: #fef2f2;
+            border-left: 5px solid #ef4444;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+        .success {
+            background: #ecfdf5;
+            border-left: 5px solid #10b981;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+        .cmd-block {
+            position: relative;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 16px 50px 16px 20px;
+            margin: 12px 0 16px 0;
+            font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+            font-size: 0.92rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.7;
+        }
+        .cmd-block .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            transition: background 0.2s, color 0.2s;
+            font-family: inherit;
+        }
+        .cmd-block .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #f1f5f9;
+        }
+        .cmd-block .copy-btn.copied {
+            color: #34d399;
+            background: rgba(52, 211, 153, 0.2);
+        }
+        .cmd-block .cmd-label {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .toc {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+        }
+        .toc a {
+            color: #0b6b4b;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        .toc li {
+            list-style: none;
+        }
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px 12px;
+            }
+            h1 {
+                font-size: 1.3rem;
+            }
+            .cmd-block {
+                font-size: 0.8rem;
+                padding: 12px 40px 12px 14px;
+            }
+        }
+        hr {
+            border: none;
+            border-top: 2px dashed #e5e7eb;
+            margin: 32px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <h1>
+            🔄 Pi Node 方案切换手册
+            <small>从 OpenVPN + Gost 平滑迁移到 Xray + Gost，含完整回退流程</small>
+        </h1>
+
+        <!-- 目录 -->
+        <div class="toc">
+            <strong>📖 目录</strong>
+            <ul style="margin-top:8px;">
+                <li>1. <a href="#sec-overview">方案概述</a></li>
+                <li>2. <a href="#sec-prepare">准备工作</a></li>
+                <li>3. <a href="#sec-migrate">迁移执行（OpenVPN → Xray）</a></li>
+                <li>4. <a href="#sec-verify">验证与测试</a></li>
+                <li>5. <a href="#sec-rollback">回退流程（Xray → OpenVPN）</a></li>
+                <li>6. <a href="#sec-troubleshoot">常见问题</a></li>
+            </ul>
+        </div>
+
+        <!-- ======================== -->
+        <h2 id="sec-overview">一、方案概述</h2>
+
+        <p>本教程适用于已使用 <strong>OpenVPN + Gost</strong> 方案稳定运行 Pi Node 的用户，目标是迁移到 <strong>Xray + Gost</strong> 方案，同时保留一键回退能力。</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>对比项</th>
+                    <th>OpenVPN 方案（原）</th>
+                    <th>Xray 方案（新）</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>组网工具</td>
+                    <td>OpenVPN</td>
+                    <td>Xray（VLESS / VMess / SS）</td>
+                </tr>
+                <tr>
+                    <td>端口映射工具</td>
+                    <td colspan="2" style="text-align:center;">Gost（不变）</td>
+                </tr>
+                <tr>
+                    <td>Gost 目标地址</td>
+                    <td><code>10.8.0.2</code>（VPN 虚拟 IP）</td>
+                    <td><code>127.0.0.1</code>（本地回环）</td>
+                </tr>
+                <tr>
+                    <td>本地客户端</td>
+                    <td>OpenVPN GUI</td>
+                    <td>v2rayN / Clash 等</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="note">
+            <strong>💡 核心理念：</strong> Gost 配置文件已经备份并修改，只需切换隧道工具 + 重启 Gost，即可在两种方案间自由切换。
+        </div>
+
+        <!-- ======================== -->
+        <h2 id="sec-prepare">二、准备工作</h2>
+
+        <h3>2.1 确认当前环境</h3>
+        <ul>
+            <li>✅ Pi Node 正在运行（Docker 正常）</li>
+            <li>✅ OpenVPN 已连接，节点端口可用</li>
+            <li>✅ 能通过 SSH 登录云服务器</li>
+            <li>✅ 本地已安装 v2rayN 或类似 Xray 客户端</li>
+            <li>✅ s-ui 面板已配置好可用的 VLESS / VMess / SS 节点</li>
+        </ul>
+
+        <h3>2.2 备份服务器端 Gost 配置</h3>
+        <div class="cmd-block">
+            <span class="cmd-label"># 在云服务器上执行（备份当前配置）</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            cp /etc/gost/config.json /etc/gost/config.json.openvpn.bak
+        </div>
+        <div class="cmd-block">
+            <span class="cmd-label"># 确认备份成功</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            ls -la /etc/gost/config.json*
+        </div>
+
+        <h3>2.3 准备 Xray 客户端</h3>
+        <ul>
+            <li>在本地电脑打开 <strong>v2rayN</strong></li>
+            <li>从 s-ui 面板复制一个可用的节点链接（VLESS / VMess / SS 均可）</li>
+            <li>导入并连接，确认节点状态为 <span class="badge badge-green">已连接</span></li>
+            <li>记住本地 SOCKS5 代理端口（默认 <code>10100</code>，按实际填写）</li>
+        </ul>
+
+        <!-- ======================== -->
+        <h2 id="sec-migrate">三、迁移执行（OpenVPN → Xray）</h2>
+
+        <div class="warning">
+            <strong>⚠️ 执行前提醒：</strong> 迁移过程中 Pi Node 会短暂离线（约 1-2 分钟）。建议在节点低峰时段操作。
+        </div>
+
+        <h3>3.1 在云服务器上修改 Gost 配置</h3>
+        <p>将 Gost 转发目标从 OpenVPN 虚拟 IP（<code>10.8.0.2</code>）改为本地回环（<code>127.0.0.1</code>）。</p>
+
+        <div class="cmd-block">
+            <span class="cmd-label"># 替换所有 10.8.0.2 为 127.0.0.1</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            sed -i 's/10.8.0.2/127.0.0.1/g' /etc/gost/config.json
+        </div>
+
+        <div class="cmd-block">
+            <span class="cmd-label"># 验证替换结果（应看到 127.0.0.1）</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            cat /etc/gost/config.json | grep 127.0.0.1
+        </div>
+
+        <h3>3.2 本地电脑：断开 OpenVPN，连接 Xray</h3>
+        <ol>
+            <li><strong>断开 OpenVPN</strong>：右键系统托盘 OpenVPN 图标 → 点击 "Disconnect"</li>
+            <li><strong>连接 Xray 节点</strong>：在 v2rayN 中启用已导入的节点</li>
+            <li><strong>确认代理端口</strong>：确保 SOCKS5 代理端口（如 <code>10100</code>）已开启</li>
+        </ol>
+
+        <h3>3.3 在云服务器上重启 Gost</h3>
+        <div class="cmd-block">
+            <span class="cmd-label"># 重启 Gost 加载新配置</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            systemctl restart gost
+        </div>
+
+        <div class="cmd-block">
+            <span class="cmd-label"># 检查端口监听状态</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            netstat -tulnp | grep -E '3140[0-9]'
+        </div>
+
+        <!-- ======================== -->
+        <h2 id="sec-verify">四、验证与测试</h2>
+
+        <h3>4.1 在线端口检测</h3>
+        <p>访问以下工具，输入服务器 IP <code>8.217.131.234</code>，检测 <strong>31401</strong> 端口状态：</p>
+        <ul>
+            <li><a href="https://pi-mods.de/nodeports/" target="_blank">https://pi-mods.de/nodeports/</a></li>
+            <li><a href="https://www.yougetsignal.com/tools/open-ports/" target="_blank">https://www.yougetsignal.com/tools/open-ports/</a></li>
+        </ul>
+
+        <div class="success">
+            <strong>✅ 成功标志：</strong> 31401 端口显示为 <strong>Open</strong>，说明迁移成功！
+        </div>
+
+        <h3>4.2 Pi Node 状态检查</h3>
+        <ul>
+            <li>打开 Pi Node 软件，点击 <strong>"Check Now"</strong> 检测端口</li>
+            <li>点击 <strong>"Start Node"</strong> 确保节点正常运行</li>
+            <li>观察区块高度是否在持续增长</li>
+        </ul>
+
+        <!-- ======================== -->
+        <h2 id="sec-rollback">五、回退流程（Xray → OpenVPN）</h2>
+
+        <div class="note">
+            <strong>🔄 任何时候觉得新方案不稳定，都可以按以下步骤完整回退。</strong>
+        </div>
+
+        <h3>5.1 本地电脑：断开 Xray，连接 OpenVPN</h3>
+        <ol>
+            <li><strong>断开 Xray 节点</strong>：在 v2rayN 中停止或断开当前节点</li>
+            <li><strong>连接 OpenVPN</strong>：右键系统托盘 OpenVPN 图标 → 点击 "Connect"</li>
+            <li>等待 OpenVPN 连接成功（获取到虚拟 IP <code>10.8.0.2</code>）</li>
+        </ol>
+
+        <h3>5.2 在云服务器上恢复 Gost 配置</h3>
+        <div class="cmd-block">
+            <span class="cmd-label"># 恢复 OpenVPN 版本的配置</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            cp /etc/gost/config.json.openvpn.bak /etc/gost/config.json
+        </div>
+
+        <div class="cmd-block">
+            <span class="cmd-label"># 验证恢复结果（应看到 10.8.0.2）</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            cat /etc/gost/config.json | grep 10.8.0.2
+        </div>
+
+        <h3>5.3 重启 Gost</h3>
+        <div class="cmd-block">
+            <span class="cmd-label"># 重启 Gost 加载旧配置</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            systemctl restart gost
+        </div>
+
+        <div class="cmd-block">
+            <span class="cmd-label"># 确认端口状态</span>
+            <button class="copy-btn" onclick="copyCmd(this)">复制</button>
+            netstat -tulnp | grep -E '3140[0-9]'
+        </div>
+
+        <div class="success">
+            <strong>✅ 回退完成：</strong> 再次检测 31401 端口，应恢复为 <strong>Open</strong> 状态。
+        </div>
+
+        <!-- ======================== -->
+        <h2 id="sec-troubleshoot">六、常见问题</h2>
+
+        <h3>Q1：切换后 31401 端口显示 Closed</h3>
+        <ul>
+            <li>检查本地 Xray 节点是否正常连接（v2rayN 中状态应为绿色）</li>
+            <li>检查 v2rayN 的 SOCKS5 代理端口是否正确（如 10100）</li>
+            <li>检查云服务器安全组是否放行了 31401-31409 端口</li>
+            <li>尝试重启 Gost：<code>systemctl restart gost</code></li>
+        </ul>
+
+        <h3>Q2：切换后 Pi Node 无法同步区块</h3>
+        <ul>
+            <li>Pi Node 需要时间同步，等待 10-30 分钟</li>
+            <li>检查 Docker 是否正常运行：<code>docker ps</code></li>
+            <li>查看 Gost 日志：<code>journalctl -u gost -f</code></li>
+        </ul>
+
+        <h3>Q3：v2rayN 连接节点正常，但端口检测不通</h3>
+        <ul>
+            <li>确认 Gost 配置中的目标地址是 <code>127.0.0.1</code> 而非 <code>10.8.0.2</code></li>
+            <li>检查服务器上 Gost 是否正在运行：<code>ps aux | grep gost</code></li>
+            <li>检查防火墙是否放行端口：<code>iptables -L -n | grep 31401</code></li>
+        </ul>
+
+        <h3>Q4：两种方案的文件对应关系</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>方案</th>
+                    <th>Gost 配置文件</th>
+                    <th>目标地址</th>
+                    <th>本地客户端</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="badge badge-green">OpenVPN</span></td>
+                    <td><code>/etc/gost/config.json.openvpn.bak</code></td>
+                    <td><code>10.8.0.2</code></td>
+                    <td>OpenVPN GUI</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-yellow">Xray</span></td>
+                    <td><code>/etc/gost/config.json</code></td>
+                    <td><code>127.0.0.1</code></td>
+                    <td>v2rayN</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <div style="text-align:center;color:#94a3b8;font-size:0.85rem;padding:20px 0 8px 0;">
+            教程最后更新：2026年6月 · 适用于 Pi Node 开放主网阶段
+        </div>
+
+    </div>
+
+    <script>
+        function copyCmd(btn) {
+            const block = btn.parentElement;
+            // 获取命令内容（排除 cmd-label 和按钮本身）
+            const lines = block.textContent.split('\n');
+            // 跳过第一行（标签行）和最后可能空行，提取命令
+            let cmd = lines.filter((line, index) => {
+                // 跳过包含 "复制" 按钮文本的行或标签行
+                if (line.includes('复制') || line.trim() === '') return false;
+                // 如果第一行是标签（以 # 开头），跳过
+                if (index === 0 && line.trim().startsWith('#')) return false;
+                return true;
+            }).join('\n').trim();
+
+            // 如果没有内容，尝试另一种方式
+            if (!cmd) {
+                // 直接取 innerText 并清理
+                let text = block.innerText || block.textContent;
+                cmd = text.replace(/复制/g, '').replace(/[#]\s*[^\n]*\n/g, '').trim();
+            }
+
+            if (!cmd) {
+                alert('没有可复制的内容');
+                return;
+            }
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(cmd).then(() => {
+                    btn.classList.add('copied');
+                    btn.textContent = '✅ 已复制';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.textContent = '复制';
+                    }, 2000);
+                }).catch(() => {
+                    fallbackCopy(cmd, btn);
+                });
+            } else {
+                fallbackCopy(cmd, btn);
+            }
+        }
+
+        function fallbackCopy(text, btn) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                btn.classList.add('copied');
+                btn.textContent = '✅ 已复制';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.textContent = '复制';
+                }, 2000);
+            } catch (e) {
+                alert('复制失败，请手动复制命令。');
+            }
+            document.body.removeChild(ta);
+        }
+    </script>
+
+</body>
+</html>
