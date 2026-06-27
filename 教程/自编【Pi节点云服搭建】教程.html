@@ -5,7 +5,6 @@
   <title>自编Pi节点云服搭建与双方案切换教程</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* --- 样式保持与原教程一致 --- */
     body {
       background: #f4f7fa;
       font-family: "微软雅黑", Arial, sans-serif;
@@ -610,7 +609,54 @@ cd ~ && ./gost.sh  # 选择 4 启动</div>
     <div class="success">✅ 切换完成后，端口检测应显示 31401-31403 为 OPEN，Pi Node 状态为 Synced!。</div>
   </div>
 
-  <!-- 第七部分：常见问题 -->
+  <!-- 第七部分：服务器端服务管理 -->
+  <div class="panel">
+    <h2>🖥️ 服务器端服务管理（Gost / FRP）</h2>
+    <p>以下命令在云服务器（VPS）上执行，用于管理 Gost 和 FRP 服务的启动、停止和开机自启。</p>
+
+    <h3>1. Gost 服务管理</h3>
+    <table class="comparison-table">
+      <thead><tr><th>操作</th><th>命令</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>启动 Gost</td><td><code>cd ~ && ./gost.sh</code> → 选择 4</td><td>手动启动 Gost 转发</td></tr>
+        <tr><td>停止 Gost</td><td><code>cd ~ && ./gost.sh</code> → 选择 5</td><td>手动停止 Gost 转发</td></tr>
+        <tr><td>设置开机自启</td><td><code>systemctl enable gost</code></td><td>VPS 重启后 Gost 自动运行</td></tr>
+        <tr><td>取消开机自启</td><td><code>systemctl disable gost</code></td><td>VPS 重启后 Gost 不自动运行</td></tr>
+        <tr><td>查看运行状态</td><td><code>systemctl status gost</code></td><td>查看 Gost 是否在运行</td></tr>
+        <tr><td>手动启动（systemd）</td><td><code>systemctl start gost</code></td><td>用 systemd 启动 Gost</td></tr>
+        <tr><td>手动停止（systemd）</td><td><code>systemctl stop gost</code></td><td>用 systemd 停止 Gost</td></tr>
+      </tbody>
+    </table>
+    <div class="note">💡 <strong>注意：</strong> Gost 和 FRP 使用相同的端口（31401-31403），<strong>不要同时运行</strong>。用 FRP 方案时 Gost 必须停止，用 OpenVPN 方案时 Gost 必须启动。</div>
+
+    <h3>2. FRP 服务端（frps）管理</h3>
+    <table class="comparison-table">
+      <thead><tr><th>操作</th><th>命令</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>启动 frps</td><td><code>sudo systemctl start frps</code></td><td>启动 FRP 服务端</td></tr>
+        <tr><td>停止 frps</td><td><code>sudo systemctl stop frps</code></td><td>停止 FRP 服务端</td></tr>
+        <tr><td>重启 frps</td><td><code>sudo systemctl restart frps</code></td><td>重启 FRP 服务端</td></tr>
+        <tr><td>查看运行状态</td><td><code>sudo systemctl status frps</code></td><td>查看 frps 是否在运行</td></tr>
+        <tr><td>设置开机自启</td><td><code>sudo systemctl enable frps</code></td><td>VPS 重启后 frps 自动运行</td></tr>
+        <tr><td>取消开机自启</td><td><code>sudo systemctl disable frps</code></td><td>VPS 重启后 frps 不自动运行</td></tr>
+        <tr><td>查看日志</td><td><code>sudo journalctl -u frps -f</code></td><td>实时查看 frps 运行日志</td></tr>
+      </tbody>
+    </table>
+    <div class="note">💡 <strong>提示：</strong> frps 推荐设置为开机自启（<code>systemctl enable frps</code>），这样 VPS 重启后无需手动干预。</div>
+
+    <h3>3. 快速切换命令（方案切换时使用）</h3>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button># ===== 切换到 Xray + FRP 方案 =====
+systemctl stop gost
+systemctl disable gost
+sudo systemctl start frps
+
+# ===== 切换到 OpenVPN + Gost 方案 =====
+sudo systemctl stop frps
+systemctl enable gost
+systemctl start gost</div>
+  </div>
+
+  <!-- 第八部分：常见问题 -->
   <div class="panel">
     <h2>❓ 常见问题</h2>
 
@@ -648,9 +694,9 @@ cd ~ && ./gost.sh  # 选择 4 启动</div>
     </ul>
   </div>
 
-  <!-- 第八部分：其他相关教程（保留原内容） -->
+  <!-- 第九部分：其他相关教程 -->
   <div class="panel">
-    <h2>📚 八、其他相关教程</h2>
+    <h2>📚 九、其他相关教程</h2>
 
     <h3>📦 s-ui 面板管理</h3>
     <p>s-ui 是一个轻量级 Xray 管理面板，可以方便地查看流量、管理节点。</p>
@@ -690,7 +736,7 @@ cd ~ && ./gost.sh  # 选择 4 启动</div>
   </div>
 </div>
 
-<!-- 密码保护（保留原教程的密码保护功能） -->
+<!-- 密码保护 -->
 <div id="password-mask">
   <div id="password-box">
     <h2>🔐 请输入访问密码</h2>
@@ -702,7 +748,6 @@ cd ~ && ./gost.sh  # 选择 4 启动</div>
 </div>
 
 <script>
-  // --- 密码验证逻辑（保留原密码 "baoge"）---
   const CORRECT_PASSWORD = "baoge";
   const STORAGE_KEY = "baoge_page_authed";
   function checkAuth() {
@@ -732,7 +777,6 @@ cd ~ && ./gost.sh  # 选择 4 启动</div>
   };
   window.onload = checkAuth;
 
-  // --- 复制命令函数 ---
   function copyCmd(btn) {
     const block = btn.parentElement;
     const clone = block.cloneNode(true);
