@@ -333,37 +333,13 @@ netsh int ip reset</div>
       <li><strong>IPv6：</strong> 如果不支持，打 ×。</li>
     </ol>
 
-    <h3>🔧 服务器初始化脚本（推荐）</h3>
+    <h3>🔧 服务器初始化脚本</h3>
     <p>登录服务器后（使用 FinalShell 或 SSH），依次执行以下命令来优化环境并安装必要工具。</p>
     <div class="note">💡 以下命令中的 <code>#</code> 为注释，无需输入。请逐条复制执行。</div>
     <ol>
       <li><strong>更新系统并安装基础工具：</strong>
         <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>apt update -y && apt upgrade -y
 apt install curl wget vim net-tools ufw -y</div>
-      </li>
-      <li><strong>卸载阿里云盾、安骑士监控（可选，阿里云用户建议执行）：</strong>
-        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wget http://update.aegis.aliyun.com/download/uninstall.sh
-chmod +x uninstall.sh
-./uninstall.sh
-wget http://update.aegis.aliyun.com/download/quartz_uninstall.sh
-chmod +x quartz_uninstall.sh
-./quartz_uninstall.sh
-pkill aliyun-service
-rm -rf /etc/init.d/agentwatch /usr/sbin/aliyun-service
-rm -rf /usr/local/aegis*</div>
-      </li>
-      <li><strong>屏蔽阿里云监控 IP（可选）：</strong>
-        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>iptables -I INPUT -s 140.205.201.0/28 -j DROP
-iptables -I INPUT -s 140.205.201.16/29 -j DROP
-iptables -I INPUT -s 140.205.201.32/28 -j DROP
-iptables -I INPUT -s 140.205.225.192/29 -j DROP
-iptables -I INPUT -s 140.205.225.200/30 -j DROP
-iptables -I INPUT -s 140.205.225.184/29 -j DROP
-iptables -I INPUT -s 140.205.225.183/32 -j DROP
-iptables -I INPUT -s 140.205.225.206/32 -j DROP
-iptables -I INPUT -s 140.205.225.205/32 -j DROP
-iptables -I INPUT -s 140.205.225.195/32 -j DROP
-iptables -I INPUT -s 140.205.225.204/32 -j DROP</div>
       </li>
       <li><strong>安装 BBR 加速（提升网络性能）：</strong>
         <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wget --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && chmod +x bbr.sh && ./bbr.sh
