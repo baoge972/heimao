@@ -532,8 +532,6 @@ sudo systemctl status frps</div>
     <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>serverAddr = "你的云服务器公网IP"
 serverPort = 7000
 auth.token = "your_secure_token_here"
-# 通过 karing 的 socks5 代理连接云服务器
-transport.proxyURL = "socks5://127.0.0.1:3067"
 [[proxies]]
 name = "pi_31401"
 type = "tcp"
