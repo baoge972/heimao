@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务器检测脚本 baoge.sh 使用教程</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px}
+        .container{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+        h1{color:#1a1a2e;font-size:28px;border-bottom:3px solid #1abc9c;padding-bottom:12px;margin-bottom:24px}
+        h2{color:#2d3a4b;font-size:20px;margin:28px 0 12px;padding-left:14px;border-left:4px solid #1abc9c}
+        h3{color:#2d3a4b;font-size:16px;margin:20px 0 10px}
+        p{color:#475569;font-size:15px;line-height:1.8;margin-bottom:12px}
+        .code-block{background:#1e293b;border-radius:10px;padding:20px;margin:16px 0;overflow-x:auto;position:relative}
+        .code-block code{color:#e2e8f0;font-family:"JetBrains Mono","Fira Code",monospace;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-all}
+        .code-block .copy-btn{position:absolute;top:10px;right:14px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;transition:background 0.2s}
+        .code-block .copy-btn:hover{background:#475569}
+        .code-block .copy-btn.copied{background:#1abc9c}
+        .note{background:#fef9e7;border-left:4px solid #f1c40f;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#7c6a2b}
+        .note strong{color:#5a4a1a}
+        .tip{background:#e8f8f5;border-left:4px solid #1abc9c;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#0d6b5a}
+        .tip strong{color:#0a5a4a}
+        .warning{background:#fdedec;border-left:4px solid #e74c3c;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#922b21}
+        .step{background:#f8fafc;border-radius:8px;padding:16px 20px;margin:10px 0;border:1px solid #e2e8f0}
+        .step .num{display:inline-block;background:#1abc9c;color:#fff;width:28px;height:28px;text-align:center;line-height:28px;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px}
+        .step .text{font-size:15px;color:#334155}
+        .step .text code{background:#e2e8f0;padding:2px 8px;border-radius:4px;font-size:13px;color:#1a1a2e}
+        table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+        th{background:#f1f5f9;padding:10px 14px;text-align:left;font-weight:600;color:#2d3a4b;border:1px solid #e2e8f0}
+        td{padding:10px 14px;border:1px solid #e2e8f0;color:#475569}
+        .badge{display:inline-block;padding:2px 12px;border-radius:12px;font-size:12px;font-weight:600}
+        .badge.green{background:#d1fae5;color:#065f46}
+        .badge.yellow{background:#fef3c7;color:#92400e}
+        .badge.red{background:#fee2e2;color:#991b1b}
+        .footer{text-align:center;margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:13px;color:#94a3b8}
+        @media(max-width:600px){.container{padding:20px}.code-block{padding:14px;font-size:13px}}
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>📊 服务器检测脚本 <code style="background:#e2e8f0;padding:2px 14px;border-radius:6px;font-size:24px;">baoge.sh</code></h1>
+
+    <p style="font-size:16px;color:#334155;">一个轻量级服务器检测脚本，一键生成包含 CPU、内存、硬盘、端口、Docker、服务、防火墙等 15 项信息的全面报告。</p>
+
+    <!-- ============================================ -->
+    <h2>📋 检测内容</h2>
+    <table>
+        <tr><th>编号</th><th>检测项</th><th>说明</th></tr>
+        <tr><td>1</td><td>系统信息</td><td>操作系统版本、内核、运行时间</td></tr>
+        <tr><td>2</td><td>CPU 信息</td><td>型号、核心数、架构</td></tr>
+        <tr><td>3</td><td>内存信息</td><td>总内存、已用、可用、Swap</td></tr>
+        <tr><td>4</td><td>硬盘信息</td><td>分区和使用率</td></tr>
+        <tr><td>5</td><td>端口占用</td><td>31400-31409 及其他常用端口</td></tr>
+        <tr><td>6</td><td>Docker 容器</td><td>所有容器的状态和端口映射</td></tr>
+        <tr><td>7</td><td>运行服务</td><td>systemd 管理的服务列表</td></tr>
+        <tr><td>8</td><td>Nginx 站点</td><td>已配置的站点和域名</td></tr>
+        <tr><td>9</td><td>防火墙状态</td><td>UFW/iptables 状态</td></tr>
+        <tr><td>10</td><td>公网 IP</td><td>当前服务器的公网 IP</td></tr>
+        <tr><td>11</td><td>代理环境</td><td>HTTP/HTTPS 代理变量</td></tr>
+        <tr><td>12</td><td>FRP 状态</td><td>FRP 服务运行状态</td></tr>
+        <tr><td>13</td><td>Pi Node 检查</td><td>检测 31401 端口是否响应</td></tr>
+        <tr><td>14</td><td>资源占用 TOP</td><td>CPU 和内存占用最高的进程</td></tr>
+        <tr><td>15</td><td>快速总结</td><td>核心指标 + 建议</td></tr>
+    </table>
+
+    <!-- ============================================ -->
+    <h2>🚀 一键执行</h2>
+    <p>复制下面整段代码，粘贴到终端，按回车即可自动完成所有操作：</p>
+
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code id="fullScript"># ==============================================
+# 一键创建 baoge.sh 并执行
+# ==============================================
+
+cat > baoge.sh << 'EOF'
+#!/bin/bash
+
+# ============================================
+# 服务器一键检测脚本
+# 用法: ./baoge.sh
+# ============================================
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo ""
+echo "=========================================="
+echo "         服务器全面检测报告"
+echo "         生成时间: $(date)"
+echo "=========================================="
+echo ""
+
+echo -e "${BLUE}【1】系统信息${NC}"
+echo "----------------------------------------"
+cat /etc/os-release 2>/dev/null | grep -E "PRETTY_NAME|VERSION_ID" | sed 's/^/  /'
+uname -a | sed 's/^/  内核: /'
+echo "  运行时间: $(uptime -p)"
+echo "  当前用户: $(whoami)"
+echo ""
+
+echo -e "${BLUE}【2】CPU 信息${NC}"
+echo "----------------------------------------"
+echo "  型号: $(cat /proc/cpuinfo | grep "model name" | head -1 | cut -d: -f2 | xargs)"
+echo "  核心数: $(nproc)"
+echo "  架构: $(uname -m)"
+echo ""
+
+echo -e "${BLUE}【3】内存信息${NC}"
+echo "----------------------------------------"
+free -h | grep -E "Mem|Swap" | sed 's/^/  /'
+echo ""
+
+echo -e "${BLUE}【4】硬盘信息${NC}"
+echo "----------------------------------------"
+df -h | grep -E "Filesystem|/dev/vd|/dev/sd" | sed 's/^/  /'
+echo ""
+
+echo -e "${BLUE}【5】端口占用 (31400-31409 & 常用端口)${NC}"
+echo "----------------------------------------"
+echo "  31401-31403 端口:"
+ss -tlnp 2>/dev/null | grep -E "3140[1-3]" | sed 's/^/    /'
+if [ -z "$(ss -tlnp 2>/dev/null | grep -E "3140[1-3]")" ]; then
+    echo "    (无监听)"
+fi
+echo ""
+echo "  其他重要端口:"
+ss -tlnp 2>/dev/null | grep -E ":80 |:443 |:22 |:3000 |:8080 |:7000 " | sed 's/^/    /'
+echo ""
+
+echo -e "${BLUE}【6】Docker 容器${NC}"
+echo "----------------------------------------"
+if command -v docker &> /dev/null; then
+    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | sed 's/^/  /'
+else
+    echo "  Docker 未安装"
+fi
+echo ""
+
+echo -e "${BLUE}【7】运行中的系统服务${NC}"
+echo "----------------------------------------"
+systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -25 | sed 's/^/  /'
+echo "  ..."
+echo ""
+
+echo -e "${BLUE}【8】Nginx 站点配置${NC}"
+echo "----------------------------------------"
+if [ -d "/etc/nginx/sites-enabled" ]; then
+    ls -la /etc/nginx/sites-enabled/ 2>/dev/null | grep -v "total" | sed 's/^/  /'
+    echo "  站点域名:"
+    grep -r "server_name" /etc/nginx/sites-enabled/ 2>/dev/null | grep -v "#" | sed 's/^/    /'
+else
+    echo "  Nginx 未安装或未配置"
+fi
+echo ""
+
+echo -e "${BLUE}【9】防火墙状态${NC}"
+echo "----------------------------------------"
+if command -v ufw &> /dev/null; then
+    echo "  UFW: $(ufw status 2>/dev/null | head -1)"
+fi
+if command -v iptables &> /dev/null; then
+    echo "  iptables 规则数: $(iptables -L -n 2>/dev/null | wc -l)"
+fi
+echo ""
+
+echo -e "${BLUE}【10】公网 IP${NC}"
+echo "----------------------------------------"
+PUBLIC_IP=$(curl -s --max-time 3 ifconfig.me 2>/dev/null)
+if [ -n "$PUBLIC_IP" ]; then
+    echo "  公网 IP: $PUBLIC_IP"
+else
+    echo "  公网 IP: 获取失败"
+fi
+echo ""
+
+echo -e "${BLUE}【11】代理环境变量${NC}"
+echo "----------------------------------------"
+env | grep -i proxy | sed 's/^/  /'
+if [ -z "$(env | grep -i proxy)" ]; then
+    echo "  (无代理设置)"
+fi
+echo ""
+
+echo -e "${BLUE}【12】FRP 服务状态${NC}"
+echo "----------------------------------------"
+if systemctl is-active --quiet frps 2>/dev/null; then
+    echo "  FRP 服务: 运行中"
+    ps aux | grep frps | grep -v grep | sed 's/^/    /'
+else
+    echo "  FRP 服务: 未运行或未安装"
+fi
+echo ""
+
+echo -e "${BLUE}【13】Pi Node 相关检查${NC}"
+echo "----------------------------------------"
+if [ -n "$PUBLIC_IP" ]; then
+    echo "  检测 $PUBLIC_IP:31401/health ..."
+    CURL_RESULT=$(curl -s --max-time 2 http://$PUBLIC_IP:31401/health 2>/dev/null)
+    if [ -n "$CURL_RESULT" ]; then
+        echo "    ✅ 31401 端口响应: $CURL_RESULT"
+    else
+        echo "    ❌ 31401 端口无响应"
+    fi
+else
+    echo "  (跳过，公网 IP 获取失败)"
+fi
+echo ""
+
+echo -e "${BLUE}【14】资源占用 TOP 10${NC}"
+echo "----------------------------------------"
+echo "  CPU 占用 Top 5:"
+ps aux --sort=-%cpu | head -6 | sed 's/^/    /'
+echo ""
+echo "  内存占用 Top 5:"
+ps aux --sort=-%mem | head -6 | sed 's/^/    /'
+echo ""
+
+echo -e "${BLUE}【15】快速总结${NC}"
+echo "----------------------------------------"
+MEM_TOTAL=$(free -m | grep Mem | awk '{print $2}')
+MEM_USED=$(free -m | grep Mem | awk '{print $3}')
+MEM_FREE=$(free -m | grep Mem | awk '{print $7}')
+DISK_USED=$(df -h / | tail -1 | awk '{print $5}')
+CPU_CORES=$(nproc)
+
+echo "  CPU 核心: $CPU_CORES"
+echo "  内存总量: ${MEM_TOTAL}MiB"
+echo "  内存已用: ${MEM_USED}MiB"
+echo "  内存可用: ${MEM_FREE}MiB"
+echo "  硬盘使用: $DISK_USED"
+
+if [ $MEM_TOTAL -lt 1024 ]; then
+    echo -e "  ${YELLOW}⚠️ 警告: 内存偏小 (${MEM_TOTAL}MiB)，部署新服务请选择轻量级方案${NC}"
+else
+    echo -e "  ${GREEN}✅ 内存充足${NC}"
+fi
+
+echo ""
+echo "=========================================="
+echo "         检测完成！"
+echo "=========================================="
+echo ""
+EOF
+
+# 添加执行权限
+chmod +x baoge.sh
+
+# 执行脚本
+./baoge.sh</code>
+    </div>
+
+    <!-- ============================================ -->
+    <h2>📌 使用说明</h2>
+
+    <div class="step">
+        <span class="num">1</span>
+        <span class="text">复制上面 <strong>"一键执行"</strong> 区域的整段代码</span>
+    </div>
+    <div class="step">
+        <span class="num">2</span>
+        <span class="text">粘贴到终端，按 <code>Enter</code> 回车执行</span>
+    </div>
+    <div class="step">
+        <span class="num">3</span>
+        <span class="text">等待脚本自动完成，查看生成的报告</span>
+    </div>
+
+    <div class="tip">
+        <strong>✅ 它会自动完成：</strong><br>
+        ① 创建 <code>baoge.sh</code> 文件<br>
+        ② 写入脚本内容<br>
+        ③ 添加执行权限 (<code>chmod +x</code>)<br>
+        ④ 自动运行检测
+    </div>
+
+    <!-- ============================================ -->
+    <h2>📌 后续使用</h2>
+    <p>以后想再次检测服务器状态，只需要在终端执行：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText('./baoge.sh', this)">📋 复制</button>
+        <code id="cmd1">./baoge.sh</code>
+    </div>
+
+    <!-- ============================================ -->
+    <h2>📌 只创建脚本（不自动运行）</h2>
+    <p>如果你只想创建脚本文件，稍后手动运行，可以执行：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText('cat > baoge.sh << \'EOF\'\n# ... 脚本内容 ...\nEOF\nchmod +x baoge.sh', this)">📋 复制</button>
+        <code id="cmd2">cat > baoge.sh << 'EOF'
+# 脚本内容（见上方完整版）
+EOF
+chmod +x baoge.sh</code>
+    </div>
+    <p>然后需要时执行：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText('./baoge.sh', this)">📋 复制</button>
+        <code>./baoge.sh</code>
+    </div>
+
+    <!-- ============================================ -->
+    <h2>📌 保存报告到文件</h2>
+    <p>如果想将检测结果保存为文件，方便查看和分享：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText('./baoge.sh > server_report_$(date +%Y%m%d_%H%M%S).txt', this)">📋 复制</button>
+        <code id="cmd3">./baoge.sh > server_report_$(date +%Y%m%d_%H%M%S).txt</code>
+    </div>
+
+    <!-- ============================================ -->
+    <h2>📊 报告示例</h2>
+    <p>执行后会输出类似以下内容的彩色报告：</p>
+    <div class="code-block" style="background:#0f172a;">
+        <code style="color:#94a3b8;">==========================================
+         服务器全面检测报告
+         生成时间: Mon Jun 29 03:28:00 PM CST 2026
+==========================================
+
+【1】系统信息
+----------------------------------------
+  PRETTY_NAME="Ubuntu 22.04.5 LTS"
+  VERSION_ID="22.04"
+  内核: Linux x86_64 GNU/Linux
+  运行时间: up 1 day, 11 hours, 16 minutes
+  当前用户: root
+
+【2】CPU 信息
+----------------------------------------
+  型号: Intel(R) Xeon(R) Platinum 8269CY CPU @ 2.50GHz
+  核心数: 2
+  架构: x86_64
+
+【3】内存信息
+----------------------------------------
+  Mem:           878Mi       565Mi        70Mi       2.0Mi       242Mi       173Mi
+  Swap:          2.0Gi          0B       2.0Gi
+
+... 更多信息 ...
+
+【15】快速总结
+----------------------------------------
+  CPU 核心: 2
+  内存总量: 878MiB
+  内存已用: 564MiB
+  内存可用: 175MiB
+  硬盘使用: 40%
+  ⚠️ 警告: 内存偏小 (878MiB)，部署新服务请选择轻量级方案
+
+==========================================
+         检测完成！
+==========================================</code>
+    </div>
+
+    <!-- ============================================ -->
+    <h2>⚠️ 常见问题</h2>
+
+    <div class="note">
+        <strong>Q: 提示 "Permission denied"？</strong><br>
+        执行 <code>chmod +x baoge.sh</code> 添加执行权限即可。
+    </div>
+
+    <div class="note">
+        <strong>Q: 脚本执行到一半卡住了？</strong><br>
+        按 <code>Ctrl + C</code> 终止，检查网络连接后重新执行。
+    </div>
+
+    <div class="note">
+        <strong>Q: 想修改脚本内容？</strong><br>
+        用 <code>vi baoge.sh</code> 或 <code>nano baoge.sh</code> 编辑即可。
+    </div>
+
+    <div class="warning">
+        <strong>⚠️ 注意：</strong><br>
+        脚本需要在 <strong>root 用户</strong> 或具有 <strong>sudo 权限</strong> 的用户下执行，否则部分信息（如端口、服务状态）可能无法完整显示。
+    </div>
+
+    <!-- ============================================ -->
+    <div class="footer">
+        baoge.sh 服务器检测脚本 · 版本 1.0 · 轻量 · 无依赖
+    </div>
+
+</div>
+
+<script>
+function copyCode(btn) {
+    const codeBlock = btn.parentElement;
+    const code = codeBlock.querySelector('code');
+    const text = code.textContent;
+    copyText(text, btn);
+}
+
+function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        if (btn) {
+            const original = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (btn) {
+            const original = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+    });
+}
+</script>
+
+</body>
+</html>
