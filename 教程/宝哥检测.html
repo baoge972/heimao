@@ -23,7 +23,7 @@
         .feature-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
         .feature-item{background:#f8fafc;padding:10px 16px;border-radius:8px;border:1px solid #e2e8f0;font-size:14px}
         .feature-item .icon{font-size:18px;margin-right:8px}
-        @media(max-width:600px){.feature-list{grid-template-columns:1fr}}
+        @media(max-width:600px){.container{padding:20px}.feature-list{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
@@ -49,6 +49,7 @@
     <h2>🚀 分步部署</h2>
     <div class="note">💡 逐条复制执行，每步独立。</div>
 
+    <!-- 第 1 步 -->
     <div class="step">
         <span class="num">1</span>
         <strong>安装 PHP</strong>
@@ -59,6 +60,7 @@ apt install -y php-fpm php-curl</code>
         </div>
     </div>
 
+    <!-- 第 2 步 -->
     <div class="step">
         <span class="num">2</span>
         <strong>创建站点目录</strong>
@@ -68,12 +70,11 @@ apt install -y php-fpm php-curl</code>
         </div>
     </div>
 
+    <!-- 第 3 步 -->
     <div class="step">
         <span class="num">3</span>
-        <strong>创建 index.php</strong>
-        <div class="warning">
-            ⚠️ 代码较长，一次性写入。复制整段命令执行。
-        </div>
+        <strong>创建 index.php（一次性写入）</strong>
+        <div class="warning">⚠️ 代码较长，复制整段命令一次性执行。</div>
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
             <code>cat > /var/www/port-checker/index.php << 'EOF'
@@ -130,65 +131,93 @@ if (isset($_GET['action']) && $_GET['action'] === 'check') {
 &lt;!DOCTYPE html&gt;
 &lt;html lang="zh-CN"&gt;
 &lt;head&gt;
-&lt;meta charset="UTF-8"&gt;
-&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-&lt;title&gt;Pi Node 端口检测&lt;/title&gt;
-&lt;link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png"&gt;
-&lt;style&gt;
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#f0f2f5;font-family:system-ui,sans-serif;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
-.container{max-width:640px;width:100%;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-top:20px}
-h1{text-align:center;color:#1a1a2e;font-size:22px;margin-bottom:4px}
-.sub{text-align:center;color:#6b7a8f;font-size:14px;margin-bottom:20px}
-.input-group{display:flex;gap:10px;margin-bottom:24px}
-.input-group input{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none}
-.input-group input:focus{border-color:#1abc9c}
-.input-group button{padding:12px 28px;background:#1abc9c;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:15px}
-.input-group button:disabled{background:#94a3b8;cursor:not-allowed}
-.port-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:16px 0}
-.port-card{background:#f8fafc;border-radius:6px;padding:8px 4px;text-align:center;border:1px solid #e2e8f0;font-size:13px}
-.port-card .num{font-weight:600;color:#475569;font-size:12px}
-.port-card .state{font-size:13px;font-weight:700;margin-top:1px}
-.port-card .latency{font-size:10px;color:#94a3b8}
-.port-card.open{border-color:#22c55e;background:#f0fdf4}
-.port-card.open .state{color:#16a34a}
-.port-card.closed{border-color:#e2e8f0;background:#f8fafc}
-.port-card.closed .state{color:#94a3b8}
-.port-card.checking{border-color:#f59e0b;background:#fffbeb}
-.port-card.checking .state{color:#d97706}
-.result-summary{margin:16px 0;padding:16px;border-radius:10px;text-align:center;background:#f8fafc;border-left:4px solid #1abc9c}
-.result-summary .main-status{font-size:18px;font-weight:700}
-.result-summary .main-status .green{color:#22c55e}
-.result-summary .main-status .yellow{color:#d97706}
-.result-summary .main-status .red{color:#dc2626}
-.result-summary .detail-info{font-size:13px;color:#6b7a8f;margin-top:6px}
-.result-summary .detail-info span{margin:0 10px}
-.block-info{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:10px;font-size:13px;color:#475569}
-.block-info span{background:#f1f5f9;padding:4px 14px;border-radius:12px}
-.footer{text-align:center;margin-top:20px;font-size:13px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px}
-.footer .by{color:#1abc9c;font-weight:600}
-.footer .detect-time{color:#6b7a8f}
-#ipHistory option{padding:8px}
-@media(max-width:480px){.port-grid{grid-template-columns:repeat(3,1fr)}.container{padding:20px}}
-&lt;/style&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;Pi Node 端口检测&lt;/title&gt;
+    &lt;link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png"&gt;
+    &lt;style&gt;
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f0f2f5;font-family:system-ui,sans-serif;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
+        .container{max-width:640px;width:100%;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-top:20px}
+        h1{text-align:center;color:#1a1a2e;font-size:22px;margin-bottom:4px}
+        .sub{text-align:center;color:#6b7a8f;font-size:14px;margin-bottom:20px}
+        .input-group{display:flex;gap:10px;margin-bottom:24px}
+        .input-group input{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none}
+        .input-group input:focus{border-color:#1abc9c}
+        .input-group button{padding:12px 28px;background:#1abc9c;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:15px}
+        .input-group button:disabled{background:#94a3b8;cursor:not-allowed}
+        .port-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:16px 0}
+        .port-card{background:#f8fafc;border-radius:6px;padding:8px 4px;text-align:center;border:1px solid #e2e8f0;font-size:13px}
+        .port-card .num{font-weight:600;color:#475569;font-size:12px}
+        .port-card .state{font-size:13px;font-weight:700;margin-top:1px}
+        .port-card .latency{font-size:10px;color:#94a3b8}
+        .port-card.open{border-color:#22c55e;background:#f0fdf4}
+        .port-card.open .state{color:#16a34a}
+        .port-card.closed{border-color:#e2e8f0;background:#f8fafc}
+        .port-card.closed .state{color:#94a3b8}
+        .port-card.checking{border-color:#f59e0b;background:#fffbeb}
+        .port-card.checking .state{color:#d97706}
+        .result-summary{margin:16px 0;padding:16px;border-radius:10px;text-align:center;background:#f8fafc;border-left:4px solid #1abc9c}
+        .result-summary .main-status{font-size:18px;font-weight:700}
+        .result-summary .main-status .green{color:#22c55e}
+        .result-summary .main-status .yellow{color:#d97706}
+        .result-summary .main-status .red{color:#dc2626}
+        .result-summary .detail-info{font-size:13px;color:#6b7a8f;margin-top:6px}
+        .result-summary .detail-info span{margin:0 10px}
+        .block-info{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:10px;font-size:13px;color:#475569}
+        .block-info span{background:#f1f5f9;padding:4px 14px;border-radius:12px}
+        .footer{text-align:center;margin-top:20px;font-size:13px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px}
+        .footer .by{color:#1abc9c;font-weight:600}
+        .footer .detect-time{color:#6b7a8f}
+        #ipHistory option{padding:8px}
+
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            h1 { font-size: 18px; }
+            .sub { font-size: 13px; }
+            .input-group { flex-wrap: wrap; }
+            .input-group input { min-width: 100%; font-size: 14px; padding: 10px 14px; }
+            .input-group button { width: 100%; font-size: 14px; padding: 10px; }
+            .port-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+            .port-card { padding: 4px 2px; font-size: 11px; }
+            .port-card .num { font-size: 10px; }
+            .port-card .state { font-size: 11px; }
+            .port-card .latency { font-size: 9px; }
+            .result-summary { padding: 12px; }
+            .result-summary .main-status { font-size: 14px; }
+            .result-summary .detail-info { font-size: 12px; }
+            .block-info { gap: 4px 8px; font-size: 11px; }
+            .block-info span { padding: 2px 10px; }
+            .footer { font-size: 11px; }
+        }
+
+        @media (max-width: 400px) {
+            .port-grid { grid-template-columns: repeat(2, 1fr); }
+            .port-card { padding: 3px 1px; font-size: 10px; }
+            .port-card .num { font-size: 9px; }
+            .port-card .state { font-size: 10px; }
+            .port-card .latency { font-size: 8px; }
+        }
+    &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;div class="container"&gt;
-&lt;h1&gt;🔌 Pi Node 端口检测&lt;/h1&gt;
-&lt;p class="sub"&gt;输入 IP 检测节点状态&lt;/p&gt;
-&lt;div class="input-group"&gt;
-&lt;input type="text" id="ipInput" placeholder="输入 IP 地址" value="" list="ipHistory" autocomplete="off"&gt;
-&lt;datalist id="ipHistory"&gt;&lt;/datalist&gt;
-&lt;button id="checkBtn"&gt;检测&lt;/button&gt;
+    &lt;h1&gt;🔌 Pi Node 端口检测&lt;/h1&gt;
+    &lt;p class="sub"&gt;输入 IP 检测节点状态&lt;/p&gt;
+    &lt;div class="input-group"&gt;
+        &lt;input type="text" id="ipInput" placeholder="输入 IP 地址" value="" list="ipHistory" autocomplete="off"&gt;
+        &lt;datalist id="ipHistory"&gt;&lt;/datalist&gt;
+        &lt;button id="checkBtn"&gt;检测&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="port-grid" id="portGrid"&gt;&lt;/div&gt;
+    &lt;div id="result" class="result-summary"&gt;等待检测...&lt;/div&gt;
+    &lt;div class="footer"&gt;
+        &lt;span class="detect-time" id="detectTime"&gt;&lt;/span&gt;
+        &lt;span style="margin:0 8px;"&gt;·&lt;/span&gt;
+        &lt;span class="by"&gt;宝哥检测&lt;/span&gt;
+    &lt;/div&gt;
 &lt;/div&gt;
-&lt;div class="port-grid" id="portGrid"&gt;&lt;/div&gt;
-&lt;div id="result" class="result-summary"&gt;等待检测...&lt;/div&gt;
-&lt;div class="footer"&gt;
-&lt;span class="detect-time" id="detectTime"&gt;&lt;/span&gt;
-&lt;span style="margin:0 8px;"&gt;·&lt;/span&gt;
-&lt;span class="by"&gt;宝哥检测&lt;/span&gt;
-&lt;/div&gt;
-&lt;/div&gt;
+
 &lt;script&gt;
 const ipInput = document.getElementById('ipInput');
 const checkBtn = document.getElementById('checkBtn');
@@ -197,6 +226,7 @@ const resultDiv = document.getElementById('result');
 const detectTime = document.getElementById('detectTime');
 const HISTORY_KEY = 'pi_checker_ip_history';
 const MAX_HISTORY = 10;
+
 function getHistory() {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
@@ -337,9 +367,10 @@ loadHistory();
 &lt;/html&gt;
 EOF</code>
         </div>
-        <div class="note">💡 复制整段命令一次性执行，包含完整的 PHP + HTML + JavaScript。</div>
+        <div class="note">💡 复制整段命令一次性执行，包含完整的 PHP + HTML + JavaScript，已做移动端适配。</div>
     </div>
 
+    <!-- 第 4 步 -->
     <div class="step">
         <span class="num">4</span>
         <strong>设置权限</strong>
@@ -350,6 +381,7 @@ systemctl restart php8.3-fpm</code>
         </div>
     </div>
 
+    <!-- 第 5 步 -->
     <div class="step">
         <span class="num">5</span>
         <strong>配置 Nginx</strong>
@@ -373,6 +405,7 @@ EOF</code>
         </div>
     </div>
 
+    <!-- 第 6 步 -->
     <div class="step">
         <span class="num">6</span>
         <strong>重载 Nginx</strong>
@@ -382,6 +415,7 @@ EOF</code>
         </div>
     </div>
 
+    <!-- 第 7 步 -->
     <div class="step">
         <span class="num">7</span>
         <strong>获取服务器 IP</strong>
@@ -416,13 +450,9 @@ EOF
 nginx -t && systemctl reload nginx</code>
     </div>
 
-    <div class="warning">
-        ⚠️ 部署前请确认服务器已放行 8088 端口（或 80/443 端口配置域名时）。
-    </div>
+    <div class="warning">⚠️ 部署前请确认服务器已放行 8088 端口（或 80/443 端口配置域名时）。</div>
 
-    <div class="footer">
-        Pi Node 端口检测工具 · 部署教程
-    </div>
+    <div class="footer">Pi Node 端口检测工具 · 部署教程</div>
 </div>
 
 <script>
