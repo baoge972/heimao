@@ -72,13 +72,11 @@ apt install -y php-fpm php-curl</code>
         <span class="num">3</span>
         <strong>创建 index.php</strong>
         <div class="warning">
-            ⚠️ 代码较长，分 3 段复制执行，每段执行完再复制下一段。
+            ⚠️ 代码较长，一次性写入。复制整段命令执行。
         </div>
-
-        <p><strong>第 3.1 段：PHP 后端</strong></p>
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
-            <code>cat > /var/www/port-checker/index.php << 'PART1'
+            <code>cat > /var/www/port-checker/index.php << 'EOF'
 &lt;?php
 if (isset($_GET['action']) && $_GET['action'] === 'check') {
     header('Content-Type: application/json');
@@ -129,13 +127,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'check') {
     exit;
 }
 ?&gt;
-PART1</code>
-        </div>
-
-        <p><strong>第 3.2 段：HTML + CSS</strong></p>
-        <div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
-            <code>cat >> /var/www/port-checker/index.php << 'PART2'
 &lt;!DOCTYPE html&gt;
 &lt;html lang="zh-CN"&gt;
 &lt;head&gt;
@@ -198,13 +189,6 @@ h1{text-align:center;color:#1a1a2e;font-size:22px;margin-bottom:4px}
 &lt;span class="by"&gt;宝哥检测&lt;/span&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-PART2</code>
-        </div>
-
-        <p><strong>第 3.3 段：JavaScript</strong></p>
-        <div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
-            <code>cat >> /var/www/port-checker/index.php << 'PART3'
 &lt;script&gt;
 const ipInput = document.getElementById('ipInput');
 const checkBtn = document.getElementById('checkBtn');
@@ -351,8 +335,9 @@ loadHistory();
 &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-PART3</code>
+EOF</code>
         </div>
+        <div class="note">💡 复制整段命令一次性执行，包含完整的 PHP + HTML + JavaScript。</div>
     </div>
 
     <div class="step">
@@ -399,7 +384,7 @@ EOF</code>
 
     <div class="step">
         <span class="num">7</span>
-        <strong>获取 IP</strong>
+        <strong>获取服务器 IP</strong>
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
             <code>curl -s ifconfig.me</code>
