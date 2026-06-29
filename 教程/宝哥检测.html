@@ -6,7 +6,7 @@
     <title>Pi Node 端口检测工具 · 部署教程</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#f0f2f5;font-family:system-ui,sans-serif;padding:20px}
+        body{background:#f0f2f5;font-family:system-ui,-apple-system,sans-serif;padding:20px}
         .container{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
         h1{color:#1a1a2e;font-size:28px;border-bottom:3px solid #1abc9c;padding-bottom:12px;margin-bottom:24px}
         h2{color:#1abc9c;border-left:4px solid #1abc9c;padding-left:14px;margin:30px 0 16px}
@@ -33,12 +33,10 @@
     <h2>📌 功能特性</h2>
     <div class="feature-list">
         <div class="feature-item"><span class="icon">✅</span> 检测 31400-31409 全部端口</div>
-        <div class="feature-item"><span class="icon">📊</span> 显示真实区块高度（从 Horizon API 获取）</div>
+        <div class="feature-item"><span class="icon">📊</span> 显示真实区块高度</div>
         <div class="feature-item"><span class="icon">⏱️</span> 计算区块延迟时间</div>
-        <div class="feature-item"><span class="icon">📈</span> 判断延迟趋势（增加/减少）</div>
-        <div class="feature-item"><span class="icon">🔄</span> 检测历史 IP 自动保存（下拉列表）</div>
+        <div class="feature-item"><span class="icon">🔄</span> IP 历史记录（下拉列表）</div>
         <div class="feature-item"><span class="icon">🖼️</span> Pi Network Logo 图标</div>
-        <div class="feature-item"><span class="icon">⚡</span> 真实数据，无虚假占位</div>
         <div class="feature-item"><span class="icon">📱</span> 移动端适配</div>
     </div>
 
@@ -46,168 +44,167 @@
     <ul>
         <li>操作系统：Ubuntu 22.04 / 24.04</li>
         <li>已安装 Nginx</li>
-        <li>已安装 PHP 8.3+</li>
     </ul>
 
-    <h2>🚀 一键部署</h2>
-    <div class="note">💡 复制下面整段命令，粘贴到服务器终端执行即可完成全部部署。</div>
+    <h2>🚀 分步部署</h2>
+    <div class="note">💡 逐条复制执行，每步独立。</div>
 
-    <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
-        <code># ============================================
-# 一键部署 Pi Node 端口检测工具
-# ============================================
+    <div class="step">
+        <span class="num">1</span>
+        <strong>安装 PHP</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>apt update
+apt install -y php-fpm php-curl</code>
+        </div>
+    </div>
 
-# 1. 安装 PHP
-apt update
-apt install -y php-fpm php-curl
+    <div class="step">
+        <span class="num">2</span>
+        <strong>创建站点目录</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>mkdir -p /var/www/port-checker</code>
+        </div>
+    </div>
 
-# 2. 创建站点目录
-mkdir -p /var/www/port-checker
+    <div class="step">
+        <span class="num">3</span>
+        <strong>创建 index.php</strong>
+        <div class="warning">
+            ⚠️ 代码较长，分 3 段复制执行，每段执行完再复制下一段。
+        </div>
 
-# 3. 创建检测脚本
-cat > /var/www/port-checker/index.php << 'EOF'
+        <p><strong>第 3.1 段：PHP 后端</strong></p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>cat > /var/www/port-checker/index.php << 'PART1'
 &lt;?php
-// ============================================================
-//  Pi Node 端口检测工具
-//  检测 31400-31409 端口 + 节点状态 + 区块信息
-//  部署路径：/var/www/port-checker/index.php
-//  访问端口：8088
-// ============================================================
-
-// --- 后端 API ---
 if (isset($_GET['action']) && $_GET['action'] === 'check') {
     header('Content-Type: application/json');
     $ip = $_GET['ip'] ?? '';
-
     if (!filter_var($ip, FILTER_VALIDATE_IP)) {
         echo json_encode(['error' => '无效的 IP 地址']);
         exit;
     }
-
     $results = [];
     for ($i = 31400; $i <= 31409; $i++) {
         $start = microtime(true);
         $fp = @fsockopen($ip, $i, $errno, $errstr, 2);
         $latency = round((microtime(true) - $start) * 1000);
-
-        if (!$fp) {
-            $results[$i] = ['open' => false];
-            continue;
-        }
+        if (!$fp) { $results[$i] = ['open' => false]; continue; }
         fclose($fp);
-
         if ($i === 31401) {
-            // 获取 /health 数据
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, "http://{$ip}:31401/health");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Pi-Checker/1.0');
             $health = curl_exec($ch);
             curl_close($ch);
             $data = json_decode($health, true);
-
-            // 获取 / 根路径的 Horizon API 数据（包含区块高度）
             $ch2 = curl_init();
             curl_setopt($ch2, CURLOPT_URL, "http://{$ip}:31401/");
             curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch2, CURLOPT_TIMEOUT, 5);
             curl_setopt($ch2, CURLOPT_CONNECTTIMEOUT, 3);
-            curl_setopt($ch2, CURLOPT_USERAGENT, 'Pi-Checker/1.0');
             $rootData = curl_exec($ch2);
             curl_close($ch2);
             $rootJson = json_decode($rootData, true);
-
             $results[$i] = [
                 'open' => true,
                 'latency' => $latency,
                 'database_connected' => isset($data['database_connected']) && $data['database_connected'] === true,
                 'core_up' => isset($data['core_up']) && $data['core_up'] === true,
                 'core_synced' => isset($data['core_synced']) && $data['core_synced'] === true,
-                'health' => $health,
                 'history_latest_ledger' => $rootJson['history_latest_ledger'] ?? null,
                 'core_latest_ledger' => $rootJson['core_latest_ledger'] ?? null,
-                'protocol_version' => $rootJson['current_protocol_version'] ?? null,
-                'ledger_time' => $rootJson['history_latest_ledger_closed_at'] ?? null
+                'protocol_version' => $rootJson['current_protocol_version'] ?? null
             ];
         } else {
             $results[$i] = ['open' => true, 'latency' => $latency];
         }
     }
-
     echo json_encode($results);
     exit;
 }
 ?&gt;
+PART1</code>
+        </div>
+
+        <p><strong>第 3.2 段：HTML + CSS</strong></p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>cat >> /var/www/port-checker/index.php << 'PART2'
 &lt;!DOCTYPE html&gt;
 &lt;html lang="zh-CN"&gt;
 &lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-    &lt;title&gt;Pi Node 端口检测&lt;/title&gt;
-    &lt;link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png"&gt;
-    &lt;style&gt;
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#f0f2f5;font-family:system-ui,sans-serif;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
-        .container{max-width:640px;width:100%;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-top:20px}
-        h1{text-align:center;color:#1a1a2e;font-size:22px;margin-bottom:4px}
-        .sub{text-align:center;color:#6b7a8f;font-size:14px;margin-bottom:20px}
-        .input-group{display:flex;gap:10px;margin-bottom:24px}
-        .input-group input{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none}
-        .input-group input:focus{border-color:#1abc9c}
-        .input-group button{padding:12px 28px;background:#1abc9c;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:15px}
-        .input-group button:disabled{background:#94a3b8;cursor:not-allowed}
-        .port-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:16px 0}
-        .port-card{background:#f8fafc;border-radius:6px;padding:8px 4px;text-align:center;border:1px solid #e2e8f0;font-size:13px}
-        .port-card .num{font-weight:600;color:#475569;font-size:12px}
-        .port-card .state{font-size:13px;font-weight:700;margin-top:1px}
-        .port-card .latency{font-size:10px;color:#94a3b8}
-        .port-card.open{border-color:#22c55e;background:#f0fdf4}
-        .port-card.open .state{color:#16a34a}
-        .port-card.closed{border-color:#e2e8f0;background:#f8fafc}
-        .port-card.closed .state{color:#94a3b8}
-        .port-card.checking{border-color:#f59e0b;background:#fffbeb}
-        .port-card.checking .state{color:#d97706}
-        .result-summary{margin:16px 0;padding:16px;border-radius:10px;text-align:center;background:#f8fafc;border-left:4px solid #1abc9c}
-        .result-summary .main-status{font-size:18px;font-weight:700;color:#1a1a2e}
-        .result-summary .main-status .green{color:#22c55e}
-        .result-summary .main-status .yellow{color:#d97706}
-        .result-summary .main-status .orange{color:#ea580c}
-        .result-summary .main-status .red{color:#dc2626}
-        .result-summary .detail-info{font-size:13px;color:#6b7a8f;margin-top:6px}
-        .result-summary .detail-info span{margin:0 10px}
-        .block-info{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:10px;font-size:13px;color:#475569}
-        .block-info span{background:#f1f5f9;padding:4px 14px;border-radius:12px}
-        .footer{text-align:center;margin-top:20px;font-size:13px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px}
-        .footer .by{color:#1abc9c;font-weight:600}
-        .footer .detect-time{color:#6b7a8f}
-        #ipHistory option{padding:8px}
-        @media(max-width:480px){.port-grid{grid-template-columns:repeat(3,1fr)}.container{padding:20px}}
-    &lt;/style&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+&lt;title&gt;Pi Node 端口检测&lt;/title&gt;
+&lt;link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png"&gt;
+&lt;style&gt;
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f2f5;font-family:system-ui,sans-serif;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
+.container{max-width:640px;width:100%;background:#fff;border-radius:16px;padding:30px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-top:20px}
+h1{text-align:center;color:#1a1a2e;font-size:22px;margin-bottom:4px}
+.sub{text-align:center;color:#6b7a8f;font-size:14px;margin-bottom:20px}
+.input-group{display:flex;gap:10px;margin-bottom:24px}
+.input-group input{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;outline:none}
+.input-group input:focus{border-color:#1abc9c}
+.input-group button{padding:12px 28px;background:#1abc9c;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:15px}
+.input-group button:disabled{background:#94a3b8;cursor:not-allowed}
+.port-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:16px 0}
+.port-card{background:#f8fafc;border-radius:6px;padding:8px 4px;text-align:center;border:1px solid #e2e8f0;font-size:13px}
+.port-card .num{font-weight:600;color:#475569;font-size:12px}
+.port-card .state{font-size:13px;font-weight:700;margin-top:1px}
+.port-card .latency{font-size:10px;color:#94a3b8}
+.port-card.open{border-color:#22c55e;background:#f0fdf4}
+.port-card.open .state{color:#16a34a}
+.port-card.closed{border-color:#e2e8f0;background:#f8fafc}
+.port-card.closed .state{color:#94a3b8}
+.port-card.checking{border-color:#f59e0b;background:#fffbeb}
+.port-card.checking .state{color:#d97706}
+.result-summary{margin:16px 0;padding:16px;border-radius:10px;text-align:center;background:#f8fafc;border-left:4px solid #1abc9c}
+.result-summary .main-status{font-size:18px;font-weight:700}
+.result-summary .main-status .green{color:#22c55e}
+.result-summary .main-status .yellow{color:#d97706}
+.result-summary .main-status .red{color:#dc2626}
+.result-summary .detail-info{font-size:13px;color:#6b7a8f;margin-top:6px}
+.result-summary .detail-info span{margin:0 10px}
+.block-info{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:10px;font-size:13px;color:#475569}
+.block-info span{background:#f1f5f9;padding:4px 14px;border-radius:12px}
+.footer{text-align:center;margin-top:20px;font-size:13px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px}
+.footer .by{color:#1abc9c;font-weight:600}
+.footer .detect-time{color:#6b7a8f}
+#ipHistory option{padding:8px}
+@media(max-width:480px){.port-grid{grid-template-columns:repeat(3,1fr)}.container{padding:20px}}
+&lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 &lt;div class="container"&gt;
-    &lt;h1&gt;🔌 Pi Node 端口检测&lt;/h1&gt;
-    &lt;p class="sub"&gt;输入 IP 检测节点状态&lt;/p&gt;
-
-    &lt;div class="input-group"&gt;
-        &lt;input type="text" id="ipInput" placeholder="输入 IP 地址" value="" list="ipHistory" autocomplete="off"&gt;
-        &lt;datalist id="ipHistory"&gt;&lt;/datalist&gt;
-        &lt;button id="checkBtn"&gt;检测&lt;/button&gt;
-    &lt;/div&gt;
-
-    &lt;div class="port-grid" id="portGrid"&gt;&lt;/div&gt;
-    &lt;div id="result" class="result-summary"&gt;等待检测...&lt;/div&gt;
-
-    &lt;div class="footer"&gt;
-        &lt;span class="detect-time" id="detectTime"&gt;&lt;/span&gt;
-        &lt;span style="margin:0 8px;"&gt;·&lt;/span&gt;
-        &lt;span class="by"&gt;宝哥检测&lt;/span&gt;
-    &lt;/div&gt;
+&lt;h1&gt;🔌 Pi Node 端口检测&lt;/h1&gt;
+&lt;p class="sub"&gt;输入 IP 检测节点状态&lt;/p&gt;
+&lt;div class="input-group"&gt;
+&lt;input type="text" id="ipInput" placeholder="输入 IP 地址" value="" list="ipHistory" autocomplete="off"&gt;
+&lt;datalist id="ipHistory"&gt;&lt;/datalist&gt;
+&lt;button id="checkBtn"&gt;检测&lt;/button&gt;
 &lt;/div&gt;
+&lt;div class="port-grid" id="portGrid"&gt;&lt;/div&gt;
+&lt;div id="result" class="result-summary"&gt;等待检测...&lt;/div&gt;
+&lt;div class="footer"&gt;
+&lt;span class="detect-time" id="detectTime"&gt;&lt;/span&gt;
+&lt;span style="margin:0 8px;"&gt;·&lt;/span&gt;
+&lt;span class="by"&gt;宝哥检测&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+PART2</code>
+        </div>
 
+        <p><strong>第 3.3 段：JavaScript</strong></p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>cat >> /var/www/port-checker/index.php << 'PART3'
 &lt;script&gt;
 const ipInput = document.getElementById('ipInput');
 const checkBtn = document.getElementById('checkBtn');
@@ -216,17 +213,10 @@ const resultDiv = document.getElementById('result');
 const detectTime = document.getElementById('detectTime');
 const HISTORY_KEY = 'pi_checker_ip_history';
 const MAX_HISTORY = 10;
-
 function getHistory() {
-    try {
-        return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
-
-function saveHistory(history) {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-}
-
+function saveHistory(history) { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
 function addIPToHistory(ip) {
     let history = getHistory();
     history = history.filter(item => item !== ip);
@@ -235,36 +225,26 @@ function addIPToHistory(ip) {
     saveHistory(history);
     updateDatalist(history);
 }
-
 function updateDatalist(history) {
     const datalist = document.getElementById('ipHistory');
     if (!datalist) return;
     datalist.innerHTML = history.map(ip =&gt; `&lt;option value="${ip}"&gt;`).join('');
 }
-
 function loadHistory() {
     const history = getHistory();
     updateDatalist(history);
-    if (history.length > 0) {
-        ipInput.value = history[0];
-    }
+    if (history.length > 0) ipInput.value = history[0];
 }
-
 function buildPortGrid() {
     portGrid.innerHTML = '';
     for (let i = 31400; i &lt;= 31409; i++) {
         const card = document.createElement('div');
         card.className = 'port-card';
         card.id = 'card' + i;
-        card.innerHTML = `
-            &lt;div class="num"&gt;${i}&lt;/div&gt;
-            &lt;div class="state" id="state${i}"&gt;&lt;/div&gt;
-            &lt;div class="latency" id="lat${i}"&gt;&lt;/div&gt;
-        `;
+        card.innerHTML = `&lt;div class="num"&gt;${i}&lt;/div&gt;&lt;div class="state" id="state${i}"&gt;&lt;/div&gt;&lt;div class="latency" id="lat${i}"&gt;&lt;/div&gt;`;
         portGrid.appendChild(card);
     }
 }
-
 async function startCheck() {
     const ip = ipInput.value.trim();
     if (!ip) { return; }
@@ -273,21 +253,16 @@ async function startCheck() {
         resultDiv.style.borderLeftColor = '#ef4444';
         return;
     }
-
     addIPToHistory(ip);
-
     checkBtn.disabled = true;
     checkBtn.textContent = '检测中...';
     resultDiv.innerHTML = '⏳ 正在检测...';
     resultDiv.style.borderLeftColor = '#f59e0b';
-
-    const allCards = document.querySelectorAll('.port-card');
-    allCards.forEach(card =&gt; {
-        card.className = 'port-card checking';
-        card.querySelector('.state').textContent = '检测中';
-        card.querySelector('.latency').textContent = '';
+    document.querySelectorAll('.port-card').forEach(c =&gt; {
+        c.className = 'port-card checking';
+        c.querySelector('.state').textContent = '检测中';
+        c.querySelector('.latency').textContent = '';
     });
-
     let results = {};
     try {
         const resp = await fetch(`?action=check&ip=${encodeURIComponent(ip)}&t=${Date.now()}`);
@@ -299,20 +274,16 @@ async function startCheck() {
         checkBtn.textContent = '重试';
         return;
     }
-
     let openCount = 0;
     for (let i = 31400; i &lt;= 31409; i++) {
         const data = results[i];
         const card = document.getElementById('card' + i);
         const stateEl = document.getElementById('state' + i);
         const latEl = document.getElementById('lat' + i);
-
-        if (data && data.open) {
+        if (data &amp;&amp; data.open) {
             card.className = 'port-card open';
             stateEl.textContent = '✅';
-            if (data.latency !== undefined) {
-                latEl.textContent = data.latency + 'ms';
-            }
+            if (data.latency !== undefined) latEl.textContent = data.latency + 'ms';
             openCount++;
         } else {
             card.className = 'port-card closed';
@@ -320,202 +291,137 @@ async function startCheck() {
             latEl.textContent = '';
         }
     }
-
     const healthData = results[31401] || {};
     const dbOk = healthData.database_connected == true;
     const coreOk = healthData.core_up == true;
-    const nodeOk = dbOk && coreOk;
-
+    const nodeOk = dbOk &amp;&amp; coreOk;
     const networkBlock = healthData.history_latest_ledger || null;
     const localBlock = healthData.core_latest_ledger || null;
     const protocolVersion = healthData.protocol_version || null;
-
-    const isPiNode = nodeOk && networkBlock !== null && localBlock !== null;
-
+    const isPiNode = nodeOk &amp;&amp; networkBlock !== null &amp;&amp; localBlock !== null;
     let statusText = '';
     let statusClass = '';
     let blockInfoHtml = '';
-
     if (openCount &gt;= 3 &amp;&amp; isPiNode) {
         const diff = networkBlock - localBlock;
         const delaySeconds = diff * 6;
         const delayMinutes = Math.floor(delaySeconds / 60);
         const remainSeconds = delaySeconds % 60;
-
-        let delayDisplay = '完全同步';
+        let delayDisplay = '';
         if (diff === 0) {
             delayDisplay = '区块迅速无延迟';
-        } else if (delayMinutes > 0) {
-            delayDisplay = `延迟: ${delayMinutes}分${remainSeconds}秒`;
+        } else if (delayMinutes &gt; 0) {
+            delayDisplay = '延迟: ' + delayMinutes + '分' + remainSeconds + '秒';
         } else {
-            delayDisplay = `延迟: ${remainSeconds}秒`;
+            delayDisplay = '延迟: ' + remainSeconds + '秒';
         }
-
-        // 判断趋势
-        const lastDiff = parseInt(localStorage.getItem('pi_checker_last_diff') || '0');
-        let trendText = '';
-        if (lastDiff > 0) {
-            if (diff > lastDiff) trendText = ' ↑ 延迟在增加';
-            else if (diff < lastDiff) trendText = ' ↓ 延迟在减少';
-            else trendText = ' → 延迟稳定';
-        } else {
-            trendText = ' → 首次检测';
-        }
-        localStorage.setItem('pi_checker_last_diff', diff.toString());
-
-        statusText = '✅ 端口打开 / 节点正常';
+        statusText = '✅ 端口打开 / 节点正常 / ' + delayDisplay;
         statusClass = 'green';
         resultDiv.style.borderLeftColor = '#22c55e';
-
-        blockInfoHtml = `
-            &lt;div class="block-info"&gt;
-                &lt;span&gt;您的区块: ${localBlock}&lt;/span&gt;
-                &lt;span&gt;网络区块: ${networkBlock}&lt;/span&gt;
-                &lt;span&gt;${delayDisplay}&lt;/span&gt;
-                &lt;span&gt;${trendText}&lt;/span&gt;
-                &lt;span&gt;协议版本: ${protocolVersion || '24'}&lt;/span&gt;
-            &lt;/div&gt;
-        `;
+        blockInfoHtml = `&lt;div class="block-info"&gt;&lt;span&gt;您的区块: ${localBlock}&lt;/span&gt;&lt;span&gt;网络区块: ${networkBlock}&lt;/span&gt;&lt;span&gt;协议版本: ${protocolVersion || '24'}&lt;/span&gt;&lt;/div&gt;`;
     } else if (openCount &gt;= 3 &amp;&amp; nodeOk) {
         statusText = '⏳ 端口打开 / 节点正常 / 区块同步中';
         statusClass = 'yellow';
         resultDiv.style.borderLeftColor = '#f59e0b';
-        if (networkBlock && localBlock) {
+        if (networkBlock &amp;&amp; localBlock) {
             const diff = networkBlock - localBlock;
             const delaySeconds = diff * 6;
             const delayMinutes = Math.floor(delaySeconds / 60);
             const remainSeconds = delaySeconds % 60;
-            const delayDisplay = delayMinutes > 0 ? `${delayMinutes}分${remainSeconds}秒` : `${remainSeconds}秒`;
-            blockInfoHtml = `
-                &lt;div class="block-info"&gt;
-                    &lt;span&gt;您的区块: ${localBlock}&lt;/span&gt;
-                    &lt;span&gt;网络区块: ${networkBlock}&lt;/span&gt;
-                    &lt;span&gt;延迟: ${delayDisplay}&lt;/span&gt;
-                    &lt;span&gt;协议版本: ${protocolVersion || '24'}&lt;/span&gt;
-                &lt;/div&gt;
-            `;
+            const delayDisplay = delayMinutes &gt; 0 ? delayMinutes + '分' + remainSeconds + '秒' : remainSeconds + '秒';
+            blockInfoHtml = `&lt;div class="block-info"&gt;&lt;span&gt;您的区块: ${localBlock}&lt;/span&gt;&lt;span&gt;网络区块: ${networkBlock}&lt;/span&gt;&lt;span&gt;延迟: ${delayDisplay}&lt;/span&gt;&lt;span&gt;协议版本: ${protocolVersion || '24'}&lt;/span&gt;&lt;/div&gt;`;
         }
     } else {
         statusText = '❌ 端口异常 / 节点状态异常 / 区块未知';
         statusClass = 'red';
         resultDiv.style.borderLeftColor = '#ef4444';
-        blockInfoHtml = `
-            &lt;div class="block-info"&gt;
-                &lt;span&gt;协议版本: ${protocolVersion || '未知'}&lt;/span&gt;
-                &lt;span&gt;状态: 非 Pi 节点或无法访问&lt;/span&gt;
-            &lt;/div&gt;
-        `;
+        blockInfoHtml = `&lt;div class="block-info"&gt;&lt;span&gt;协议版本: ${protocolVersion || '未知'}&lt;/span&gt;&lt;span&gt;状态: 非 Pi 节点或无法访问&lt;/span&gt;&lt;/div&gt;`;
     }
-
     const now = new Date();
-    const timeStr = now.getFullYear() + '-' + 
-        String(now.getMonth()+1).padStart(2,'0') + '-' + 
-        String(now.getDate()).padStart(2,'0') + ' ' + 
-        String(now.getHours()).padStart(2,'0') + ':' + 
-        String(now.getMinutes()).padStart(2,'0') + ':' + 
-        String(now.getSeconds()).padStart(2,'0');
+    const timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
     detectTime.textContent = '检测时间 ' + timeStr;
-
-    resultDiv.innerHTML = `
-        &lt;div class="main-status"&gt;
-            &lt;span class="${statusClass}"&gt;${statusText}&lt;/span&gt;
-        &lt;/div&gt;
-        &lt;div class="detail-info"&gt;
-            &lt;span&gt;检测端口: ${openCount}/10 开放&lt;/span&gt;
-        &lt;/div&gt;
-        ${blockInfoHtml}
-    `;
-
+    resultDiv.innerHTML = `&lt;div class="main-status"&gt;&lt;span class="${statusClass}"&gt;${statusText}&lt;/span&gt;&lt;/div&gt;&lt;div class="detail-info"&gt;&lt;span&gt;检测端口: ${openCount}/10 开放&lt;/span&gt;&lt;/div&gt;${blockInfoHtml}`;
     checkBtn.disabled = false;
     checkBtn.textContent = '重新检测';
 }
-
-ipInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') startCheck();
-});
+ipInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') startCheck(); });
 checkBtn.addEventListener('click', startCheck);
-
 buildPortGrid();
 loadHistory();
 &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-EOF
+PART3</code>
+        </div>
+    </div>
 
-# 4. 设置权限
-chown -R www-data:www-data /var/www/port-checker
-systemctl restart php8.3-fpm
+    <div class="step">
+        <span class="num">4</span>
+        <strong>设置权限</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>chown -R www-data:www-data /var/www/port-checker
+systemctl restart php8.3-fpm</code>
+        </div>
+    </div>
 
-# 5. 配置 Nginx
-cat > /etc/nginx/conf.d/port-checker.conf << 'EOF'
+    <div class="step">
+        <span class="num">5</span>
+        <strong>配置 Nginx</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>cat > /etc/nginx/conf.d/port-checker.conf << 'EOF'
 server {
     listen 8088;
     server_name _;
     root /var/www/port-checker;
     index index.php;
-
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
-
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/run/php/php-fpm.sock;
     }
 }
-EOF
-
-# 6. 重载 Nginx
-nginx -t && systemctl reload nginx
-
-echo ""
-echo "=========================================="
-echo "✅ 部署完成！"
-echo "访问地址: http://$(curl -s ifconfig.me):8088/"
-echo "=========================================="</code>
+EOF</code>
+        </div>
     </div>
 
-    <h2>📌 使用说明</h2>
     <div class="step">
-        <span class="num">1</span>
-        <span class="text">复制上面 <strong>"一键部署"</strong> 区域的整段代码</span>
-    </div>
-    <div class="step">
-        <span class="num">2</span>
-        <span class="text">粘贴到服务器终端，按 <code>Enter</code> 执行</span>
-    </div>
-    <div class="step">
-        <span class="num">3</span>
-        <span class="text">等待部署完成后，访问 <code>http://服务器IP:8088/</code></span>
+        <span class="num">6</span>
+        <strong>重载 Nginx</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>nginx -t && systemctl reload nginx</code>
+        </div>
     </div>
 
-    <div class="success">
-        ✅ 部署完成后即可使用，输入任意 IP 检测节点状态。
+    <div class="step">
+        <span class="num">7</span>
+        <strong>获取 IP</strong>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>curl -s ifconfig.me</code>
+        </div>
     </div>
 
-    <h2>📊 检测结果说明</h2>
-    <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px">
-        <tr style="background:#f1f5f9"><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">状态</th><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">含义</th></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;color:#16a34a">✅ 端口打开 / 节点正常</td><td style="padding:8px 12px;border:1px solid #e2e8f0">节点运行正常，区块延迟显示在下方</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;color:#d97706">⏳ 端口打开 / 节点正常 / 区块同步中</td><td style="padding:8px 12px;border:1px solid #e2e8f0">节点正在追赶最新区块</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;color:#dc2626">❌ 端口异常 / 节点状态异常 / 区块未知</td><td style="padding:8px 12px;border:1px solid #e2e8f0">IP 不是 Pi 节点或无法访问</td></tr>
-    </table>
+    <h2>✅ 访问地址</h2>
+    <p><code>http://服务器IP:8088/</code></p>
 
     <h2>📌 配置域名（可选）</h2>
     <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
-        <code># 替换 your-domain.com 为您的域名
+        <code># 将 your-domain.com 替换为您的域名
 cat > /etc/nginx/conf.d/port-checker.conf << 'EOF'
 server {
     listen 80;
     server_name your-domain.com;
     root /var/www/port-checker;
     index index.php;
-
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
-
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/run/php/php-fpm.sock;
@@ -526,7 +432,7 @@ nginx -t && systemctl reload nginx</code>
     </div>
 
     <div class="warning">
-        ⚠️ <strong>注意：</strong> 部署前请确认服务器已放行 8088 端口（或 80/443 端口配置域名时）。
+        ⚠️ 部署前请确认服务器已放行 8088 端口（或 80/443 端口配置域名时）。
     </div>
 
     <div class="footer">
