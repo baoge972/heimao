@@ -42,7 +42,7 @@
 
     <h1>📊 服务器检测脚本 <code style="background:#e2e8f0;padding:2px 14px;border-radius:6px;font-size:24px;">baoge.sh</code></h1>
 
-    <p style="font-size:16px;color:#334155;">一个轻量级服务器检测脚本，一键生成包含 CPU、内存、硬盘、端口、Docker、服务、防火墙等 15 项信息的全面报告。</p>
+    <p style="font-size:16px;color:#334155;">一个轻量级服务器检测脚本，一键生成包含 CPU、内存、硬盘、端口、Docker、服务、防火墙、已部署项目清单等 13 项信息的全面报告。</p>
 
     <!-- ============================================ -->
     <h2>📋 检测内容</h2>
@@ -52,17 +52,15 @@
         <tr><td>2</td><td>CPU 信息</td><td>型号、核心数、架构</td></tr>
         <tr><td>3</td><td>内存信息</td><td>总内存、已用、可用、Swap</td></tr>
         <tr><td>4</td><td>硬盘信息</td><td>分区和使用率</td></tr>
-        <tr><td>5</td><td>端口占用</td><td>31400-31409 及其他常用端口</td></tr>
+        <tr><td>5</td><td>端口占用</td><td>所有已占用端口列表</td></tr>
         <tr><td>6</td><td>Docker 容器</td><td>所有容器的状态和端口映射</td></tr>
-        <tr><td>7</td><td>运行服务</td><td>systemd 管理的服务列表</td></tr>
-        <tr><td>8</td><td>Nginx 站点</td><td>已配置的站点和域名</td></tr>
-        <tr><td>9</td><td>防火墙状态</td><td>UFW/iptables 状态</td></tr>
-        <tr><td>10</td><td>公网 IP</td><td>当前服务器的公网 IP</td></tr>
-        <tr><td>11</td><td>代理环境</td><td>HTTP/HTTPS 代理变量</td></tr>
-        <tr><td>12</td><td>FRP 状态</td><td>FRP 服务运行状态</td></tr>
-        <tr><td>13</td><td>Pi Node 检查</td><td>检测 31401 端口是否响应</td></tr>
-        <tr><td>14</td><td>资源占用 TOP</td><td>CPU 和内存占用最高的进程</td></tr>
-        <tr><td>15</td><td>快速总结</td><td>核心指标 + 建议</td></tr>
+        <tr><td>7</td><td>已部署项目清单</td><td>自动识别 Docker/手动/Nginx 反代项目</td></tr>
+        <tr><td>8</td><td>运行服务</td><td>systemd 管理的服务列表</td></tr>
+        <tr><td>9</td><td>Nginx 站点</td><td>已配置的站点和域名</td></tr>
+        <tr><td>10</td><td>防火墙状态</td><td>UFW/iptables 状态</td></tr>
+        <tr><td>11</td><td>公网 IP</td><td>当前服务器的公网 IP</td></tr>
+        <tr><td>12</td><td>资源占用 TOP</td><td>CPU 和内存占用最高的进程</td></tr>
+        <tr><td>13</td><td>快速总结</td><td>核心指标 + 建议</td></tr>
     </table>
 
     <!-- ============================================ -->
@@ -72,14 +70,14 @@
     <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
         <code id="fullScript"># ==============================================
-# 一键创建 baoge.sh 并执行
+# 一键创建 baoge.sh 并执行（通用版）
 # ==============================================
 
 cat > baoge.sh << 'EOF'
 #!/bin/bash
 
 # ============================================
-# 服务器一键检测脚本
+# 服务器全面检测脚本（通用版）
 # 用法: ./baoge.sh
 # ============================================
 
@@ -96,6 +94,7 @@ echo "         生成时间: $(date)"
 echo "=========================================="
 echo ""
 
+# -------------------- 系统信息 --------------------
 echo -e "${BLUE}【1】系统信息${NC}"
 echo "----------------------------------------"
 cat /etc/os-release 2>/dev/null | grep -E "PRETTY_NAME|VERSION_ID" | sed 's/^/  /'
@@ -104,6 +103,7 @@ echo "  运行时间: $(uptime -p)"
 echo "  当前用户: $(whoami)"
 echo ""
 
+# -------------------- CPU --------------------
 echo -e "${BLUE}【2】CPU 信息${NC}"
 echo "----------------------------------------"
 echo "  型号: $(cat /proc/cpuinfo | grep "model name" | head -1 | cut -d: -f2 | xargs)"
@@ -111,55 +111,162 @@ echo "  核心数: $(nproc)"
 echo "  架构: $(uname -m)"
 echo ""
 
+# -------------------- 内存 --------------------
 echo -e "${BLUE}【3】内存信息${NC}"
 echo "----------------------------------------"
 free -h | grep -E "Mem|Swap" | sed 's/^/  /'
 echo ""
 
+# -------------------- 硬盘 --------------------
 echo -e "${BLUE}【4】硬盘信息${NC}"
 echo "----------------------------------------"
 df -h | grep -E "Filesystem|/dev/vd|/dev/sd" | sed 's/^/  /'
 echo ""
 
-echo -e "${BLUE}【5】端口占用 (31400-31409 & 常用端口)${NC}"
+# -------------------- 端口占用 --------------------
+echo -e "${BLUE}【5】端口占用情况${NC}"
 echo "----------------------------------------"
-echo "  31401-31403 端口:"
-ss -tlnp 2>/dev/null | grep -E "3140[1-3]" | sed 's/^/    /'
-if [ -z "$(ss -tlnp 2>/dev/null | grep -E "3140[1-3]")" ]; then
-    echo "    (无监听)"
-fi
+PORT_LIST=$(ss -tlnp 2>/dev/null | grep LISTEN | awk '{print $4}' | sed 's/.*://' | sort -n | uniq)
+PORT_COUNT=$(echo "$PORT_LIST" | grep -v '^$' | wc -l)
+echo "  已占用端口总数: $PORT_COUNT"
+echo "  端口列表: $(echo "$PORT_LIST" | tr '\n' ' ')"
 echo ""
-echo "  其他重要端口:"
-ss -tlnp 2>/dev/null | grep -E ":80 |:443 |:22 |:3000 |:8080 |:7000 " | sed 's/^/    /'
+echo "  详细监听信息:"
+ss -tlnp 2>/dev/null | grep LISTEN | awk '{print "    " $4 " -> " $7}' | sed 's/users:(("//' | sed 's/",.*//' | sort -n | uniq
 echo ""
 
+# -------------------- Docker 容器 --------------------
 echo -e "${BLUE}【6】Docker 容器${NC}"
 echo "----------------------------------------"
 if command -v docker &> /dev/null; then
+    DOCKER_COUNT=$(docker ps -a --format "table {{.Names}}" 2>/dev/null | grep -v NAMES | grep -v '^$' | wc -l)
+    echo "  Docker 容器总数: $DOCKER_COUNT"
     docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | sed 's/^/  /'
 else
     echo "  Docker 未安装"
 fi
 echo ""
 
-echo -e "${BLUE}【7】运行中的系统服务${NC}"
+# -------------------- 已部署项目清单 --------------------
+echo -e "${BLUE}【7】已部署项目清单${NC}"
 echo "----------------------------------------"
-systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -25 | sed 's/^/  /'
-echo "  ..."
-echo ""
 
-echo -e "${BLUE}【8】Nginx 站点配置${NC}"
-echo "----------------------------------------"
-if [ -d "/etc/nginx/sites-enabled" ]; then
-    ls -la /etc/nginx/sites-enabled/ 2>/dev/null | grep -v "total" | sed 's/^/  /'
-    echo "  站点域名:"
-    grep -r "server_name" /etc/nginx/sites-enabled/ 2>/dev/null | grep -v "#" | sed 's/^/    /'
+PROJECT_COUNT=0
+
+# 1. Docker 项目
+if command -v docker &> /dev/null; then
+    for container in $(docker ps -a --format "{{.Names}}" 2>/dev/null); do
+        PROJECT_COUNT=$((PROJECT_COUNT + 1))
+        PORTS=$(docker port $container 2>/dev/null | awk '{print $3}' | tr '\n' ' ')
+        STATUS=$(docker inspect --format='{{.State.Status}}' $container 2>/dev/null)
+        echo "  $PROJECT_COUNT. $container"
+        echo "     部署方式: Docker"
+        echo "     端口: $PORTS"
+        echo "     状态: $STATUS"
+        echo ""
+    done
+fi
+
+# 2. Python HTTP 服务
+if ps aux | grep -v grep | grep -q "python3 -m http.server"; then
+    PROJECT_COUNT=$((PROJECT_COUNT + 1))
+    PORT=$(ps aux | grep -v grep | grep "python3 -m http.server" | head -1 | grep -oP '(?<=http.server )\d+' || echo "8080")
+    echo "  $PROJECT_COUNT. Python HTTP Server"
+    echo "     部署方式: 手动 (Python)"
+    echo "     端口: $PORT"
+    echo "     状态: 运行中"
+    echo ""
+fi
+
+# 3. Node.js 服务
+if ps aux | grep -v grep | grep -q "node.*server.js"; then
+    PROJECT_COUNT=$((PROJECT_COUNT + 1))
+    echo "  $PROJECT_COUNT. Node.js 后端服务"
+    echo "     部署方式: 手动 (Node.js)"
+    echo "     状态: 运行中"
+    echo "     提示: 端口未在进程参数中明确，请检查代码"
+    echo ""
+fi
+
+# 4. Uvicorn 服务
+if ps aux | grep -v grep | grep -q "uvicorn"; then
+    PROJECT_COUNT=$((PROJECT_COUNT + 1))
+    PORT=$(ps aux | grep -v grep | grep "uvicorn" | head -1 | grep -oP '(?<=--port )\d+' || echo "8080")
+    echo "  $PROJECT_COUNT. Uvicorn API 服务"
+    echo "     部署方式: 手动 (Python/Uvicorn)"
+    echo "     端口: $PORT"
+    echo "     状态: 运行中"
+    echo ""
+fi
+
+# 5. Nginx 配置的站点
+if command -v nginx &> /dev/null; then
+    for conf in /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
+        if [ -f "$conf" ]; then
+            DOMAINS=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
+            if [ -n "$DOMAINS" ] && [ "$DOMAINS" != "_" ]; then
+                PROJECT_COUNT=$((PROJECT_COUNT + 1))
+                if grep -q "listen 443" "$conf" 2>/dev/null; then
+                    SSL="HTTPS (有证书)"
+                else
+                    SSL="HTTP (无证书)"
+                fi
+                if grep -q "proxy_pass" "$conf" 2>/dev/null; then
+                    TYPE="反向代理"
+                else
+                    TYPE="静态文件"
+                fi
+                echo "  $PROJECT_COUNT. $DOMAINS"
+                echo "     部署方式: 手动 (Nginx)"
+                echo "     类型: $TYPE"
+                echo "     协议: $SSL"
+                echo "     配置文件: $conf"
+                echo ""
+            fi
+        fi
+    done
+fi
+
+if [ $PROJECT_COUNT -eq 0 ]; then
+    echo "  未检测到已部署的项目"
 else
-    echo "  Nginx 未安装或未配置"
+    echo "  ✅ 项目总数: $PROJECT_COUNT"
 fi
 echo ""
 
-echo -e "${BLUE}【9】防火墙状态${NC}"
+# -------------------- 运行中的系统服务 --------------------
+echo -e "${BLUE}【8】运行中的系统服务${NC}"
+echo "----------------------------------------"
+systemctl list-units --type=service --state=running --no-pager 2>/dev/null | head -20 | sed 's/^/  /'
+echo "  ..."
+echo ""
+
+# -------------------- Nginx 站点配置详情 --------------------
+echo -e "${BLUE}【9】Nginx 站点配置详情${NC}"
+echo "----------------------------------------"
+if command -v nginx &> /dev/null && systemctl is-active --quiet nginx; then
+    echo "  Nginx 状态: 运行中"
+    echo "  配置文件:"
+    for conf in /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
+        if [ -f "$conf" ]; then
+            DOMAIN=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
+            HAS_SSL=$(grep -c "listen 443" "$conf" 2>/dev/null || echo 0)
+            HAS_PROXY=$(grep -c "proxy_pass" "$conf" 2>/dev/null || echo 0)
+            if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
+                SSL_STATUS=$([ $HAS_SSL -gt 0 ] && echo "✅ HTTPS" || echo "❌ HTTP")
+                PROXY_STATUS=$([ $HAS_PROXY -gt 0 ] && echo "反向代理" || echo "静态文件")
+                echo "    - $DOMAIN ($PROXY_STATUS, $SSL_STATUS)"
+                echo "      配置文件: $conf"
+            fi
+        fi
+    done
+else
+    echo "  Nginx 未运行或未安装"
+fi
+echo ""
+
+# -------------------- 防火墙状态 --------------------
+echo -e "${BLUE}【10】防火墙状态${NC}"
 echo "----------------------------------------"
 if command -v ufw &> /dev/null; then
     echo "  UFW: $(ufw status 2>/dev/null | head -1)"
@@ -169,7 +276,8 @@ if command -v iptables &> /dev/null; then
 fi
 echo ""
 
-echo -e "${BLUE}【10】公网 IP${NC}"
+# -------------------- 公网 IP --------------------
+echo -e "${BLUE}【11】公网 IP${NC}"
 echo "----------------------------------------"
 PUBLIC_IP=$(curl -s --max-time 3 ifconfig.me 2>/dev/null)
 if [ -n "$PUBLIC_IP" ]; then
@@ -179,40 +287,8 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}【11】代理环境变量${NC}"
-echo "----------------------------------------"
-env | grep -i proxy | sed 's/^/  /'
-if [ -z "$(env | grep -i proxy)" ]; then
-    echo "  (无代理设置)"
-fi
-echo ""
-
-echo -e "${BLUE}【12】FRP 服务状态${NC}"
-echo "----------------------------------------"
-if systemctl is-active --quiet frps 2>/dev/null; then
-    echo "  FRP 服务: 运行中"
-    ps aux | grep frps | grep -v grep | sed 's/^/    /'
-else
-    echo "  FRP 服务: 未运行或未安装"
-fi
-echo ""
-
-echo -e "${BLUE}【13】Pi Node 相关检查${NC}"
-echo "----------------------------------------"
-if [ -n "$PUBLIC_IP" ]; then
-    echo "  检测 $PUBLIC_IP:31401/health ..."
-    CURL_RESULT=$(curl -s --max-time 2 http://$PUBLIC_IP:31401/health 2>/dev/null)
-    if [ -n "$CURL_RESULT" ]; then
-        echo "    ✅ 31401 端口响应: $CURL_RESULT"
-    else
-        echo "    ❌ 31401 端口无响应"
-    fi
-else
-    echo "  (跳过，公网 IP 获取失败)"
-fi
-echo ""
-
-echo -e "${BLUE}【14】资源占用 TOP 10${NC}"
+# -------------------- 资源占用 TOP --------------------
+echo -e "${BLUE}【12】资源占用 TOP 10${NC}"
 echo "----------------------------------------"
 echo "  CPU 占用 Top 5:"
 ps aux --sort=-%cpu | head -6 | sed 's/^/    /'
@@ -221,7 +297,8 @@ echo "  内存占用 Top 5:"
 ps aux --sort=-%mem | head -6 | sed 's/^/    /'
 echo ""
 
-echo -e "${BLUE}【15】快速总结${NC}"
+# -------------------- 快速总结 --------------------
+echo -e "${BLUE}【13】快速总结${NC}"
 echo "----------------------------------------"
 MEM_TOTAL=$(free -m | grep Mem | awk '{print $2}')
 MEM_USED=$(free -m | grep Mem | awk '{print $3}')
@@ -234,6 +311,7 @@ echo "  内存总量: ${MEM_TOTAL}MiB"
 echo "  内存已用: ${MEM_USED}MiB"
 echo "  内存可用: ${MEM_FREE}MiB"
 echo "  硬盘使用: $DISK_USED"
+echo "  已部署项目: $PROJECT_COUNT 个"
 
 if [ $MEM_TOTAL -lt 1024 ]; then
     echo -e "  ${YELLOW}⚠️ 警告: 内存偏小 (${MEM_TOTAL}MiB)，部署新服务请选择轻量级方案${NC}"
@@ -288,22 +366,6 @@ chmod +x baoge.sh
     </div>
 
     <!-- ============================================ -->
-    <h2>📌 只创建脚本（不自动运行）</h2>
-    <p>如果你只想创建脚本文件，稍后手动运行，可以执行：</p>
-    <div class="code-block">
-        <button class="copy-btn" onclick="copyText('cat > baoge.sh << \'EOF\'\n# ... 脚本内容 ...\nEOF\nchmod +x baoge.sh', this)">📋 复制</button>
-        <code id="cmd2">cat > baoge.sh << 'EOF'
-# 脚本内容（见上方完整版）
-EOF
-chmod +x baoge.sh</code>
-    </div>
-    <p>然后需要时执行：</p>
-    <div class="code-block">
-        <button class="copy-btn" onclick="copyText('./baoge.sh', this)">📋 复制</button>
-        <code>./baoge.sh</code>
-    </div>
-
-    <!-- ============================================ -->
     <h2>📌 保存报告到文件</h2>
     <p>如果想将检测结果保存为文件，方便查看和分享：</p>
     <div class="code-block">
@@ -317,7 +379,7 @@ chmod +x baoge.sh</code>
     <div class="code-block" style="background:#0f172a;">
         <code style="color:#94a3b8;">==========================================
          服务器全面检测报告
-         生成时间: Mon Jun 29 03:28:00 PM CST 2026
+         生成时间: Mon Jun 29 05:01:39 PM CST 2026
 ==========================================
 
 【1】系统信息
@@ -325,7 +387,7 @@ chmod +x baoge.sh</code>
   PRETTY_NAME="Ubuntu 22.04.5 LTS"
   VERSION_ID="22.04"
   内核: Linux x86_64 GNU/Linux
-  运行时间: up 1 day, 11 hours, 16 minutes
+  运行时间: up 30 minutes
   当前用户: root
 
 【2】CPU 信息
@@ -336,18 +398,41 @@ chmod +x baoge.sh</code>
 
 【3】内存信息
 ----------------------------------------
-  Mem:           878Mi       565Mi        70Mi       2.0Mi       242Mi       173Mi
+  Mem:           878Mi       556Mi        66Mi       2.0Mi       254Mi       172Mi
   Swap:          2.0Gi          0B       2.0Gi
 
-... 更多信息 ...
+【5】端口占用情况
+----------------------------------------
+  已占用端口总数: 19
+  端口列表: 22 53 80 443 2095 2096 3003 7000 8080 8869 ...
 
-【15】快速总结
+【7】已部署项目清单
+----------------------------------------
+  1. beecount
+     部署方式: Docker
+     端口: 0.0.0.0:8869
+     状态: running
+
+  2. uptime-kuma
+     部署方式: Docker
+     端口: 0.0.0.0:3003
+     状态: running
+
+  3. sui.baoge123.de5.net
+     部署方式: 手动 (Nginx)
+     类型: 反向代理
+     协议: HTTPS (有证书)
+
+  ✅ 项目总数: 9
+
+【13】快速总结
 ----------------------------------------
   CPU 核心: 2
   内存总量: 878MiB
-  内存已用: 564MiB
-  内存可用: 175MiB
+  内存已用: 556MiB
+  内存可用: 172MiB
   硬盘使用: 40%
+  已部署项目: 9 个
   ⚠️ 警告: 内存偏小 (878MiB)，部署新服务请选择轻量级方案
 
 ==========================================
@@ -380,7 +465,7 @@ chmod +x baoge.sh</code>
 
     <!-- ============================================ -->
     <div class="footer">
-        baoge.sh 服务器检测脚本 · 版本 1.0 · 轻量 · 无依赖
+        baoge.sh 服务器检测脚本 · 版本 2.0 · 轻量 · 无依赖
     </div>
 
 </div>
@@ -405,7 +490,6 @@ function copyText(text, btn) {
             }, 2000);
         }
     }).catch(() => {
-        // Fallback
         const textarea = document.createElement('textarea');
         textarea.value = text;
         document.body.appendChild(textarea);
