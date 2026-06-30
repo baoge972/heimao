@@ -103,16 +103,13 @@ exit</code>
         <strong>🚨 核心原则：VBS 和 BAT 任选一种，不要同时使用！</strong>
     </div>
     <ul>
-        <li><strong>不要同时双击多次 <code>run.vbs</code></strong>，否则会启动多个 frpc 进程，导致端口冲突。</li>
-        <li><strong>运行 VBS 后不要再运行 BAT，反之亦然。</strong> 两种方式只能选一种。</li>
+        <li><strong>不要同时双击多次 <code>run.vbs</code></strong>，否则会启动多个 frpc 进程，导致资源浪费。</li>
+        <li><strong>运行 VBS 后不要再运行 BAT，反之亦然。</strong> 两种方式只选一种，因为两个 frpc 同时运行虽然不会导致转发失败，但会浪费资源。 最好只留一个，杀掉多余的。</li>
         <li>如果修改了 <code>frpc.toml</code>，需要先 <strong>杀掉进程</strong> 后重新双击 <code>run.vbs</code> 才能生效。</li>
         <li>如果发现进程数超过 1 个，立即执行 <code>taskkill /F /IM frpc.exe</code> 清理，然后重新启动。</li>
     </ul>
 
-    <div class="warning">
-        <strong>❌ 错误做法：</strong> 双击了 <code>run.vbs</code>，又去双击 <code>start_frpc.bat</code> → 两个 frpc 进程同时运行 → 端口冲突 → 转发失败。
-    </div>
-
+    
     <h2>📌 常用操作总结</h2>
     <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px">
         <tr style="background:#f1f5f9"><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">操作</th><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">命令</th></tr>
