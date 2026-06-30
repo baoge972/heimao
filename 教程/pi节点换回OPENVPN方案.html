@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN + Gost 方案 · 切换教程（纯命令复制）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f7f9fc;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .tutorial {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px -12px rgba(0,20,40,0.25);
+            padding: 2.5rem 2rem;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 2.1rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0b1a33;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 2px solid #eef2f6;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        h1 small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #3b5b7a;
+            margin-left: auto;
+            background: #eef4fa;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+        }
+        .step {
+            background: #fafcff;
+            border-radius: 20px;
+            padding: 1.5rem 1.8rem;
+            margin-bottom: 1.8rem;
+            border: 1px solid #e9edf3;
+            transition: 0.15s;
+        }
+        .step:hover {
+            border-color: #bdd3e8;
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0, 20, 30, 0.04);
+        }
+        .step-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .step-number {
+            background: #1f2b48;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: #102a44;
+            letter-spacing: -0.01em;
+        }
+        .badge {
+            display: inline-block;
+            background: #dee8f5;
+            color: #1b3b62;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.9rem;
+            border-radius: 30px;
+            letter-spacing: 0.3px;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+        }
+        .badge.local {
+            background: #d1e0f5;
+            color: #15407a;
+        }
+        .badge.server {
+            background: #d3e3d8;
+            color: #1b553b;
+        }
+        .badge.verify {
+            background: #fae6cf;
+            color: #8f5e1a;
+        }
+        .badge.output {
+            background: #e3eaf0;
+            color: #3a5b72;
+        }
+        .code-wrapper {
+            position: relative;
+            margin: 0.4rem 0 0.4rem 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0d1c2f;
+            border-left: 4px solid #4f8bc9;
+            box-shadow: inset 0 0 0 1px #1f334a;
+        }
+        .code-wrapper.output-only {
+            border-left-color: #6a7f99;
+            background: #132433;
+            opacity: 0.85;
+        }
+        .code-wrapper.output-only .code-block {
+            color: #bccfe0;
+        }
+        .code-block {
+            padding: 0.9rem 1.5rem;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #e2eaf6;
+            padding-right: 4.5rem;
+        }
+        .code-block .comment {
+            color: #7f9fc7;
+            font-style: italic;
+        }
+        .code-block .highlight {
+            color: #f5c542;
+        }
+        .code-block .output-label {
+            color: #8eaac9;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: #1f334a;
+            padding: 0.1rem 0.6rem;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 0.2rem;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: #2c405a;
+            border: none;
+            color: #d6e3f5;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.9rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+            letter-spacing: 0.3px;
+            border: 1px solid #4b6a8a;
+            font-family: inherit;
+        }
+        .copy-btn:hover {
+            background: #3b5a7a;
+            color: white;
+            border-color: #7da0c9;
+            transform: scale(1.02);
+        }
+        .copy-btn.copied {
+            background: #2b6e4e;
+            border-color: #4c9a73;
+            color: #d4f0e0;
+        }
+        .copy-btn.no-copy {
+            display: none;
+        }
+        .cmd-desc {
+            color: #4b6f92;
+            font-size: 0.85rem;
+            margin: 0.2rem 0 0.5rem 0.2rem;
+            background: #eef4fa;
+            padding: 0.15rem 1rem;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .inline-code {
+            background: #eef2f8;
+            color: #1f3a5c;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #d7e0ea;
+        }
+        .divider {
+            border: none;
+            border-top: 1px dashed #d7e2ef;
+            margin: 1.8rem 0 0.5rem 0;
+        }
+        .result-box {
+            background: #eaf3f0;
+            border-radius: 20px;
+            padding: 1.3rem 1.8rem;
+            margin-top: 1.2rem;
+            border-left: 6px solid #2b7a5e;
+        }
+        .result-box .strong {
+            font-weight: 600;
+            color: #13573e;
+        }
+        .footer-note {
+            margin-top: 2.5rem;
+            padding-top: 1rem;
+            text-align: center;
+            color: #3d5d7e;
+            font-size: 0.9rem;
+            border-top: 1px solid #dfe8f2;
+        }
+        .footer-note i {
+            font-style: normal;
+            background: #e7eef9;
+            padding: 0.1rem 0.8rem;
+            border-radius: 30px;
+        }
+        @media (max-width: 600px) {
+            .tutorial { padding: 1.5rem 1rem; }
+            h1 { font-size: 1.6rem; flex-wrap: wrap; }
+            .step { padding: 1.2rem; }
+            .code-block { padding: 0.8rem 1rem 0.8rem 1rem; padding-right: 4rem; font-size: 0.8rem; }
+            .copy-btn { top: 4px; right: 6px; padding: 0.15rem 0.7rem; font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="tutorial">
+    <h1>
+        🔁 换回 OpenVPN + Gost 方案
+        <small>纯命令复制 · 不含注释</small>
+    </h1>
+
+    <!-- 步骤 1 -->
+    <div class="step">
+        <div class="step-header">
+            <span class="step-number">1</span>
+            <span class="step-title">停止当前 FRP 方案</span>
+            <span class="badge local">本地电脑</span>
+        </div>
+        <div style="margin-bottom:0.3rem;">
+            <span class="cmd-desc"># 杀掉 frpc 进程</span>
+        </div>
+        <div class="code-wrapper">
+            <div class="code-block" id="code-step1-local">taskkill /F /IM frpc.exe</div>
+            <button class="copy-btn" data-target="code-step1-local">📋 复制</button>
+        </div>
+        <div style="margin:0.5rem 0 0.3rem 0;">
+            <span class="cmd-desc"># 关闭 karing（退出程序）— 手动操作：右键托盘图标 → 退出</span>
+        </div>
+
+        <div style="margin-top:1rem;">
+            <span class="badge server">云服务器</span>
+        </div>
+        <div style="margin:0.3rem 0 0.3rem 0;">
+            <span class="cmd-desc"># 停止 frps</span>
+        </div>
+        <div class="code-wrapper">
+            <div class="code-block" id="code-step1-server">systemctl stop frps</div>
+            <button class="copy-btn" data-target="code-step1-server">📋 复制</button>
+        </div>
+        <div style="font-size:0.9rem; color:#2b4c6e; margin-top:0.6rem; background:#f0f5fd; padding:0.3rem 1rem; border-radius:40px; display:inline-block;">
+            ⏱️ 确保 frp 相关进程已完全退出
+        </div>
+    </div>
+
+    <!-- 步骤 2 -->
+    <div class="step">
+        <div class="step-header">
+            <span class="step-number">2</span>
+            <span class="step-title">启动 Gost</span>
+            <span class="badge server">云服务器</span>
+        </div>
+        <div style="margin-bottom:0.3rem;">
+            <span class="cmd-desc"># 进入 home 目录并执行 gost 脚本，根据提示选择 4 启动 Gost</span>
+        </div>
+        <div class="code-wrapper">
+            <div class="code-block" id="code-step2">cd ~ && ./gost.sh</div>
+            <button class="copy-btn" data-target="code-step2">📋 复制</button>
+        </div>
+        <div style="margin-top:0.5rem; background:#e2ebf6; border-radius:40px; padding:0.2rem 1.2rem; display:inline-block; font-size:0.85rem;">
+            ✅ 确认 Gost 监听端口正常 (默认 31401)
+        </div>
+    </div>
+
+    <!-- 步骤 3 -->
+    <div class="step">
+        <div class="step-header">
+            <span class="step-number">3</span>
+            <span class="step-title">启动 OpenVPN</span>
+            <span class="badge local">本地电脑</span>
+        </div>
+        <div style="font-weight:450; margin-bottom:0.3rem;">
+            <span style="background:#e5edf8; padding:0.1rem 0.8rem; border-radius:20px;">以管理员身份运行</span>
+        </div>
+        <ul style="margin:0.6rem 0 0.8rem 1.6rem; color:#1d3a5a;">
+            <li>右键点击 OpenVPN GUI 图标 → <strong>以管理员身份运行</strong></li>
+            <li>在系统托盘找到 OpenVPN 图标，右键 → <strong>连接 client.ovpn</strong></li>
+        </ul>
+        <div class="code-wrapper output-only">
+            <div class="code-block" id="code-step3" style="background:#102133; border-left-color:#5e8fc9;">
+                <span class="output-label">⏺ 连接状态（仅供参考，非命令）</span>
+                <span style="color:#b3d0f0;">IP 分配 / 路由表 自动配置</span>
+                <span style="color:#7a9fbf;">状态: 已连接</span>
+            </div>
+            <button class="copy-btn no-copy" style="display:none;">📋 复制</button>
+        </div>
+        <div style="margin-top:0.4rem; background:#ddeeff; border-radius:30px; padding:0.1rem 1.2rem; display:inline-block; font-size:0.85rem;">
+            🔒 确认 OpenVPN 隧道已建立
+        </div>
+    </div>
+
+    <!-- 步骤 4 -->
+    <div class="step">
+        <div class="step-header">
+            <span class="step-number">4</span>
+            <span class="step-title">验证转发</span>
+            <span class="badge verify">云服务器</span>
+        </div>
+        <div style="margin-bottom:0.3rem;">
+            <span class="cmd-desc"># 执行以下命令验证转发是否正常</span>
+        </div>
+        <div class="code-wrapper">
+            <div class="code-block" id="code-step4-cmd">curl http://127.0.0.1:31401/health</div>
+            <button class="copy-btn" data-target="code-step4-cmd">📋 复制</button>
+        </div>
+
+        <div style="margin-top:1rem;">
+            <span style="background:#e6edf6; padding:0.2rem 0.8rem; border-radius:30px; font-size:0.85rem;">期望返回示例（仅供参考）</span>
+        </div>
+        <div class="code-wrapper output-only">
+            <div class="code-block" id="code-step4-output" style="background:#0d1f30; border-left-color:#3d9c7c;">
+                <span class="output-label">📤 返回示例</span>
+                {<span style="color:#f5d98f;">"database_connected"</span>:<span style="color:#a6d0a6;">true</span>, ...}
+            </div>
+            <button class="copy-btn no-copy" style="display:none;">📋 复制</button>
+        </div>
+
+        <div class="result-box">
+            <span class="strong">✅ 若返回 <span style="background:#1f543a; color:white; padding:0.1rem 0.7rem; border-radius:30px;">database_connected: true</span></span> 说明转发正常。
+        </div>
+        <div style="margin-top:0.5rem; font-size:0.95rem; background:#edf3fa; padding:0.3rem 1.2rem; border-radius:40px; display:inline-block;">
+            🧪 若返回异常，检查 Gost 及 OpenVPN 连通性
+        </div>
+    </div>
+
+    <!-- 步骤 5 -->
+    <div class="step" style="border-color: #c6d9ec;">
+        <div class="step-header">
+            <span class="step-number">5</span>
+            <span class="step-title">等待 &amp; 观察</span>
+            <span class="badge" style="background:#c7d8b0; color:#2b553b;">⌛ 持续运行</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.8rem 1.2rem; margin:0.5rem 0 0.2rem 0;">
+            <div style="background:#e3ecf5; padding:0.4rem 1.2rem; border-radius:40px;">
+                🔄 切换网络后，在线率数据重新积累
+            </div>
+            <div style="background:#dce9f0; padding:0.4rem 1.2rem; border-radius:40px;">
+                ⏳ 保持运行 <strong>24–48 小时</strong>
+            </div>
+        </div>
+        <div style="margin-top:1rem; background:#f5f2e6; border-radius:16px; padding:0.8rem 1.5rem; border-left:4px solid #b6954a;">
+            <span style="font-weight:500;">📈 观察奖励恢复</span> 
+            <span style="color:#4c3f1f;">—— 系统需要时间统计，请耐心等待。</span>
+        </div>
+        <div style="margin-top:0.8rem; background:#e6edf6; border-radius:40px; padding:0.1rem 1.2rem; display:inline-block; font-size:0.85rem;">
+            ⭐ 若奖励未恢复，检查 client.ovpn 配置及 Gost 转发规则
+        </div>
+    </div>
+
+    <!-- 快速命令汇总（仅纯命令，带复制） -->
+    <hr class="divider">
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:0.6rem; background:#eef4fa; border-radius:40px; padding:0.8rem 1.5rem; margin-top:0.8rem; align-items:center;">
+        <span style="display:inline-flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
+            <span class="inline-code">taskkill /F /IM frpc.exe</span> <span style="color:#3f5f7a; font-size:0.85rem;">(本地)</span>
+            <button class="copy-btn" style="position:static; background:#2c405a; padding:0.1rem 0.8rem; font-size:0.65rem; margin-left:0.2rem;" data-target="quick-copy-1">复制</button>
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
+            <span class="inline-code">systemctl stop frps</span> <span style="color:#3f5f7a; font-size:0.85rem;">(云)</span>
+            <button class="copy-btn" style="position:static; background:#2c405a; padding:0.1rem 0.8rem; font-size:0.65rem; margin-left:0.2rem;" data-target="quick-copy-2">复制</button>
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
+            <span class="inline-code">cd ~ && ./gost.sh</span> <span style="color:#3f5f7a; font-size:0.85rem;">(云)</span>
+            <button class="copy-btn" style="position:static; background:#2c405a; padding:0.1rem 0.8rem; font-size:0.65rem; margin-left:0.2rem;" data-target="quick-copy-3">复制</button>
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
+            <span class="inline-code">curl http://127.0.0.1:31401/health</span> <span style="color:#3f5f7a; font-size:0.85rem;">(验证)</span>
+            <button class="copy-btn" style="position:static; background:#2c405a; padding:0.1rem 0.8rem; font-size:0.65rem; margin-left:0.2rem;" data-target="quick-copy-4">复制</button>
+        </span>
+    </div>
+    <!-- 隐藏的快速复制内容（纯命令） -->
+    <div style="display:none;">
+        <div id="quick-copy-1">taskkill /F /IM frpc.exe</div>
+        <div id="quick-copy-2">systemctl stop frps</div>
+        <div id="quick-copy-3">cd ~ && ./gost.sh</div>
+        <div id="quick-copy-4">curl http://127.0.0.1:31401/health</div>
+    </div>
+
+    <div class="footer-note">
+        <i>💡 确保 OpenVPN 已连接，Gost 转发正常，等待数据累积</i>
+        <br>
+        <span style="opacity:0.7; font-size:0.8rem;">每个命令块只包含纯命令，注释和说明在命令块外部</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const copyButtons = document.querySelectorAll('.copy-btn[data-target]');
+        copyButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('data-target');
+                let sourceElement = document.getElementById(targetId);
+                if (!sourceElement) return;
+
+                let textToCopy = '';
+                if (targetId.startsWith('quick-copy-')) {
+                    textToCopy = sourceElement.textContent.trim();
+                } else {
+                    textToCopy = sourceElement.textContent.trim();
+                }
+
+                if (!textToCopy) return;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        showCopiedFeedback(this);
+                    }).catch(() => {
+                        fallbackCopy(textToCopy, this);
+                    });
+                } else {
+                    fallbackCopy(textToCopy, this);
+                }
+            });
+        });
+
+        function fallbackCopy(text, btn) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                const success = document.execCommand('copy');
+                if (success) {
+                    showCopiedFeedback(btn);
+                } else {
+                    alert('复制失败，请手动复制。');
+                }
+            } catch (e) {
+                alert('复制失败，请手动复制。');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showCopiedFeedback(btn) {
+            const originalText = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+    })();
+</script>
+</body>
+</html>
