@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>frpc VBS 后台运行 使用教程</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f0f2f5;font-family:system-ui,-apple-system,sans-serif;padding:20px}
+        .container{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+        h1{color:#1a1a2e;font-size:28px;border-bottom:3px solid #1abc9c;padding-bottom:12px;margin-bottom:24px}
+        h2{color:#1abc9c;border-left:4px solid #1abc9c;padding-left:14px;margin:30px 0 16px}
+        .step{background:#f8fafc;border-radius:8px;padding:16px 20px;margin:12px 0;border:1px solid #e2e8f0}
+        .step .num{display:inline-block;background:#1abc9c;color:#fff;width:28px;height:28px;text-align:center;line-height:28px;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px}
+        .code-block{background:#1e293b;border-radius:10px;padding:16px 20px;margin:12px 0;overflow-x:auto;position:relative}
+        .code-block code{color:#e2e8f0;font-family:"Consolas","Fira Mono",monospace;font-size:14px;white-space:pre-wrap;word-break:break-all}
+        .copy-btn{position:absolute;top:8px;right:12px;background:#334155;color:#fff;border:none;border-radius:4px;padding:4px 14px;font-size:12px;cursor:pointer}
+        .copy-btn:hover{background:#475569}
+        .note{background:#fef9e7;border-left:4px solid #f1c40f;padding:12px 16px;margin:12px 0;border-radius:4px}
+        .warning{background:#fdedec;border-left:4px solid #e74c3c;padding:12px 16px;margin:12px 0;border-radius:4px}
+        .success{background:#e8f8f5;border-left:4px solid #1abc9c;padding:12px 16px;margin:12px 0;border-radius:4px}
+        .footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:13px;color:#94a3b8}
+        .tip{background:#e8f8f5;border-left:4px solid #1abc9c;padding:12px 16px;margin:12px 0;border-radius:4px;font-size:14px}
+        .danger{background:#fdedec;border-left:4px solid #e74c3c;padding:12px 16px;margin:12px 0;border-radius:4px;font-size:14px}
+        .badge{display:inline-block;padding:2px 12px;border-radius:12px;font-size:12px;font-weight:600}
+        .badge.green{background:#d1fae5;color:#065f46}
+        .badge.red{background:#fee2e2;color:#991b1b}
+        @media(max-width:600px){.container{padding:20px}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🚀 frpc VBS 后台运行 使用教程</h1>
+
+    <div class="tip">
+        <strong>💡 目的：</strong> 让 <code>frpc</code> 在 Windows 后台静默运行，无弹窗、关掉命令行也不影响。
+    </div>
+
+    <h2>📁 准备工作</h2>
+    <p>确保 <code>frpc.exe</code> 和 <code>frpc.toml</code> 在同一个目录下，例如：</p>
+    <div class="code-block"><code>D:\frp\frpc.exe
+D:\frp\frpc.toml</code></div>
+    <div class="warning">⚠️ <strong>路径不要包含中文、空格或特殊字符</strong>，否则 VBS 可能执行失败。</div>
+
+    <h2>📄 创建 run.vbs（无窗口推荐）</h2>
+    <div class="step"><span class="num">1</span> <strong>创建 run.vbs</strong></div>
+    <p>在 frp 目录下创建 <code>run.vbs</code>，内容如下：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>CreateObject("WScript.Shell").Run "D:\frp\frpc.exe -c D:\frp\frpc.toml", 0, False</code>
+    </div>
+    <div class="success">✅ 双击 <code>run.vbs</code>，frpc 将在后台无窗口运行。</div>
+    <div class="note">💡 <code>run.vbs</code> 中的路径必须使用 <strong>绝对路径</strong>，否则 VBS 找不到 frpc.exe。</div>
+
+    <h2>📄 创建 start_frpc.bat（有窗口，备用）</h2>
+    <div class="step"><span class="num">2</span> <strong>创建 start_frpc.bat（可选）</strong></div>
+    <p>在 frp 目录下创建 <code>start_frpc.bat</code>，内容如下：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>@echo off
+start /b frpc -c frpc.toml
+exit</code>
+    </div>
+    <div class="note">💡 <code>start /b</code> 会让 frpc 在后台运行，但会保留一个黑窗口。关掉窗口 frpc 也会停止。</div>
+
+    <h2>🔍 查看 frpc 进程数量</h2>
+    <div class="step"><span class="num">3</span> <strong>检查进程</strong></div>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>tasklist | findstr frpc</code>
+    </div>
+    <p>如果有多个 frpc 进程，说明重复启动了，需要杀掉多余的。</p>
+
+    <h2>🧹 杀掉所有 frpc 进程</h2>
+    <div class="step"><span class="num">4</span> <strong>清理进程</strong></div>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>taskkill /F /IM frpc.exe</code>
+    </div>
+    <div class="warning">⚠️ 这个命令会杀掉所有 frpc 进程。杀完后，双击 <code>run.vbs</code> 重新启动一个。</div>
+
+    <h2>✅ 验证 frpc 是否正常工作</h2>
+    <div class="step"><span class="num">5</span> <strong>测试端口转发</strong></div>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>curl http://127.0.0.1:31401/health</code>
+    </div>
+    <p>返回 JSON 数据（如 <code>{"database_connected":true,...}</code>）说明 frpc 正常工作。</p>
+    <div class="note">💡 无论有几个 frpc 进程，只要这个命令返回正常数据，就说明转发链路是通的。</div>
+    <div class="note">💡 <code>curl</code> 命令在 PowerShell 中可能会报错，建议在 <strong>CMD</strong> 中执行。</div>
+
+    <h2>⚙️ 开机自启动（不建议采用，因为此时karing可能未启动）</h2>
+    <div class="step"><span class="num">6</span> <strong>设置开机自启</strong></div>
+    <p>把 <code>run.vbs</code> 放到启动文件夹：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        <code>copy D:\frp\run.vbs "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\"</code>
+    </div>
+
+    <h2>⚠️ 重要注意事项</h2>
+
+    <div class="danger">
+        <strong>🚨 核心原则：VBS 和 BAT 任选一种，不要同时使用！</strong>
+    </div>
+    <ul>
+        <li><strong>不要同时双击多次 <code>run.vbs</code></strong>，否则会启动多个 frpc 进程，导致端口冲突。</li>
+        <li><strong>运行 VBS 后不要再运行 BAT，反之亦然。</strong> 两种方式只能选一种。</li>
+        <li>如果修改了 <code>frpc.toml</code>，需要先 <strong>杀掉进程</strong> 后重新双击 <code>run.vbs</code> 才能生效。</li>
+        <li>如果发现进程数超过 1 个，立即执行 <code>taskkill /F /IM frpc.exe</code> 清理，然后重新启动。</li>
+    </ul>
+
+    <div class="warning">
+        <strong>❌ 错误做法：</strong> 双击了 <code>run.vbs</code>，又去双击 <code>start_frpc.bat</code> → 两个 frpc 进程同时运行 → 端口冲突 → 转发失败。
+    </div>
+
+    <h2>📌 常用操作总结</h2>
+    <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px">
+        <tr style="background:#f1f5f9"><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">操作</th><th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0">命令</th></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">查看进程</td><td style="padding:8px 12px;border:1px solid #e2e8f0"><code>tasklist | findstr frpc</code></td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">杀掉所有 frpc</td><td style="padding:8px 12px;border:1px solid #e2e8f0"><code>taskkill /F /IM frpc.exe</code></td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">后台启动（无窗口）</td><td style="padding:8px 12px;border:1px solid #e2e8f0">双击 <code>run.vbs</code></td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">后台启动（有窗口）</td><td style="padding:8px 12px;border:1px solid #e2e8f0">双击 <code>start_frpc.bat</code></td></tr>
+        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">验证是否正常</td><td style="padding:8px 12px;border:1px solid #e2e8f0"><code>curl http://127.0.0.1:31401/health</code></td></tr>
+    </table>
+
+    <div class="footer">
+        frpc VBS 后台运行 · 使用教程
+    </div>
+</div>
+
+<script>
+function copyCode(btn) {
+    const codeBlock = btn.parentElement;
+    const code = codeBlock.querySelector('code');
+    const text = code.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = '✅ 已复制';
+        setTimeout(function() { btn.textContent = '📋 复制'; }, 1500);
+    }).catch(function() {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✅ 已复制';
+        setTimeout(function() { btn.textContent = '📋 复制'; }, 1500);
+    });
+}
+</script>
+</body>
+</html>
