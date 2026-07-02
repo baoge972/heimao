@@ -9,13 +9,14 @@
         body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px}
         .container{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
         h1{color:#1a1a2e;font-size:28px;border-bottom:3px solid #1abc9c;padding-bottom:12px;margin-bottom:24px}
+        h1 code{background:#e2e8f0;padding:2px 14px;border-radius:6px;font-size:24px}
         h2{color:#2d3a4b;font-size:20px;margin:28px 0 12px;padding-left:14px;border-left:4px solid #1abc9c}
         p{color:#475569;font-size:15px;line-height:1.8;margin-bottom:12px}
-        .code-block{background:#1e293b;border-radius:10px;padding:20px;margin:16px 0;overflow-x:auto;position:relative}
+        .code-block{background:#1e293b;border-radius:10px;padding:20px 20px 20px 20px;margin:16px 0;overflow-x:auto;position:relative}
         .code-block code{color:#e2e8f0;font-family:"JetBrains Mono","Fira Code",monospace;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-all}
-        .code-block .copy-btn{position:absolute;top:10px;right:14px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;transition:background 0.2s}
-        .code-block .copy-btn:hover{background:#475569}
-        .code-block .copy-btn.copied{background:#1abc9c}
+        .copy-btn{position:absolute;top:10px;right:14px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;transition:background 0.2s}
+        .copy-btn:hover{background:#475569}
+        .copy-btn.copied{background:#1abc9c}
         .tip{background:#e8f8f5;border-left:4px solid #1abc9c;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#0d6b5a}
         .step{background:#f8fafc;border-radius:8px;padding:16px 20px;margin:10px 0;border:1px solid #e2e8f0}
         .step .num{display:inline-block;background:#1abc9c;color:#fff;width:28px;height:28px;text-align:center;line-height:28px;border-radius:50%;font-weight:700;font-size:14px;margin-right:12px}
@@ -38,7 +39,7 @@
 <body>
 <div class="container">
 
-    <h1>📊 服务器检测脚本 <code style="background:#e2e8f0;padding:2px 14px;border-radius:6px;font-size:24px;">baoge.sh</code></h1>
+    <h1>📊 服务器检测脚本 <code>baoge.sh</code></h1>
 
     <p style="font-size:16px;color:#334155;">一个轻量级服务器检测脚本，一键生成包含 CPU、内存、硬盘、端口、Docker、服务、防火墙、已部署项目清单等 13 项信息的全面报告。</p>
 
@@ -67,8 +68,8 @@
         <h3><span class="badge blue">方式一</span> 直接创建并执行（推荐）</h3>
         <p>适用场景：<strong>单台服务器</strong>，想要快速运行检测</p>
         <div class="code-block">
-            <button class="copy-btn" onclick="copyText('curl -sL https://git.baoge.wang/baoge.sh | sed '\\''s/\\r$//'\\'' > baoge.sh && chmod +x baoge.sh && ./baoge.sh', this)">📋 复制</button>
-            <code>curl -sL https://git.baoge.wang/baoge.sh | sed 's/\r$//' > baoge.sh && chmod +x baoge.sh && ./baoge.sh</code>
+            <button class="copy-btn" onclick="copyCode(this, 'curl -sL https://git.baoge.wang/baoge.sh | sed s/\\r$// > baoge.sh && chmod +x baoge.sh && ./baoge.sh')">📋 复制</button>
+            <code>curl -sL https://git.baoge.wang/baoge.sh | sed s/\r$// > baoge.sh && chmod +x baoge.sh && ./baoge.sh</code>
         </div>
         <div class="tip">💡 从远程拉取脚本，自动处理换行符，保存为 baoge.sh 并执行。以后直接执行 ./baoge.sh 即可。</div>
     </div>
@@ -78,8 +79,8 @@
         <h3><span class="badge purple">方式二</span> 直接运行（不保存文件）</h3>
         <p>适用场景：<strong>一次性检测</strong>，不想要脚本文件</p>
         <div class="code-block">
-            <button class="copy-btn" onclick="copyText('curl -sL https://git.baoge.wang/baoge.sh | sed '\\''s/\\r$//'\\'' | bash', this)">📋 复制</button>
-            <code>curl -sL https://git.baoge.wang/baoge.sh | sed 's/\r$//' | bash</code>
+            <button class="copy-btn" onclick="copyCode(this, 'curl -sL https://git.baoge.wang/baoge.sh | sed s/\\r$// | bash')">📋 复制</button>
+            <code>curl -sL https://git.baoge.wang/baoge.sh | sed s/\r$// | bash</code>
         </div>
         <div class="tip">💡 用 sed 去除 Windows 换行符，确保脚本在 Linux 下正常运行。无需安装任何额外工具。</div>
     </div>
@@ -90,12 +91,12 @@
         <p>适用场景：<strong>多台服务器</strong>，愿意安装 dos2unix</p>
         <p><strong>第一步：安装 dos2unix</strong></p>
         <div class="code-block">
-            <button class="copy-btn" onclick="copyText('apt update && apt install dos2unix -y', this)">📋 复制</button>
+            <button class="copy-btn" onclick="copyCode(this, 'apt update && apt install dos2unix -y')">📋 复制</button>
             <code>apt update && apt install dos2unix -y</code>
         </div>
         <p><strong>第二步：执行脚本</strong></p>
         <div class="code-block">
-            <button class="copy-btn" onclick="copyText('curl -sL https://git.baoge.wang/baoge.sh | dos2unix | bash', this)">📋 复制</button>
+            <button class="copy-btn" onclick="copyCode(this, 'curl -sL https://git.baoge.wang/baoge.sh | dos2unix | bash')">📋 复制</button>
             <code>curl -sL https://git.baoge.wang/baoge.sh | dos2unix | bash</code>
         </div>
         <div class="tip">💡 安装 dos2unix 后，脚本的换行符问题由工具自动处理。以后直接执行第二步即可，无需重复安装。</div>
@@ -109,13 +110,13 @@
     <h2>📌 后续使用</h2>
     <p>如果使用方式一创建了文件，以后再次检测只需执行：</p>
     <div class="code-block">
-        <button class="copy-btn" onclick="copyText('./baoge.sh', this)">📋 复制</button>
+        <button class="copy-btn" onclick="copyCode(this, './baoge.sh')">📋 复制</button>
         <code>./baoge.sh</code>
     </div>
 
     <h2>📌 保存报告到文件</h2>
     <div class="code-block">
-        <button class="copy-btn" onclick="copyText('./baoge.sh > server_report_$(date +%Y%m%d_%H%M%S).txt', this)">📋 复制</button>
+        <button class="copy-btn" onclick="copyCode(this, './baoge.sh > server_report_$(date +%Y%m%d_%H%M%S).txt')">📋 复制</button>
         <code>./baoge.sh > server_report_$(date +%Y%m%d_%H%M%S).txt</code>
     </div>
 
@@ -138,34 +139,44 @@
 </div>
 
 <script>
-function copyText(text, btn) {
-    navigator.clipboard.writeText(text).then(() => {
-        if (btn) {
-            const original = btn.textContent;
+function copyCode(btn, text) {
+    // 使用 clipboard API 复制
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
             btn.textContent = '✅ 已复制';
             btn.classList.add('copied');
-            setTimeout(() => {
-                btn.textContent = original;
+            setTimeout(function() {
+                btn.textContent = '📋 复制';
                 btn.classList.remove('copied');
             }, 2000);
-        }
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
+        }).catch(function() {
+            fallbackCopy(btn, text);
+        });
+    } else {
+        fallbackCopy(btn, text);
+    }
+}
+
+function fallbackCopy(btn, text) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
         document.execCommand('copy');
-        document.body.removeChild(textarea);
-        if (btn) {
-            const original = btn.textContent;
-            btn.textContent = '✅ 已复制';
-            btn.classList.add('copied');
-            setTimeout(() => {
-                btn.textContent = original;
-                btn.classList.remove('copied');
-            }, 2000);
-        }
-    });
+        btn.textContent = '✅ 已复制';
+        btn.classList.add('copied');
+        setTimeout(function() {
+            btn.textContent = '📋 复制';
+            btn.classList.remove('copied');
+        }, 2000);
+    } catch (e) {
+        alert('复制失败，请手动复制');
+    }
+    document.body.removeChild(textarea);
 }
 </script>
 
