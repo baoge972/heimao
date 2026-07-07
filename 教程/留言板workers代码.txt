@@ -1,0 +1,1359 @@
+export default {
+  async fetch(request, env) {
+    try {
+      const url = new URL(request.url);
+      const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+
+      if (!ADMIN_PASSWORD) {
+        return new Response("❌ 管理员密码未设置", {
+          status: 500,
+          headers: { "Content-Type": "text/plain;charset=UTF-8" }
+        });
+      }
+
+      // ========== 工具函数 ==========
+      function generateToken() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 10);
+      }
+
+      function escapeHtml(text) {
+        if (!text) return '';
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function getSession(request) {
+        const cookie = request.headers.get("Cookie") || "";
+        const match = cookie.match(/session_token=([^;]+)/);
+        return match ? match[1] : null;
+      }
+
+      async function getCurrentUser(blogId, request, env) {
+        const token = getSession(request);
+        if (!token) return null;
+        const sessionData = await env.FORUM.get(`session_${blogId}_${token}`, "json");
+        if (!sessionData) return null;
+        if (Date.now() - sessionData.createdAt > 3600000) {
+          await env.FORUM.delete(`session_${blogId}_${token}`);
+          return null;
+        }
+        return sessionData;
+      }
+
+      // ========== 注册 ==========
+      if (request.method === "POST" && url.pathname === "/api/register") {
+        try {
+          const body = await request.json();
+          const { username, password } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!username || !password) {
+            return new Response(JSON.stringify({ error: "用户名和密码不能为空" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const userKey = `user_${blogId}_${username}`;
+          const usersKey = `users_${blogId}`;
+
+          const existing = await env.FORUM.get(userKey);
+          if (existing) {
+            return new Response(JSON.stringify({ error: "用户名已存在" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          await env.FORUM.put(userKey, JSON.stringify({
+            username,
+            password,
+            role: "user",
+            createdAt: Date.now()
+          }));
+
+          const users = await env.FORUM.get(usersKey, "json") || [];
+          users.push(username);
+          await env.FORUM.put(usersKey, JSON.stringify(users));
+
+          return new Response(JSON.stringify({ success: true, message: "注册成功" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "注册失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 用户登录 ==========
+      if (request.method === "POST" && url.pathname === "/api/login") {
+        try {
+          const body = await request.json();
+          const { username, password } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!username || !password) {
+            return new Response(JSON.stringify({ error: "用户名和密码不能为空" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const userKey = `user_${blogId}_${username}`;
+          const userData = await env.FORUM.get(userKey, "json");
+
+          if (!userData) {
+            return new Response(JSON.stringify({ error: "用户不存在" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (userData.password !== password) {
+            return new Response(JSON.stringify({ error: "密码错误" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          // 删除该用户所有旧会话
+          const list = await env.FORUM.list({ prefix: `session_${blogId}_` });
+          for (const key of list.keys) {
+            const data = await env.FORUM.get(key.name, "json");
+            if (data && data.username === username) {
+              await env.FORUM.delete(key.name);
+            }
+          }
+
+          const token = generateToken();
+          await env.FORUM.put(`session_${blogId}_${token}`, JSON.stringify({
+            username,
+            role: userData.role || "user",
+            createdAt: Date.now()
+          }), { expirationTtl: 3600 });
+
+          return new Response(JSON.stringify({ success: true, token, username }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": `session_token=${token}; Path=/; Max-Age=3600; SameSite=Lax`
+            }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "登录失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 发表留言 ==========
+      if (request.method === "POST" && url.pathname === "/api/post") {
+        try {
+          const body = await request.json();
+          const { content } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const user = await getCurrentUser(blogId, request, env);
+          if (!user) {
+            return new Response(JSON.stringify({ error: "请先登录" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!content || content.trim().length === 0) {
+            return new Response(JSON.stringify({ error: "请输入内容" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const msgKey = `messages_${blogId}_${user.username}`;
+          const messages = await env.FORUM.get(msgKey, "json") || [];
+          messages.push({
+            id: generateToken(),
+            name: user.username,
+            content: content.trim(),
+            time: new Date().toLocaleString('zh-CN'),
+            replies: []
+          });
+          await env.FORUM.put(msgKey, JSON.stringify(messages));
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "发表失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 删除自己的留言 ==========
+      if (request.method === "POST" && url.pathname === "/api/delete") {
+        try {
+          const body = await request.json();
+          const { id } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const user = await getCurrentUser(blogId, request, env);
+          if (!user) {
+            return new Response(JSON.stringify({ error: "请先登录" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!id) {
+            return new Response(JSON.stringify({ error: "缺少留言ID" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const msgKey = `messages_${blogId}_${user.username}`;
+          const messages = await env.FORUM.get(msgKey, "json") || [];
+          const idx = messages.findIndex(m => m.id === id);
+
+          if (idx === -1) {
+            return new Response(JSON.stringify({ error: "留言不存在" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          messages.splice(idx, 1);
+          await env.FORUM.put(msgKey, JSON.stringify(messages));
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "删除失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 管理员登录 ==========
+      if (request.method === "POST" && url.pathname === "/admin/login") {
+        try {
+          const body = await request.json();
+          const { password } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!password) {
+            return new Response(JSON.stringify({ error: "请输入密码" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (password !== ADMIN_PASSWORD) {
+            return new Response(JSON.stringify({ error: "密码错误" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          // 删除所有旧会话
+          const list = await env.FORUM.list({ prefix: `session_${blogId}_` });
+          for (const key of list.keys) {
+            await env.FORUM.delete(key.name);
+          }
+
+          const token = generateToken();
+          await env.FORUM.put(`session_${blogId}_${token}`, JSON.stringify({
+            username: "admin",
+            role: "admin",
+            createdAt: Date.now()
+          }), { expirationTtl: 3600 });
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": `session_token=${token}; Path=/; Max-Age=3600; SameSite=Lax`
+            }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "登录失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 管理员删除留言 ==========
+      if (request.method === "POST" && url.pathname === "/api/admin/delete") {
+        try {
+          const body = await request.json();
+          const { id } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const user = await getCurrentUser(blogId, request, env);
+          if (!user || user.role !== "admin") {
+            return new Response(JSON.stringify({ error: "无权限" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!id) {
+            return new Response(JSON.stringify({ error: "缺少留言ID" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+          let found = false;
+
+          for (const u of users) {
+            const msgKey = `messages_${blogId}_${u}`;
+            const messages = await env.FORUM.get(msgKey, "json") || [];
+            const idx = messages.findIndex(m => m.id === id);
+
+            if (idx !== -1) {
+              messages.splice(idx, 1);
+              await env.FORUM.put(msgKey, JSON.stringify(messages));
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            return new Response(JSON.stringify({ error: "留言不存在" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "删除失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 管理员删除回复 ==========
+      if (request.method === "POST" && url.pathname === "/api/admin/deleteReply") {
+        try {
+          const body = await request.json();
+          const { messageId, replyIndex } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const user = await getCurrentUser(blogId, request, env);
+          if (!user || user.role !== "admin") {
+            return new Response(JSON.stringify({ error: "无权限" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!messageId || replyIndex === undefined) {
+            return new Response(JSON.stringify({ error: "缺少参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+          let found = false;
+
+          for (const u of users) {
+            const msgKey = `messages_${blogId}_${u}`;
+            const messages = await env.FORUM.get(msgKey, "json") || [];
+            const idx = messages.findIndex(m => m.id === messageId);
+
+            if (idx !== -1) {
+              if (messages[idx].replies && messages[idx].replies.length > replyIndex) {
+                messages[idx].replies.splice(replyIndex, 1);
+                await env.FORUM.put(msgKey, JSON.stringify(messages));
+                found = true;
+                break;
+              }
+            }
+          }
+
+          if (!found) {
+            return new Response(JSON.stringify({ error: "留言或回复不存在" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "删除回复失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 管理员回复 ==========
+      if (request.method === "POST" && url.pathname === "/api/admin/reply") {
+        try {
+          const body = await request.json();
+          const { messageId, content } = body;
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const user = await getCurrentUser(blogId, request, env);
+          if (!user || user.role !== "admin") {
+            return new Response(JSON.stringify({ error: "无权限" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!messageId) {
+            return new Response(JSON.stringify({ error: "缺少留言ID" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          if (!content || content.trim().length === 0) {
+            return new Response(JSON.stringify({ error: "请输入回复内容" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+          let found = false;
+
+          for (const u of users) {
+            const msgKey = `messages_${blogId}_${u}`;
+            const messages = await env.FORUM.get(msgKey, "json") || [];
+            const idx = messages.findIndex(m => m.id === messageId);
+
+            if (idx !== -1) {
+              if (!messages[idx].replies) messages[idx].replies = [];
+              messages[idx].replies.push({
+                name: "管理员",
+                content: content.trim(),
+                time: new Date().toLocaleString('zh-CN')
+              });
+              await env.FORUM.put(msgKey, JSON.stringify(messages));
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            return new Response(JSON.stringify({ error: "留言不存在" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "回复失败: " + e.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 退出登录 ==========
+      if (request.method === "POST" && url.pathname === "/api/logout") {
+        try {
+          const body = await request.json();
+          const blogId = body.blog || url.searchParams.get("blog");
+          if (!blogId) {
+            return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+
+          const token = getSession(request);
+          if (token) {
+            await env.FORUM.delete(`session_${blogId}_${token}`);
+          }
+          return new Response(JSON.stringify({ success: true }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": "session_token=; Path=/; Max-Age=0"
+            }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: "退出失败" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // ========== 统计接口 ==========
+      if (request.method === "GET" && url.pathname === "/api/count") {
+        const blogId = url.searchParams.get("blog");
+        if (!blogId) {
+          return new Response(JSON.stringify({ error: "缺少 blog 参数" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json;charset=UTF-8" }
+          });
+        }
+
+        const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+        let total = 0;
+        for (const u of users) {
+          const msgs = await env.FORUM.get(`messages_${blogId}_${u}`, "json") || [];
+          total += msgs.length;
+        }
+        return new Response(JSON.stringify({ count: total }), {
+          headers: { "Content-Type": "application/json;charset=UTF-8" }
+        });
+      }
+
+      // ========== 留言板首页 ==========
+      if (request.method === "GET" && url.pathname === "/") {
+        const blogId = url.searchParams.get("blog");
+        if (!blogId) {
+          return new Response("❌ 缺少 blog 参数", {
+            status: 400,
+            headers: { "Content-Type": "text/plain;charset=UTF-8" }
+          });
+        }
+
+        // 检查登录状态
+        const user = await getCurrentUser(blogId, request, env);
+
+        // 获取留言总数
+        const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+        let totalCount = 0;
+        for (const u of users) {
+          const msgs = await env.FORUM.get(`messages_${blogId}_${u}`, "json") || [];
+          totalCount += msgs.length;
+        }
+
+        // 如果已登录（普通用户），显示用户自己的留言
+        let messagesHtml = '';
+        let isLoggedIn = false;
+        let username = '';
+        let isAdmin = false;
+        if (user) {
+          isLoggedIn = true;
+          username = user.username;
+          isAdmin = user.role === "admin";
+          
+          // 如果是管理员，不显示留言列表
+          if (!isAdmin) {
+            const messages = await env.FORUM.get(`messages_${blogId}_${username}`, "json") || [];
+            if (messages.length === 0) {
+              messagesHtml = '<div class="empty">✨ 暂无留言，发表第一条吧！</div>';
+            } else {
+              for (const m of messages) {
+                const repliesHtml = (m.replies && m.replies.length > 0) ? 
+                  `<div class="replies">${m.replies.map(r => `
+                    <div class="reply-item">
+                      <div class="reply-meta">
+                        <span class="reply-name">📌 ${escapeHtml(r.name)}</span>
+                        <span class="reply-time">${escapeHtml(r.time || '')}</span>
+                      </div>
+                      <div class="reply-content">${escapeHtml(r.content)}</div>
+                    </div>
+                  `).join('')}</div>` : '';
+                
+                messagesHtml += `
+                  <div class="message-item" data-id="${escapeHtml(m.id)}">
+                    <div class="meta">
+                      <span class="name">${escapeHtml(m.name)}</span>
+                      <span class="time">${escapeHtml(m.time || '')}</span>
+                    </div>
+                    <div class="content">${escapeHtml(m.content)}</div>
+                    <div class="actions">
+                      <button class="delete-btn" onclick="deleteMessage('${escapeHtml(m.id)}')">删除</button>
+                    </div>
+                    ${repliesHtml}
+                  </div>
+                `;
+              }
+            }
+          }
+        }
+
+        const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>📝 留言板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { 
+          height: 100%; 
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+          background: #f0f2f5; 
+          color: #1a1a2e; 
+          font-size: 16px; 
+          overflow: hidden; 
+          padding: 16px;
+        }
+        .app { 
+          display: flex; 
+          flex-direction: column; 
+          height: 100%; 
+          max-width: 720px; 
+          margin: 0 auto; 
+          background: #ffffff; 
+          border-radius: 16px; 
+          box-shadow: 0 4px 30px rgba(0,0,0,0.08); 
+          overflow: hidden;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #ffffff; border-bottom: 1px solid #e8ecf1; flex-shrink: 0; flex-wrap: wrap; gap: 8px; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .header h1 span { color: #4CAF50; }
+        .header .close-btn { background: #ff4444; color: white; border: none; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .header .close-btn:hover { background: #cc0000; }
+        .header .user-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .header .user-info .username { font-size: 14px; color: #555; }
+        .header .logout-btn { background: #888; color: white; border: none; padding: 6px 16px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+        .header .logout-btn:hover { background: #666; }
+        .header .count-badge { background: #f0f2f5; padding: 4px 14px; border-radius: 20px; font-size: 13px; color: #555; }
+
+        .login-prompt { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 40px 20px; text-align: center; }
+        .login-prompt .icon { font-size: 48px; margin-bottom: 16px; }
+        .login-prompt .title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+        .login-prompt .desc { color: #888; font-size: 14px; margin-bottom: 20px; }
+        .login-prompt .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        .login-prompt .btn-group .login-btn { padding: 10px 32px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+        .login-prompt .btn-group .login-btn:hover { background: #43a047; }
+        .login-prompt .btn-group .register-btn { padding: 10px 32px; background: #f0f2f5; color: #333; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+        .login-prompt .btn-group .register-btn:hover { background: #e0e0e0; }
+
+        .form-section { padding: 14px 18px; background: #f8f9fc; border-bottom: 1px solid #e8ecf1; flex-shrink: 0; }
+        .form-section .form-row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .form-section .form-row textarea { flex: 1; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 15px; font-family: inherit; transition: border-color 0.2s; background: #ffffff; min-width: 0; resize: vertical; min-height: 52px; max-height: 100px; }
+        .form-section .form-row textarea:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15); }
+        .form-section .submit-btn { padding: 10px 28px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .form-section .submit-btn:hover { background: #43a047; }
+        .form-section .submit-btn:active { transform: scale(0.97); }
+
+        .message-list { flex: 1; overflow-y: auto; padding: 12px 18px 20px; background: #ffffff; -webkit-overflow-scrolling: touch; }
+        .message-list .empty { text-align: center; color: #aaa; padding: 60px 20px; font-size: 15px; }
+        .message-item { padding: 14px 0; border-bottom: 1px solid #f0f2f5; animation: fadeIn 0.3s ease; }
+        .message-item:last-child { border-bottom: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .message-item .meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px; }
+        .message-item .meta .name { font-weight: 600; color: #1a1a2e; font-size: 15px; }
+        .message-item .meta .time { color: #999; font-size: 12px; }
+        .message-item .content { font-size: 15px; color: #333; word-break: break-word; padding-right: 4px; }
+        .message-item .actions { margin-top: 6px; }
+        .message-item .actions .delete-btn { background: #ff4444; color: white; border: none; padding: 4px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+        .message-item .actions .delete-btn:hover { background: #cc0000; }
+
+        .replies { margin-top: 10px; padding-left: 16px; border-left: 2px solid #e8ecf1; }
+        .replies .reply-item { padding: 8px 12px; background: #f8f9fc; border-radius: 6px; margin-bottom: 6px; }
+        .replies .reply-item .reply-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .replies .reply-item .reply-meta .reply-name { font-weight: 600; color: #4CAF50; font-size: 14px; }
+        .replies .reply-item .reply-meta .reply-time { color: #999; font-size: 12px; }
+        .replies .reply-item .reply-content { font-size: 14px; color: #333; margin-top: 2px; }
+
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 90%; }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #4CAF50; }
+        .toast.error { background: #e53935; }
+
+        @media (max-width: 480px) {
+            html, body { padding: 8px; }
+            .header { padding: 10px 14px; }
+            .header h1 { font-size: 17px; }
+            .header .close-btn { font-size: 12px; padding: 4px 12px; }
+            .header .user-info .username { font-size: 12px; }
+            .header .count-badge { font-size: 11px; padding: 2px 10px; }
+            .form-section { padding: 10px 14px; }
+            .form-section .form-row { gap: 6px; flex-wrap: wrap; }
+            .form-section .form-row textarea { font-size: 14px; padding: 8px 10px; min-height: 40px; }
+            .form-section .submit-btn { font-size: 14px; padding: 8px 18px; }
+            .message-list { padding: 10px 14px 16px; }
+            .message-item { padding: 12px 0; }
+            .message-item .meta .name { font-size: 14px; }
+            .message-item .content { font-size: 14px; }
+            .login-prompt .title { font-size: 18px; }
+            .login-prompt .btn-group .login-btn, .login-prompt .btn-group .register-btn { padding: 8px 24px; font-size: 14px; }
+        }
+        @media (max-width: 380px) {
+            .form-section .form-row { flex-direction: column; gap: 6px; }
+            .form-section .submit-btn { width: 100%; }
+            .header { flex-direction: column; align-items: stretch; }
+        }
+        .message-list::-webkit-scrollbar { width: 4px; }
+        .message-list::-webkit-scrollbar-track { background: transparent; }
+        .message-list::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>📝 <span>留言板</span></h1>
+        <button onclick="window.close()" class="close-btn">✕ 关闭</button>
+        <div class="user-info">
+            ${isLoggedIn && !isAdmin ? `
+                <span class="username">👤 ${escapeHtml(username)}</span>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            ` : `
+                <span class="count-badge">📊 ${totalCount} 条留言</span>
+            `}
+        </div>
+    </div>
+
+    ${isLoggedIn && !isAdmin ? `
+        <div class="form-section">
+            <form id="postForm">
+                <div class="form-row">
+                    <textarea id="inputContent" rows="1" placeholder="说点什么..." required maxlength="500"></textarea>
+                    <button type="submit" class="submit-btn">发表</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="message-list" id="messageList">
+            ${messagesHtml}
+        </div>
+    ` : `
+        <div class="login-prompt">
+            <div class="icon">💬</div>
+            <div class="title">零条件注册，建立一对一通道</div>
+            <div class="desc">登录后私信管理员</div>
+            <div class="btn-group">
+                <a href="/login?blog=${escapeHtml(blogId)}" class="login-btn">登录</a>
+                <a href="/login?blog=${escapeHtml(blogId)}&mode=register" class="register-btn">注册</a>
+            </div>
+        </div>
+    `}
+</div>
+
+<div class="toast" id="toast"></div>
+
+${isLoggedIn && !isAdmin ? `
+<script>
+    const BLOG_ID = "${escapeHtml(blogId)}";
+    let toastTimer = null;
+
+    function showToast(msg, type = '') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast ' + type;
+        clearTimeout(toastTimer);
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+    }
+
+    window.deleteMessage = async function(id) {
+        if (!confirm('确定要删除这条留言吗？')) return;
+        try {
+            const resp = await fetch('/api/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, id })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                showToast('✅ 删除成功', 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('❌ ' + (result.error || '删除失败'), 'error');
+            }
+        } catch (e) {
+            showToast('❌ 网络错误', 'error');
+        }
+    };
+
+    window.logout = async function() {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blog: BLOG_ID })
+        });
+        location.reload();
+    };
+
+    document.getElementById('postForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const content = document.getElementById('inputContent').value.trim();
+        if (!content) { showToast('请输入留言内容', 'error'); return; }
+
+        const btn = this.querySelector('.submit-btn');
+        btn.disabled = true;
+        btn.textContent = '提交中...';
+
+        try {
+            const resp = await fetch('/api/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, content })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                showToast('✅ 发表成功！', 'success');
+                document.getElementById('inputContent').value = '';
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('❌ ' + (result.error || '发表失败'), 'error');
+            }
+        } catch (e) {
+            showToast('❌ 网络错误', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '发表';
+        }
+    });
+
+    document.getElementById('inputContent').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('postForm').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    document.getElementById('inputContent').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+</script>
+` : ''}
+</body>
+</html>`;
+        return new Response(html, {
+          headers: { "Content-Type": "text/html;charset=UTF-8" }
+        });
+      }
+
+      // ========== 登录/注册页面 ==========
+      if (request.method === "GET" && url.pathname === "/login") {
+        const mode = url.searchParams.get("mode") || "login";
+        const isLogin = mode === "login";
+        const blogId = url.searchParams.get("blog");
+        if (!blogId) {
+          return new Response("❌ 缺少 blog 参数", {
+            status: 400,
+            headers: { "Content-Type": "text/plain;charset=UTF-8" }
+          });
+        }
+
+        const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 ${isLogin ? '登录' : '注册'}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .container { position: relative; background: white; padding: 40px 36px 36px; border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.08); max-width: 400px; width: 100%; }
+        .container .close-btn { position: absolute; top: 16px; right: 18px; background: none; border: none; font-size: 22px; color: #999; cursor: pointer; transition: color 0.2s; line-height: 1; padding: 4px 6px; }
+        .container .close-btn:hover { color: #333; }
+        .container h1 { text-align: center; font-size: 24px; margin-bottom: 6px; }
+        .container .sub { text-align: center; color: #888; font-size: 14px; margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #333; }
+        .form-group input { width: 100%; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; }
+        .form-group input:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12); }
+        .btn { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn:hover { background: #43a047; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .switch { text-align: center; margin-top: 16px; font-size: 14px; color: #888; }
+        .switch a { color: #1a73e8; cursor: pointer; text-decoration: none; }
+        .switch a:hover { text-decoration: underline; }
+        .error { color: #e53935; font-size: 13px; margin-top: 4px; display: none; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 90%; }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #4CAF50; }
+        .toast.error { background: #e53935; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <button class="close-btn" onclick="window.close()">✕</button>
+    <h1>📝 留言板</h1>
+    <p class="sub">${isLogin ? '登录你的账号' : '注册新账号'}</p>
+
+    <div id="errorMsg" class="error"></div>
+
+    <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="username" placeholder="请输入用户名" autocomplete="username">
+    </div>
+    <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitForm()">${isLogin ? '登录' : '注册'}</button>
+
+    <div class="switch">
+        ${isLogin ? '还没有账号？' : '已有账号？'}
+        <a href="/login?blog=${escapeHtml(blogId)}&mode=${isLogin ? 'register' : 'login'}">
+            ${isLogin ? '注册' : '登录'}
+        </a>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const BLOG_ID = "${escapeHtml(blogId)}";
+    const IS_LOGIN = ${isLogin};
+    let toastTimer = null;
+
+    function showToast(msg, type = '') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast ' + type;
+        clearTimeout(toastTimer);
+        void t.offsetWidth;
+        t.classList.add('show');
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    async function submitForm() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorEl = document.getElementById('errorMsg');
+
+        if (!username || !password) {
+            errorEl.textContent = '请填写用户名和密码';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (username.length < 2) {
+            errorEl.textContent = '用户名至少2位';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (password.length < 2) {
+            errorEl.textContent = '密码至少2位';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        errorEl.style.display = 'none';
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = '处理中...';
+
+        try {
+            const endpoint = IS_LOGIN ? '/api/login' : '/api/register';
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, username, password })
+            });
+            const result = await resp.json();
+
+            if (resp.ok) {
+                window.location.href = '/?blog=' + BLOG_ID;
+            } else {
+                errorEl.textContent = result.error || '操作失败';
+                errorEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = IS_LOGIN ? '登录' : '注册';
+            }
+        } catch (e) {
+            errorEl.textContent = '网络错误，请重试';
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = IS_LOGIN ? '登录' : '注册';
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') submitForm();
+    });
+</script>
+</body>
+</html>`;
+        return new Response(html, {
+          headers: { "Content-Type": "text/html;charset=UTF-8" }
+        });
+      }
+
+      // ========== 管理员页面 ==========
+      if (request.method === "GET" && url.pathname === "/admin") {
+        const blogId = url.searchParams.get("blog");
+        if (!blogId) {
+          return new Response("❌ 缺少 blog 参数", {
+            status: 400,
+            headers: { "Content-Type": "text/plain;charset=UTF-8" }
+          });
+        }
+
+        const user = await getCurrentUser(blogId, request, env);
+
+        // 未登录管理员，显示登录页
+        if (!user || user.role !== "admin") {
+          const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>管理员登录</title>
+<style>
+  body { font-family: Arial; max-width: 400px; margin: 100px auto; padding: 20px; text-align: center; background: #f5f7fa; }
+  .box { position: relative; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .box .close-btn { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 22px; color: #999; cursor: pointer; line-height: 1; }
+  .box .close-btn:hover { color: #333; }
+  input { padding: 10px; width: 200px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
+  button { padding: 10px 30px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  button:hover { background: #43a047; }
+</style>
+</head>
+<body>
+<div class="box">
+  <button class="close-btn" onclick="window.close()">✕</button>
+  <h2>🔐 管理员登录</h2>
+  <p style="color:#888;">空间：${escapeHtml(blogId)}</p>
+  <input type="password" id="adminPwd" placeholder="管理员密码" onkeydown="if(event.key==='Enter') login()">
+  <br>
+  <button onclick="login()">登录</button>
+</div>
+<script>
+  const BLOG_ID = "${escapeHtml(blogId)}";
+  async function login() {
+    const pwd = document.getElementById('adminPwd').value;
+    if (!pwd) return alert('请输入密码');
+    const resp = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd, blog: BLOG_ID })
+    });
+    const result = await resp.json();
+    if (resp.ok) {
+      window.location.href = '/admin?blog=' + BLOG_ID;
+    } else {
+      alert('❌ ' + (result.error || '密码错误'));
+    }
+  }
+</script>
+</body>
+</html>`;
+          return new Response(html, {
+            headers: { "Content-Type": "text/html;charset=UTF-8" }
+          });
+        }
+
+        // 已登录管理员，显示管理后台
+        const users = await env.FORUM.get(`users_${blogId}`, "json") || [];
+        let allMessages = [];
+
+        for (const u of users) {
+          const msgs = await env.FORUM.get(`messages_${blogId}_${u}`, "json") || [];
+          for (const m of msgs) {
+            allMessages.push({ ...m, user: u });
+          }
+        }
+
+        const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f0f2f5; padding: 16px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.08); padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #e8ecf1; }
+        .header h1 { font-size: 22px; }
+        .header .info { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+        .header .info .stat { background: #f0f2f5; padding: 4px 14px; border-radius: 20px; font-size: 14px; color: #555; }
+        .header .info .stat strong { color: #1a1a2e; }
+        .header .actions .close-btn { background: #ff4444; color: white; border: none; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .header .actions .close-btn:hover { background: #cc0000; }
+
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+        .stats .card { background: #f8f9fc; padding: 16px 20px; border-radius: 10px; text-align: center; }
+        .stats .card .num { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+        .stats .card .label { font-size: 13px; color: #888; }
+
+        .message-item { padding: 16px 0; border-bottom: 1px solid #f0f2f5; }
+        .message-item:last-child { border-bottom: none; }
+        .message-item .meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+        .message-item .meta .name { font-weight: 600; color: #1a1a2e; }
+        .message-item .meta .user-tag { font-size: 12px; color: #888; background: #f0f2f5; padding: 2px 10px; border-radius: 12px; }
+        .message-item .meta .time { color: #999; font-size: 12px; }
+        .message-item .content { font-size: 15px; color: #333; margin: 4px 0; }
+        .message-item .actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .message-item .actions .delete-btn { background: #ff4444; color: white; border: none; padding: 4px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+        .message-item .actions .delete-btn:hover { background: #cc0000; }
+        .message-item .actions .reply-btn { background: #1a73e8; color: white; border: none; padding: 4px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+        .message-item .actions .reply-btn:hover { background: #1557b0; }
+        .message-item .reply-form { margin-top: 10px; display: none; }
+        .message-item .reply-form .reply-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .message-item .reply-form .reply-row textarea { flex: 1; padding: 8px 12px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 40px; }
+        .message-item .reply-form .reply-row textarea:focus { outline: none; border-color: #1a73e8; }
+        .message-item .reply-form .reply-row button { padding: 8px 20px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .message-item .reply-form .reply-row button:hover { background: #1557b0; }
+
+        .replies { margin-top: 10px; padding-left: 16px; border-left: 2px solid #e8ecf1; }
+        .replies .reply-item { padding: 8px 12px; background: #f8f9fc; border-radius: 6px; margin-bottom: 6px; }
+        .replies .reply-item .reply-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .replies .reply-item .reply-meta .reply-name { font-weight: 600; color: #4CAF50; font-size: 14px; }
+        .replies .reply-item .reply-meta .reply-time { color: #999; font-size: 12px; }
+        .replies .reply-item .reply-content { font-size: 14px; color: #333; margin-top: 2px; }
+
+        .empty { text-align: center; color: #888; padding: 40px; }
+
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 90%; }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #4CAF50; }
+        .toast.error { background: #e53935; }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .container { padding: 14px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .header .info { justify-content: center; }
+            .header .actions { justify-content: center; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>📝 管理后台</h1>
+            <div class="info">
+                <span class="stat">📌 空间：<strong>${escapeHtml(blogId)}</strong></span>
+                <span class="stat">👤 管理员：<strong>${escapeHtml(user.username)}</strong></span>
+            </div>
+        </div>
+        <div class="actions">
+            <button onclick="window.close()" class="close-btn">✕ 关闭</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="card"><div class="num">${users.length}</div><div class="label">注册用户</div></div>
+        <div class="card"><div class="num">${allMessages.length}</div><div class="label">总留言数</div></div>
+    </div>
+
+    ${allMessages.length === 0 ? '<div class="empty">📭 暂无留言</div>' : ''}
+    ${allMessages.map((m) => `
+        <div class="message-item">
+            <div class="meta">
+                <span>
+                    <span class="name">${escapeHtml(m.name)}</span>
+                    <span class="user-tag">@${escapeHtml(m.user)}</span>
+                </span>
+                <span class="time">${escapeHtml(m.time || '')}</span>
+            </div>
+            <div class="content">${escapeHtml(m.content)}</div>
+            <div class="actions">
+                <button class="delete-btn" onclick="adminDelete('${escapeHtml(m.id)}')">删除留言</button>
+                <button class="reply-btn" onclick="toggleReply('${escapeHtml(m.id)}')">回复</button>
+            </div>
+            <div class="reply-form" id="reply-form-${escapeHtml(m.id)}">
+                <div class="reply-row">
+                    <textarea id="reply-content-${escapeHtml(m.id)}" rows="1" placeholder="输入回复内容..."></textarea>
+                    <button onclick="submitReply('${escapeHtml(m.id)}')">提交回复</button>
+                </div>
+            </div>
+            ${m.replies && m.replies.length > 0 ? `
+                <div class="replies">
+                    ${m.replies.map((r, ri) => `
+                        <div class="reply-item">
+                            <div class="reply-meta">
+                                <span class="reply-name">📌 ${escapeHtml(r.name)}</span>
+                                <span class="reply-time">${escapeHtml(r.time || '')}</span>
+                                <button class="delete-reply-btn" onclick="deleteReply('${escapeHtml(m.id)}', ${ri})">删除</button>
+                            </div>
+                            <div class="reply-content">${escapeHtml(r.content)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `).join('')}
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const BLOG_ID = "${escapeHtml(blogId)}";
+    let toastTimer = null;
+
+    function showToast(msg, type = '') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast ' + type;
+        clearTimeout(toastTimer);
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+    }
+
+    window.adminDelete = async function(id) {
+        if (!confirm('确定要删除这条留言吗？')) return;
+        try {
+            const resp = await fetch('/api/admin/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, id })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                showToast('✅ 删除成功', 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('❌ ' + (result.error || '删除失败'), 'error');
+            }
+        } catch (e) {
+            showToast('❌ 请求失败', 'error');
+        }
+    };
+
+    window.deleteReply = async function(messageId, replyIndex) {
+        if (!confirm('确定要删除这条回复吗？')) return;
+        try {
+            const resp = await fetch('/api/admin/deleteReply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, messageId, replyIndex })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                showToast('✅ 删除成功', 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('❌ ' + (result.error || '删除失败'), 'error');
+            }
+        } catch (e) {
+            showToast('❌ 请求失败', 'error');
+        }
+    };
+
+    window.toggleReply = function(id) {
+        const form = document.getElementById('reply-form-' + id);
+        if (form.style.display === 'none' || !form.style.display) {
+            form.style.display = 'block';
+            document.getElementById('reply-content-' + id).focus();
+        } else {
+            form.style.display = 'none';
+        }
+    };
+
+    window.submitReply = async function(id) {
+        const textarea = document.getElementById('reply-content-' + id);
+        const content = textarea.value.trim();
+        if (!content) {
+            showToast('请输入回复内容', 'error');
+            return;
+        }
+
+        try {
+            const resp = await fetch('/api/admin/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blog: BLOG_ID, messageId: id, content })
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                showToast('✅ 回复成功', 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('❌ ' + (result.error || '回复失败'), 'error');
+            }
+        } catch (e) {
+            showToast('❌ 请求失败', 'error');
+        }
+    };
+
+    document.querySelectorAll('.reply-form textarea').forEach(el => {
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const id = this.id.replace('reply-content-', '');
+                submitReply(id);
+            }
+        });
+    });
+</script>
+</body>
+</html>`;
+        return new Response(html, {
+          headers: { "Content-Type": "text/html;charset=UTF-8" }
+        });
+      }
+
+      return new Response("Not Found", { status: 404 });
+
+    } catch (e) {
+      return new Response("Worker 错误：" + e.message + "\n" + e.stack, {
+        status: 500,
+        headers: { "Content-Type": "text/plain;charset=UTF-8" }
+      });
+    }
+  }
+};
