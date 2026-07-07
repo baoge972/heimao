@@ -11,13 +11,16 @@
         h1 { font-size: 26px; border-bottom: 3px solid #4CAF50; padding-bottom: 12px; margin-bottom: 25px; }
         h2 { font-size: 20px; margin: 30px 0 15px 0; padding-left: 12px; border-left: 4px solid #4CAF50; }
         h3 { font-size: 17px; margin: 20px 0 10px 0; }
+        h4 { font-size: 15px; margin: 15px 0 8px 0; color: #1a1a2e; }
         p, li { color: #3d3d5c; margin-bottom: 10px; }
         ul, ol { padding-left: 25px; margin-bottom: 15px; }
         li { margin-bottom: 6px; }
         code { background: #f0f2f5; padding: 2px 8px; border-radius: 4px; font-size: 14px; color: #e74c3c; }
+        pre { background: #1e1e2e; color: #e0e0e0; padding: 16px 20px; border-radius: 10px; overflow-x: auto; font-size: 14px; line-height: 1.7; margin: 12px 0 20px 0; font-family: "SF Mono", "Menlo", "Monaco", monospace; }
         .note { background: #fff8e1; border-left: 4px solid #ffb300; padding: 14px 18px; border-radius: 6px; margin: 16px 0; }
         .tip { background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 14px 18px; border-radius: 6px; margin: 16px 0; }
         .warning { background: #fce4ec; border-left: 4px solid #e53935; padding: 14px 18px; border-radius: 6px; margin: 16px 0; }
+        .danger { background: #fce4ec; border-left: 4px solid #e53935; padding: 14px 18px; border-radius: 6px; margin: 16px 0; }
         table { width: 100%; border-collapse: collapse; margin: 16px 0 22px 0; }
         th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
         th { background: #f0f2f5; font-weight: 600; }
@@ -30,13 +33,18 @@
         hr { border: none; border-top: 2px dashed #e0e0e0; margin: 30px 0; }
         .footer { text-align: center; color: #888; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
         .step-number { display: inline-block; background: #4CAF50; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: bold; margin-right: 10px; }
-
         .open-btn-wrap { margin: 20px 0; text-align: center; }
         .open-btn-wrap .big-btn { display: inline-block; padding: 14px 40px; background: #1e1e2e; color: #fff; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; transition: all 0.3s; font-weight: 600; text-decoration: none; }
         .open-btn-wrap .big-btn:hover { background: #2d2d44; transform: scale(1.02); }
         .open-btn-wrap .big-btn .icon { margin-right: 10px; }
         .open-btn-wrap .hint { color: #888; font-size: 13px; margin-top: 8px; }
-
+        .kv-example { background: #f8f9fa; border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-family: "SF Mono", "Menlo", "Monaco", monospace; font-size: 14px; }
+        .kv-example .key { color: #1a73e8; font-weight: 600; }
+        .kv-example .value { color: #1a1a2e; }
+        .kv-example .del { color: #e53935; }
+        .step-list { counter-reset: step; list-style: none; padding-left: 0; }
+        .step-list li { counter-increment: step; padding-left: 40px; position: relative; margin-bottom: 12px; }
+        .step-list li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; background: #4CAF50; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: bold; }
         @media (max-width: 600px) { .container { padding: 20px; } h1 { font-size: 22px; } .open-btn-wrap .big-btn { padding: 12px 24px; font-size: 14px; width: 100%; } }
     </style>
 </head>
@@ -105,7 +113,6 @@
     <h3><span class="step-number">5</span> 写入 Worker 代码</h3>
     <p>点击下方按钮，打开代码链接，复制全部内容，粘贴到 Worker 编辑器中，然后点击「保存并部署」。</p>
 
-    <!-- ===== 跳转按钮 ===== -->
     <div class="open-btn-wrap">
         <a href="https://git.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9%E4%B8%80/%E7%95%99%E8%A8%80%E6%9D%BFworkers%E4%BB%A3%E7%A0%81.txt" target="_blank" class="big-btn">
             <span class="icon">📄</span>
@@ -137,6 +144,41 @@
         <tr><td>博客A</td><td><code>/?blog=jiguang</code></td><td><code>/admin?blog=jiguang</code></td></tr>
         <tr><td>博客B</td><td><code>/?blog=blog-b</code></td><td><code>/admin?blog=blog-b</code></td></tr>
     </table>
+
+    <hr>
+
+    <h2>👤 用户管理</h2>
+
+    <h3>删除注册用户</h3>
+    <p>在 Cloudflare Dashboard → KV 中操作，删除用户需要删除三项数据：</p>
+
+    <table>
+        <tr><th>序号</th><th>KV 键</th><th>说明</th></tr>
+        <tr><td>1</td><td><code>user_blog_jiguang_用户名</code></td><td>用户信息（用户名、密码、角色）</td></tr>
+        <tr><td>2</td><td><code>users_blog_jiguang</code></td><td>用户列表（编辑移除该用户名）</td></tr>
+        <tr><td>3</td><td><code>messages_blog_jiguang_用户名</code></td><td>该用户的所有留言（含管理员回复）</td></tr>
+    </table>
+
+    <div class="danger"><strong>⚠️ 注意：</strong>删除后不可恢复，请谨慎操作。</div>
+
+    <h4>示例：删除用户 <code>baoge</code></h4>
+
+    <div class="kv-example">
+        <p><span class="key">1. 删除用户信息</span><br>
+        <span class="value">键：<code>user_blog_jiguang_baoge</code></span><br>
+        <span class="del">→ 点击「删除」</span></p>
+
+        <p style="margin-top:12px;"><span class="key">2. 编辑用户列表</span><br>
+        <span class="value">键：<code>users_blog_jiguang</code></span><br>
+        <span class="value">原值：<code>["baoge", "zhangsan"]</code></span><br>
+        <span class="del">→ 改为：<code>["zhangsan"]</code></span></p>
+
+        <p style="margin-top:12px;"><span class="key">3. 删除用户留言</span><br>
+        <span class="value">键：<code>messages_blog_jiguang_baoge</code></span><br>
+        <span class="del">→ 点击「删除」</span></p>
+    </div>
+
+    <div class="note"><strong>💡 提示：</strong>删除用户后，管理员回复会随留言一起删除，不会残留。</div>
 
     <hr>
 
