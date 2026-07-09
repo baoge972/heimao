@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首行缩进工具 · 自动跳过图片行</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+            background: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .panel {
+            max-width: 780px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 32px 36px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.2s;
+        }
+
+        .panel:hover {
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: 4px;
+        }
+
+        .desc {
+            color: #64748b;
+            font-size: 14px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 16px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .desc code {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #0f172a;
+        }
+
+        .desc .highlight {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px 18px;
+            font-size: 15px;
+            line-height: 1.8;
+            font-family: 'JetBrains Mono', 'Consolas', 'PingFang SC', monospace;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafbfc;
+            color: #0f172a;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+            background: #ffffff;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 18px 0 22px 0;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 40px;
+            font-size: 15px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #1e293b;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: #1e293b;
+        }
+
+        .btn-success {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .badge {
+            font-size: 13px;
+            color: #64748b;
+            margin-left: auto;
+            background: #f1f5f9;
+            padding: 4px 14px;
+            border-radius: 30px;
+        }
+
+        .result-area {
+            margin-top: 20px;
+            border-top: 1px solid #e9edf4;
+            padding-top: 20px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .result-header label {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 15px;
+        }
+
+        .result-box {
+            background: #f8fafc;
+            border: 1px solid #e9edf4;
+            border-radius: 16px;
+            padding: 16px 18px;
+            min-height: 80px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Consolas', 'PingFang SC', monospace;
+            font-size: 14px;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #0f172a;
+            transition: background 0.2s;
+        }
+
+        .result-box:empty::before {
+            content: '等待转换…';
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .copy-tip {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .copy-tip i {
+            font-style: normal;
+            background: #e9edf4;
+            padding: 0 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .stats span {
+            background: #f1f5f9;
+            padding: 2px 12px;
+            border-radius: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .panel {
+                padding: 20px 16px;
+            }
+            h1 {
+                font-size: 20px;
+                flex-wrap: wrap;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                justify-content: center;
+            }
+            .badge {
+                margin-left: 0;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <h1>
+            📐 首行缩进工具
+            <small>跳过图片行</small>
+        </h1>
+        <div class="desc">
+            每段开头自动插入 <code>&amp;emsp;&amp;emsp;</code>（两个全角空格）<br>
+            <span class="highlight">图片行（以 ![] 开头）不会添加缩进</span>
+        </div>
+
+        <textarea id="inputText" placeholder="在此粘贴你的文章内容…&#10;每段文字单独一行&#10;工具会自动为每一行添加缩进符号，但会跳过图片行"></textarea>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" id="convertBtn">
+                <span>🔁</span> 转换
+            </button>
+            <button class="btn btn-outline" id="clearBtn">
+                <span>🗑️</span> 清空
+            </button>
+            <button class="btn btn-outline" id="pasteBtn">
+                <span>📋</span> 粘贴
+            </button>
+            <span class="badge" id="lineCount">行数: 0</span>
+        </div>
+
+        <div class="result-area">
+            <div class="result-header">
+                <label>📄 转换结果</label>
+                <button class="btn btn-success" id="copyBtn">
+                    <span>📋</span> 复制结果
+                </button>
+            </div>
+            <div class="result-box" id="resultBox"></div>
+            <div class="copy-tip">
+                <span>💡 点击「复制结果」即可粘贴到文章编辑器</span>
+                <i>图片行已跳过，未添加缩进</i>
+            </div>
+            <div class="stats">
+                <span id="resultLineCount">转换行数: 0</span>
+                <span id="charCount">字符数: 0</span>
+                <span id="skipCount">跳过图片: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const input = document.getElementById('inputText');
+            const resultBox = document.getElementById('resultBox');
+            const convertBtn = document.getElementById('convertBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const pasteBtn = document.getElementById('pasteBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const lineCount = document.getElementById('lineCount');
+            const resultLineCount = document.getElementById('resultLineCount');
+            const charCount = document.getElementById('charCount');
+            const skipCount = document.getElementById('skipCount');
+
+            // 核心转换函数：每行加 &emsp;&emsp;，跳过图片行
+            function convert(text) {
+                if (!text || text.trim() === '') return { result: '', skip: 0 };
+
+                const lines = text.split(/\r?\n/);
+                let skipped = 0;
+                const converted = lines.map(line => {
+                    const trimmed = line.trim();
+                    // 空行保留
+                    if (trimmed === '') return '';
+
+                    // 规则：如果行以 ![] 开头（Markdown 图片），跳过，不加缩进
+                    if (/^!\[.*\]\(.*\)/.test(trimmed)) {
+                        skipped++;
+                        return line; // 原样返回
+                    }
+
+                    // 如果已经以 &emsp; 或全角空格开头，不重复添加
+                    if (/^(&emsp;|　)/.test(trimmed)) return line;
+
+                    return '&emsp;&emsp;' + line;
+                });
+
+                return {
+                    result: converted.join('\n'),
+                    skip: skipped
+                };
+            }
+
+            // 更新统计和结果
+            function updateResult(text) {
+                const { result, skip } = convert(text);
+                resultBox.textContent = result;
+
+                const lines = text ? text.split(/\r?\n/).filter(l => l.trim() !== '') : [];
+                const resultLines = result ? result.split(/\r?\n/).filter(l => l.trim() !== '') : [];
+                lineCount.textContent = `行数: ${lines.length}`;
+                resultLineCount.textContent = `转换行数: ${resultLines.length}`;
+                charCount.textContent = `字符数: ${result ? result.length : 0}`;
+                skipCount.textContent = `跳过图片: ${skip}`;
+                return result;
+            }
+
+            function convertFromInput() {
+                const text = input.value;
+                updateResult(text);
+            }
+
+            // --- 事件绑定 ---
+
+            convertBtn.addEventListener('click', convertFromInput);
+
+            clearBtn.addEventListener('click', function() {
+                input.value = '';
+                resultBox.textContent = '';
+                lineCount.textContent = '行数: 0';
+                resultLineCount.textContent = '转换行数: 0';
+                charCount.textContent = '字符数: 0';
+                skipCount.textContent = '跳过图片: 0';
+                input.focus();
+            });
+
+            pasteBtn.addEventListener('click', async function() {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        input.value = text;
+                        convertFromInput();
+                    } else {
+                        alert('剪贴板为空或无法读取');
+                    }
+                } catch (err) {
+                    alert('无法读取剪贴板，请手动粘贴 (Ctrl+V)');
+                }
+            });
+
+            copyBtn.addEventListener('click', async function() {
+                const result = resultBox.textContent;
+                if (!result || result.trim() === '') {
+                    alert('没有内容可复制，请先转换文本');
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(result);
+                    const original = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<span>✅</span> 已复制!';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = original;
+                    }, 2000);
+                } catch (err) {
+                    const range = document.createRange();
+                    range.selectNode(resultBox);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                    document.execCommand('copy');
+                    const original = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<span>✅</span> 已复制!';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = original;
+                    }, 2000);
+                }
+            });
+
+            let debounceTimer = null;
+            input.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    convertFromInput();
+                }, 300);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    convertFromInput();
+                }
+            });
+
+        })();
+    </script>
+
+</body>
+</html>
