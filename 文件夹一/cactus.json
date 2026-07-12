@@ -1,0 +1,152 @@
+{
+    "spider": "https://raw.githubusercontent.com/FongMi/CatVodSpider/main/jar/custom_spider.jar",
+    "sites": [
+        {
+            "key": "k_em3",
+            "name": "无尽资源站",
+            "type": 1,
+            "api": "https://api.wujinapi.me/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "api.wujinapi.me"
+        },
+        {
+            "key": "k_6uy",
+            "name": "暴风资源站",
+            "type": 1,
+            "api": "https://bfzyapi.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "bfzyapi.com"
+        },
+        {
+            "key": "k_9wi",
+            "name": "360资源站",
+            "type": 1,
+            "api": "https://360zy.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "360zy.com"
+        },
+        {
+            "key": "k_n7l",
+            "name": "速播资源",
+            "type": 1,
+            "api": "https://subocj.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "subocj.com"
+        },
+        {
+            "key": "k_32t",
+            "name": "金鹰资源站",
+            "type": 1,
+            "api": "https://jyzyapi.com/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "jyzyapi.com"
+        },
+        {
+            "key": "k_eh9",
+            "name": "豪华资源站",
+            "type": 1,
+            "api": "https://haohuazy.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "haohuazy.com"
+        },
+        {
+            "key": "k_n2p",
+            "name": "豆瓣资源站",
+            "type": 1,
+            "api": "https://dbzy.tv/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "dbzy.tv"
+        },
+        {
+            "key": "k_mo5",
+            "name": "茅台资源站",
+            "type": 1,
+            "api": "https://mtzy5.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "mtzy5.com"
+        },
+        {
+            "key": "k_j2i",
+            "name": "光速资源站",
+            "type": 1,
+            "api": "https://api.guangsuapi.com/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "api.guangsuapi.com"
+        },
+        {
+            "key": "k_ip9",
+            "name": "艾旦资源站",
+            "type": 1,
+            "api": "https://lovedan.net/api.php/provide/vod?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "lovedan.net"
+        },
+        {
+            "key": "k_6io",
+            "name": "百度云资源站",
+            "type": 1,
+            "api": "https://api.apibdzy.com/api.php/provide/vod?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "api.apibdzy.com"
+        },
+        {
+            "key": "k_wg7",
+            "name": "非凡资源站",
+            "type": 1,
+            "api": "https://ffzy5.tv/api.php/provide/vod/?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "ffzy5.tv"
+        },
+        {
+            "key": "k_3mn",
+            "name": "爱奇艺资源站",
+            "type": 1,
+            "api": "https://iqiyizyapi.com/api.php/provide/vod?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "iqiyizyapi.com"
+        },
+        {
+            "key": "k_p3a",
+            "name": "猫眼资源",
+            "type": 1,
+            "api": "https://api.maoyanapi.top/api.php/provide/vod?ac=list",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "ext": "api.maoyanapi.top"
+        }
+    ],
+    "parses": [
+        {
+            "name": "解析",
+            "type": 0,
+            "url": "https://jx.xmflv.com/?url="
+        }
+    ]
+}
