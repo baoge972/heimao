@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理控制台</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#f1f5f9; font-family:system-ui,sans-serif; padding:2rem 1rem; color:#0f172a; }
+        .container { max-width:1200px; margin:0 auto; background:#fff; border-radius:1.25rem; padding:2rem; box-shadow:0 8px 30px -8px rgba(0,0,0,0.08); }
+        h1 { font-size:1.8rem; border-bottom:2px solid #e9edf4; padding-bottom:0.8rem; margin-bottom:1.8rem; display:flex; align-items:center; gap:0.75rem; }
+        h1 small { font-size:0.9rem; font-weight:400; color:#64748b; margin-left:auto; }
+
+        .login-box { max-width:420px; margin:3rem auto; background:#f8fafc; padding:2rem; border-radius:1rem; border:1px solid #e2e8f0; text-align:center; }
+        .login-box input { width:100%; padding:0.7rem 1rem; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; margin-bottom:1rem; }
+        .login-box input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+
+        .btn { display:inline-block; padding:0.55rem 1.4rem; border:none; border-radius:8px; font-weight:600; font-size:0.9rem; cursor:pointer; transition:background 0.2s; }
+        .btn-primary { background:#2563eb; color:#fff; }
+        .btn-primary:hover { background:#1d4ed8; }
+        .btn-danger { background:#dc2626; color:#fff; }
+        .btn-danger:hover { background:#b91c1c; }
+        .btn-success { background:#16a34a; color:#fff; }
+        .btn-success:hover { background:#15803d; }
+        .btn-warning { background:#f59e0b; color:#fff; }
+        .btn-warning:hover { background:#d97706; }
+        .btn-outline { background:transparent; color:#475569; border:1px solid #cbd5e1; }
+        .btn-outline:hover { background:#f1f5f9; }
+        .btn-sm { padding:0.2rem 0.6rem; font-size:0.75rem; }
+
+        .toolbar { display:flex; flex-wrap:wrap; gap:0.8rem 1.2rem; margin-bottom:1.8rem; padding:1rem 0; border-bottom:1px solid #e9edf4; align-items:center; }
+        .toolbar .stats { font-size:0.95rem; color:#475569; }
+
+        .table-wrap { overflow-x:auto; border-radius:10px; border:1px solid #e9edf4; }
+        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        th { background:#f8fafc; text-align:left; padding:0.8rem 1rem; font-weight:600; border-bottom:2px solid #e2e8f0; }
+        td { padding:0.7rem 1rem; border-bottom:1px solid #eef2f6; vertical-align:middle; }
+        tr:hover td { background:#fafcff; }
+
+        .toast { position:fixed; bottom:2rem; right:2rem; background:#0f172a; color:#f8fafc; padding:0.8rem 1.6rem; border-radius:10px; font-size:0.9rem; opacity:0; transform:translateY(10px); transition:opacity 0.3s,transform 0.3s; pointer-events:none; z-index:999; }
+        .toast.show { opacity:1; transform:translateY(0); }
+        .toast.error { background:#b91c1c; }
+        .hidden { display:none !important; }
+        .empty-state { text-align:center; padding:3rem 1rem; color:#64748b; }
+
+        .tabs { display:flex; gap:0.5rem; margin-bottom:1.8rem; border-bottom:2px solid #e9edf4; padding-bottom:0.5rem; }
+        .tab-btn { padding:0.5rem 1.5rem; border:none; border-radius:8px 8px 0 0; font-weight:600; font-size:0.95rem; cursor:pointer; background:transparent; color:#64748b; transition:all 0.2s; }
+        .tab-btn:hover { background:#f1f5f9; color:#1e293b; }
+        .tab-btn.active { background:#2563eb; color:#fff; }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        .provider-item { display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0.8rem; border-bottom:1px solid #f1f5f9; gap:0.5rem; }
+        .provider-item:last-child { border-bottom:none; }
+        .provider-item .info { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+        .provider-item .info .dot { display:inline-block; width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .provider-item .info .dot.on { background:#22c55e; }
+        .provider-item .info .dot.off { background:#94a3b8; }
+        .provider-item .info .name { font-size:0.85rem; font-weight:600; }
+        .provider-item .info .url { font-size:0.75rem; color:#94a3b8; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .provider-item .actions { display:flex; gap:0.3rem; flex-shrink:0; flex-wrap:wrap; }
+        .badge { display:inline-block; background:#dbeafe; color:#1e4a8a; padding:0.05rem 0.4rem; border-radius:12px; font-size:0.65rem; font-weight:600; }
+
+        .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+        .modal-box { background:#fff; border-radius:1rem; padding:2rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
+        .modal-box h3 { font-size:1.2rem; margin-bottom:1rem; }
+        .modal-box textarea { width:100%; height:80px; padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem; font-family:monospace; resize:vertical; }
+        .modal-actions { display:flex; gap:0.5rem; margin-top:1rem; justify-content:flex-end; }
+
+        @media (max-width: 640px) {
+            .container { padding:0.8rem; }
+            h1 { font-size:1.2rem; }
+            .tab-btn { padding:0.3rem 0.8rem; font-size:0.8rem; }
+            th,td { font-size:0.7rem; padding:0.3rem 0.4rem; }
+            .provider-item {
+                flex-wrap: nowrap;
+                padding:0.3rem 0.4rem;
+                gap:0.3rem;
+                align-items:center;
+                overflow-x:auto;
+                -webkit-overflow-scrolling:touch;
+            }
+            .provider-item .info {
+                flex:0 1 auto;
+                min-width:0;
+                gap:0.3rem;
+                overflow:hidden;
+            }
+            .provider-item .info .dot {
+                width:6px;
+                height:6px;
+                flex-shrink:0;
+            }
+            .provider-item .info .name {
+                font-size:0.7rem;
+                white-space:nowrap;
+            }
+            .provider-item .info .url {
+                display:none;
+            }
+            .provider-item .info .badge {
+                display:none;
+            }
+            .provider-item .actions {
+                flex:0 0 auto;
+                flex-wrap:nowrap;
+                gap:0.2rem;
+            }
+            .provider-item .actions .btn-sm {
+                font-size:0.55rem;
+                padding:0.1rem 0.3rem;
+                white-space:nowrap;
+            }
+            .toolbar .btn-sm {
+                font-size:0.6rem;
+                padding:0.1rem 0.4rem;
+            }
+            .toolbar .stats {
+                font-size:0.75rem;
+            }
+            .modal-box { padding:1rem; }
+            .modal-box h3 { font-size:1rem; }
+            .modal-box textarea { height:60px; font-size:0.7rem; }
+        }
+
+        @media (max-width: 400px) {
+            .provider-item .actions .btn-sm {
+                font-size:0.5rem;
+                padding:0.05rem 0.25rem;
+            }
+            .provider-item .info .name {
+                font-size:0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📋 管理控制台</h1>
+
+    <div id="loginSection" class="login-box">
+        <h2 style="font-size:1.2rem; margin-bottom:1rem;">🔐 管理员验证</h2>
+        <label>请输入 ADMIN_TOKEN</label>
+        <input type="password" id="tokenInput" placeholder="输入管理密钥" />
+        <button class="btn btn-primary" id="loginBtn">登录</button>
+        <div style="margin-top:0.8rem;font-size:0.8rem;color:#94a3b8;">密钥与 Cactus TV 后台相同</div>
+    </div>
+
+    <div id="mainSection" class="hidden">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="history">📜 历史记录</button>
+            <button class="tab-btn" data-tab="providers">📡 数据源管理</button>
+        </div>
+
+        <div id="tab-history" class="tab-content active">
+            <div class="toolbar">
+                <span class="stats">共 <strong id="totalCount">0</strong> 条记录</span>
+                <button class="btn btn-danger btn-sm" id="clearAllBtn">🗑️ 清空全部</button>
+                <button class="btn btn-outline btn-sm" id="refreshBtn">🔄 刷新</button>
+                <span style="margin-left:auto;font-size:0.8rem;color:#94a3b8;" id="lastUpdate"></span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>影片</th><th>集数</th><th>进度</th><th>片源</th><th>时间</th><th style="width:60px;">操作</th></tr></thead>
+                    <tbody id="historyBody"><tr><td colspan="6" class="empty-state">加载中...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-providers" class="tab-content">
+            <div class="toolbar">
+                <span class="stats">共 <strong id="providerCount">0</strong> 个数据源</span>
+                <button class="btn btn-outline btn-sm" id="refreshProvidersBtn">🔄 刷新</button>
+                <button class="btn btn-outline btn-sm" id="toggleAllProvidersBtn">🔀 反转</button>
+                <a class="btn btn-outline btn-sm" href="https://cactus.bgyy.kdns.fr/api/proxy" target="_blank">📋 打开数据链接</a>
+                <span style="margin-left:auto;font-size:0.8rem;color:#94a3b8;" id="providerUpdate"></span>
+            </div>
+            <div id="providerList"><div class="empty-state">加载中...</div></div>
+        </div>
+    </div>
+</div>
+
+<div id="apiModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3>🔗 数据源 API 链接</h3>
+        <textarea id="apiOutput" readonly></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-outline btn-sm" id="copyApiBtn">📋 复制</button>
+            <button class="btn btn-primary btn-sm" id="closeApiBtn">关闭</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/js/jilu.js?v=20260715"></script>
+</body>
+</html>
