@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cactus TV 部署教程</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#f5f7fb; font-family: system-ui, sans-serif; padding:2rem 1rem; color:#1e293b; line-height:1.6; }
+        .container { max-width:1000px; margin:0 auto; background:#fff; border-radius:1.5rem; padding:2.5rem; box-shadow:0 10px 25px -5px rgba(0,0,0,0.05); }
+        h1 { font-size:2rem; border-bottom:3px solid #e2e8f0; padding-bottom:0.5rem; margin-bottom:1.8rem; }
+        h2 { font-size:1.4rem; font-weight:600; margin:2rem 0 1rem; padding-left:0.75rem; border-left:5px solid #3b82f6; }
+        h3 { font-weight:600; font-size:1.1rem; margin:1.5rem 0 0.5rem; }
+        .step { background:#f8fafc; border-radius:1rem; padding:1.2rem 1.5rem; margin:1rem 0; border:1px solid #e9edf3; }
+        .step-number { display:inline-block; background:#1e293b; color:#fff; font-weight:700; font-size:0.8rem; width:24px; height:24px; text-align:center; line-height:24px; border-radius:30px; margin-right:0.6rem; }
+        code { background:#eef2f6; padding:0.2rem 0.5rem; border-radius:6px; font-size:0.9rem; font-family: monospace; }
+        pre { background:#0b1120; color:#e2e8f0; padding:1rem 1.5rem; border-radius:12px; overflow-x:auto; font-size:0.9rem; font-family: monospace; margin:0.8rem 0; border:1px solid #1e293b; white-space:pre-wrap; word-break:break-word; }
+        .danger-box { background:#fef2f2; border-left:6px solid #dc2626; padding:1rem 1.5rem; border-radius:0 12px 12px 0; margin:1rem 0; }
+        .warn-box { background:#fffbeb; border-left:6px solid #f59e0b; padding:1rem 1.5rem; border-radius:0 12px 12px 0; margin:1rem 0; }
+        .info-box { background:#f0f7ff; border-left:6px solid #3b82f6; padding:1rem 1.5rem; border-radius:0 12px 12px 0; margin:1rem 0; }
+        .file-tree { background:#f1f5f9; padding:0.8rem 1.5rem; border-radius:10px; font-family:monospace; font-size:0.9rem; line-height:1.8; }
+        .badge { display:inline-block; background:#dbeafe; color:#1e4a8a; font-size:0.75rem; font-weight:600; padding:0.2rem 0.7rem; border-radius:20px; }
+        hr { border:0; border-top:2px dashed #d1d9e6; margin:2rem 0; }
+        .footer { margin-top:2.5rem; font-size:0.85rem; color:#64748b; text-align:center; border-top:1px solid #e2e8f0; padding-top:1.8rem; }
+        .deleted { text-decoration:line-through; color:#b91c1c; }
+        .code-link { display:inline-block; background:#eef2f6; padding:0.3rem 0.8rem; border-radius:6px; font-size:0.8rem; color:#2563eb; text-decoration:none; }
+        .code-link:hover { background:#dbeafe; }
+        @media (max-width:600px) { .container { padding:1.5rem; } h1 { font-size:1.5rem; } pre { font-size:0.75rem; padding:0.8rem; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🌵 Cactus TV 部署教程</h1>
+    <div class="info-box"><strong>📌 目的：</strong> GitHub → Cloudflare Pages 部署<br><strong>⚠️ 包含：</strong> 管理页面（/jilu）</div>
+
+    <!-- 第一步 -->
+    <h2>1. 克隆项目</h2>
+    <div class="step">
+        <div><span class="step-number">1</span> 进入代码目录</div>
+        <pre>cd D:\记事本</pre>
+        <div><span class="step-number">2</span> 克隆原项目</div>
+        <pre>git clone https://github.com/mo-d21/cactus-tv.git</pre>
+        <div><span class="step-number">3</span> 进入项目文件夹</div>
+        <pre>cd cactus-tv</pre>
+    </div>
+
+    <!-- 第二步 -->
+    <h2>2. ⚠️ 删除文件（必须执行）</h2>
+    <div class="danger-box"><strong>🔥 核心操作：</strong> 删除 <code>package.json</code> 和 <code>package-lock.json</code>，防止 Cloudflare Pages 卡依赖安装。</div>
+    <div class="step">
+        <pre>del package.json
+del package-lock.json</pre>
+        <div class="file-tree">
+            cactus-tv/<br>
+            ├── functions/<br>
+            ├── migrations/<br>
+            ├── public/<br>
+            ├── scripts/<br>
+            ├── <span class="deleted">package.json</span> ❌ 已删除<br>
+            └── <span class="deleted">package-lock.json</span> ❌ 已删除
+        </div>
+    </div>
+
+    <!-- 第三步 -->
+    <h2>3. 关联你的 GitHub 仓库</h2>
+    <div class="step">
+        <pre>git remote set-url origin https://github.com/****/cactus.git</pre>
+        <div>确认：</div>
+        <pre>git remote -v</pre>
+    </div>
+
+    <!-- 第四步 -->
+    <h2>4. 添加管理页面（/jilu）</h2>
+    <div class="step">
+        <div>创建以下 5 个文件，代码见附录：</div>
+        <br>
+        <div><span class="step-number">①</span> <code>public/jilu.html</code></div>
+        <pre>notepad public\jilu.html</pre>
+        <div><span class="step-number">②</span> <code>public/js/jilu.js</code></div>
+        <pre>notepad public\js\jilu.js</pre>
+        <div><span class="step-number">③</span> <code>functions/api/admin/history.js</code></div>
+        <pre>notepad functions\api\admin\history.js</pre>
+        <div><span class="step-number">④</span> <code>functions/api/admin/providers.js</code></div>
+        <pre>notepad functions\api\admin\providers.js</pre>
+        <div><span class="step-number">⑤</span> <code>functions/api/proxy.js</code></div>
+        <pre>notepad functions\api\proxy.js</pre>
+       
+    </div>
+
+    <!-- 第五步 -->
+    <h2>5. 推送代码</h2>
+    <div class="step">
+        <pre>git add .
+git commit -m "完整部署版本（含管理页面）"
+git push -u origin main</pre>
+    </div>
+
+    <!-- 第六步 -->
+    <h2>6. Cloudflare Pages 部署</h2>
+    <div class="step">
+        <ul>
+            <li><strong>进入：</strong> Workers & Pages → 创建 Pages 项目 → 连接 GitHub <code>baoge6789/cactus</code></li>
+            <li><strong>构建设置：</strong>
+                <ul>
+                    <li>Build command: <code>exit 0</code></li>
+                    <li>Build output directory: <code>public</code></li>
+                </ul>
+            </li>
+            <li><strong>环境变量：</strong>
+                <ul>
+                    <li><code>ADMIN_TOKEN</code> = 你的管理密码</li>
+                    <li><code>TMDB_BEARER_TOKEN</code> = 你的 TMDB Token</li>
+                </ul>
+            </li>
+            <li><strong>D1 绑定：</strong> 变量名 <code>DB</code>，选择你的数据库</li>
+        </ul>
+    </div>
+
+    <!-- 第七步 -->
+    <h2>7. D1 数据库初始化</h2>
+    <div class="step">
+        <div>在 Cloudflare D1 控制台执行建表语句：</div>
+        <a class="code-link" href="https://github.com/baoge6789/cactus/blob/main/migrations/0001_init.sql" target="_blank">📄 查看建表语句 (0001_init.sql)</a>
+        <br><br>
+        <div>执行后，插入 20 条数据源：</div>
+        <pre>INSERT OR REPLACE INTO providers (id, name, base_url, enabled, priority, proxy_enabled) VALUES
+('wujin', '无尽资源站', 'https://api.wujinapi.me/api.php/provide/vod/', 1, 100, 0),
+('baofeng', '暴风资源站', 'https://bfzyapi.com/api.php/provide/vod/', 1, 99, 0),
+('360', '360资源站', 'https://360zy.com/api.php/provide/vod/', 1, 98, 0),
+('subo', '速播资源', 'https://subocj.com/api.php/provide/vod/', 1, 97, 0),
+('uku', 'U酷影视', 'https://api.ukuapi88.com/api.php/provide/vod', 1, 96, 0),
+('jisu', '极速资源', 'https://jszyapi.com/api.php/provide/vod', 1, 95, 0),
+('wujinzy', '无尽影视', 'https://api.wujinapi.com/api.php/provide/vod', 1, 94, 0),
+('hongniu', '红牛资源', 'https://www.hongniuzy2.com/api.php/provide/vod', 1, 93, 0),
+('ikun', 'iKun资源', 'https://ikunzyapi.com/api.php/provide/vod', 1, 92, 0),
+('piaoling', '飘零资源', 'https://p2100.net/api.php/provide/vod', 1, 91, 0),
+('jinying', '金鹰资源站', 'https://jyzyapi.com/provide/vod/', 1, 14, 0),
+('haohua', '豪华资源站', 'https://haohuazy.com/api.php/provide/vod/', 1, 13, 0),
+('douban', '豆瓣资源站', 'https://dbzy.tv/api.php/provide/vod/', 1, 12, 0),
+('maotai', '茅台资源站', 'https://mtzy5.com/api.php/provide/vod/', 1, 11, 0),
+('guangsu', '光速资源站', 'https://api.guangsuapi.com/api.php/provide/vod/', 1, 10, 0),
+('aidan', '艾旦资源站', 'https://lovedan.net/api.php/provide/vod', 1, 7, 0),
+('baiduyun', '百度云资源站', 'https://api.apibdzy.com/api.php/provide/vod', 1, 6, 0),
+('feifan', '非凡资源站', 'https://ffzy5.tv/api.php/provide/vod/', 1, 5, 0),
+('aiqiyi', '爱奇艺资源站', 'https://iqiyizyapi.com/api.php/provide/vod', 1, 2, 0),
+('maoyan', '猫眼资源', 'https://api.maoyanapi.top/api.php/provide/vod', 1, 1, 0),
+</pre>
+    </div>
+
+    <!-- 第八步 -->
+    <h2>8. 验证</h2>
+    <div class="step">
+        <ul>
+            <li>首页：<code>/</code></li>
+            <li>管理后台：<code>/admin.html</code></li>
+            <li>管理控制台：<code>/jilu.html</code></li>
+            <li>TVBox订阅：<code>/api/proxy</code></li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <!-- 附录 -->
+    <h2>📋 附录：5个文件代码</h2>
+
+    <h3>A. public/jilu.html</h3>
+    <div class="step">
+        <a class="code-link" href="https://git.baoge.wang/cactus/jilu.html%E4%BB%A3%E7%A0%81.txt" target="_blank">📄 查看 jilu.html 代码</a> <li>注意：网站部署完成后根据实际域名修改此代码中- 数据源管理-打开数据链接按键 的实际插入链接</li>
+    </div>
+
+    <h3>B. public/js/jilu.js</h3>
+    <div class="step">
+        <a class="code-link" href="https://git.baoge.wang/cactus/jilu.js" target="_blank">📄 查看 jilu.js 代码</a>
+    </div>
+
+    <h3>C. functions/api/admin/history.js</h3>
+    <div class="step">
+        <a class="code-link" href="https://git.baoge.wang/cactus/history.js" target="_blank">📄 查看 history.js 代码</a>
+    </div>
+
+    <h3>D. functions/api/admin/providers.js</h3>
+    <div class="step">
+        <a class="code-link" href="https://git.baoge.wang/cactus/providers.js" target="_blank">📄 查看 providers.js 代码</a>
+    </div>
+
+    <h3>E. functions/api/proxy.js</h3>
+    <div class="step">
+        <a class="code-link" href="https://git.baoge.wang/cactus/proxy.js" target="_blank">📄 查看 proxy.js 代码</a>
+    </div>
+
+    <hr>
+    <div class="footer">
+        📅 记录时间：2026-07-13 &nbsp;|&nbsp; 版本：v1.2.2 &nbsp;|&nbsp; 包含管理页面
+    </div>
+</div>
+</body>
+</html>
