@@ -325,23 +325,21 @@
                 <span class="label">🔗 图标链接</span>
                 <span class="value icon-url-value" id="iconUrlValue">—</span>
             </div>
-           <!-- ✅ 新增：跳转缩略图按钮 -->
-<div class="row" style="border: none; background: transparent; padding: 0; margin-top: 4px;">
-    <span class="label" style="min-width:72px;"></span>
-    <a href="https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1.html" target="_blank" style="display:inline-block;padding:6px 18px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;transition:transform 0.2s;">
-                     📷 自动抓取缩略图
-    </a>
-</div>
+            <!-- ✅ 跳转缩略图按钮 -->
+            <div class="row" style="border: none; background: transparent; padding: 0; margin-top: 4px;">
+                <span class="label" style="min-width:72px;"></span>
+                <a href="https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1.html" target="_blank" style="display:inline-block;padding:6px 18px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;transition:transform 0.2s;">
+                    📷 自动抓取缩略图
+                </a>
+            </div>
         </div>
-
-      
 
         <div class="footer">数据来源: microlink.io · 每日 1000 次免费请求</div>
     </div>
 
     <script>
         // ============================================================
-        // 核心逻辑
+        // DOM 引用
         // ============================================================
 
         const urlInput = document.getElementById('urlInput');
@@ -354,6 +352,34 @@
         const descValue = document.getElementById('descValue');
         const iconValue = document.getElementById('iconValue');
         const iconUrlValue = document.getElementById('iconUrlValue');
+
+        // ============================================================
+        // 输入框事件绑定（左键清空 · 右键清空+保留粘贴）
+        // ============================================================
+
+        // 左键点击：清空输入框
+        urlInput.addEventListener('click', function(e) {
+            if (e.button === 0) {
+                this.value = '';
+            }
+        });
+
+        // 右键点击：清空输入框 + 保留系统右键菜单（含粘贴）
+        urlInput.addEventListener('contextmenu', function(e) {
+            this.value = '';
+            // 不阻止默认行为，右键菜单正常显示
+        });
+
+        // 回车触发抓取
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleFetch();
+            }
+        });
+
+        // 自动聚焦
+        urlInput.focus();
 
         // ============================================================
         // 格式化 URL（自动补全协议）
@@ -427,7 +453,7 @@
                 iconValue.appendChild(fallback);
             }
 
-            // ✅ 图标链接
+            // 图标链接
             iconUrlValue.textContent = data.icon || '无图标';
 
             // 显示结果
@@ -475,16 +501,6 @@
         // 事件绑定
         // ============================================================
         fetchBtn.addEventListener('click', handleFetch);
-
-        urlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleFetch();
-            }
-        });
-
-        // 自动聚焦
-        urlInput.focus();
 
         // ============================================================
         // 示例：预填一个默认网址（取消注释即可自动加载）
