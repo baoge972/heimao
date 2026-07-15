@@ -20,7 +20,6 @@
             min-height: 100vh;
         }
 
-        /* 主容器 */
         .container {
             max-width: 1000px;
             margin: 0 auto;
@@ -33,7 +32,6 @@
             transition: all 0.2s;
         }
 
-        /* 顶部装饰条 */
         .container::before {
             content: "";
             position: absolute;
@@ -44,7 +42,6 @@
             background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
         }
 
-        /* 标题区域 - 加入友链符号按钮行 */
         .title-section {
             display: flex;
             justify-content: space-between;
@@ -66,7 +63,6 @@
             flex: 1;
         }
 
-        /* 友链符号按键样式 */
         .friend-link-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -98,7 +94,6 @@
             font-size: 18px;
         }
 
-        /* 描述区域 */
         .description {
             background: linear-gradient(to right, #e8f4fc, #e1f7e9);
             padding: 20px;
@@ -117,12 +112,10 @@
             margin-bottom: 0;
         }
 
-        /* 区域通用 */
         .input-area, .output-area {
             margin-bottom: 25px;
         }
 
-        /* 输入头部（标签+刷新按钮） */
         .input-header {
             display: flex;
             justify-content: space-between;
@@ -136,7 +129,6 @@
             font-size: 16px;
         }
 
-        /* 自定义关键词行 */
         .custom-keyword {
             display: flex;
             align-items: center;
@@ -169,7 +161,6 @@
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
 
-        /* 文本框容器（相对定位，用于清空按钮） */
         .input-container {
             position: relative;
             margin-bottom: 10px;
@@ -189,14 +180,12 @@
             line-height: 1.4;
         }
 
-        /* 输入区自动换行 */
         #inputData {
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
 
-        /* 输出区保留格式并允许横向滚动 */
         #outputData {
             white-space: pre;
             overflow-x: auto;
@@ -210,7 +199,6 @@
             background-color: #fff;
         }
 
-        /* 清空按钮（输入框内右上角） */
         .clear-btn {
             position: absolute;
             top: 10px;
@@ -231,7 +219,6 @@
             transform: translateY(-2px);
         }
 
-        /* 按钮组 */
         .buttons {
             display: flex;
             gap: 15px;
@@ -291,7 +278,6 @@
             transform: translateY(-2px);
         }
 
-        /* 计数器和消息 */
         .counter {
             text-align: center;
             margin-top: 15px;
@@ -323,7 +309,6 @@
             color: #3498db;
         }
 
-        /* 模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -384,7 +369,6 @@
             background-color: #7f8c8d;
         }
 
-        /* 确认导出按钮 - 绿色高亮 */
         #confirmExport {
             background-color: #2ecc71;
         }
@@ -397,7 +381,6 @@
             to { opacity: 1; }
         }
 
-        /* 响应式 */
         @media (max-width: 768px) {
             .buttons {
                 flex-direction: column;
@@ -441,7 +424,6 @@
 </head>
 <body>
 <div class="container">
-    <!-- 顶部区域：标题 + 友链符号按键 -->
     <div class="title-section">
         <h1>优选IPV4/域名-批量标注工具</h1>
         <button id="friendLinkBtn" class="friend-link-btn" title="打开符号库网站">
@@ -452,12 +434,12 @@
     <div class="description">
         <p><strong>功能说明：</strong>本工具支持批量标注IPV4地址和域名数据，可解析多种格式：纯IP、纯域名、「数字 ms：域名」、以及「IP:端口#国家」等格式。</p>
         <p><strong>输入格式：</strong>1. 纯IPv4地址 2. 纯域名 3. 「数字 ms：域名」混合格式 4. 「IP:端口#国家」节点列表格式</p>
-        <p><strong>输出格式：</strong>IP/域名#自定义关键词1（序号从1开始递增）</p>
+        <p><strong>输出格式：</strong>IP/域名#自定义关键词✍️（序号从1开始递增）</p>
     </div>
 
     <div class="custom-keyword">
         <label for="keywordInput">自定义关键词：</label>
-        <input type="text" id="keywordInput" value="宝哥优选" placeholder="输入自定义关键词">
+        <input type="text" id="keywordInput" value="宝哥✍️" placeholder="输入自定义关键词">
     </div>
 
     <div class="input-area">
@@ -486,14 +468,12 @@
         </div>
     </div>
 
-    <!-- 提示消息 -->
     <div id="successMessage" class="message success-message">结果已成功复制到剪贴板！</div>
     <div id="formatMessage" class="message info-message">已自动提取所有IP/域名！</div>
     <div id="refreshMessage" class="message info-message">已清空所有内容！</div>
     <div id="exportMessage" class="message success-message">TXT文件已成功导出！</div>
 </div>
 
-<!-- 导出命名模态框 -->
 <div id="exportModal" class="modal">
     <div class="modal-content">
         <h3>导出文件命名</h3>
@@ -508,7 +488,6 @@
 
 <script>
     (function(){
-        // DOM 元素
         const inputData = document.getElementById('inputData');
         const outputData = document.getElementById('outputData');
         const keywordInput = document.getElementById('keywordInput');
@@ -525,13 +504,11 @@
         const cancelExport = document.getElementById('cancelExport');
         const friendLinkBtn = document.getElementById('friendLinkBtn');
 
-        // 消息元素
         const successMsg = document.getElementById('successMessage');
         const formatMsg = document.getElementById('formatMessage');
         const refreshMsg = document.getElementById('refreshMessage');
         const exportMsg = document.getElementById('exportMessage');
 
-        // 辅助函数：短暂显示消息
         function showMessage(element, duration = 2000) {
             if(!element) return;
             element.style.display = 'block';
@@ -541,11 +518,11 @@
         }
 
         /**
-         * 优化版提取函数：支持多种格式
+         * 提取函数 - 保留IP端口号
          * 1. 纯IPv4地址
          * 2. 纯域名
          * 3. 延迟格式：57.673 ms：www.udacity.com
-         * 4. 节点格式：103.118.42.16:8443#🇭🇰中国香港
+         * 4. 节点格式：103.118.42.16:8443#🇭🇰中国香港 → 保留 103.118.42.16:8443
          * 5. IP:端口 格式
          */
         function extractAllTargets(rawText) {
@@ -554,20 +531,16 @@
             const targets = [];
             const seen = new Set();
             
-            // 按行分割（支持逗号分隔、空格、换行等多种分隔符）
-            // 先按换行分割，再按逗号分割，再按空格/制表符分割
             let lines = rawText.split(/\r?\n/);
             let allTokens = [];
             
             for (let line of lines) {
                 if (line.includes(',')) {
-                    // 逗号分隔
                     let parts = line.split(',');
                     for (let part of parts) {
                         if (part.trim()) allTokens.push(part.trim());
                     }
                 } else if (line.trim()) {
-                    // 按空白字符分割
                     let spaceTokens = line.split(/[\s\t]+/);
                     for (let token of spaceTokens) {
                         if (token.trim()) allTokens.push(token.trim());
@@ -581,16 +554,14 @@
             // 带端口的IP格式: IP:端口 或 IP:端口#国家
             const ipWithPortRegex = /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))(?::\d+)?(?:#[\w\ud800-\udfff]+)?/g;
             
-            // 延迟+域名正则
             const delayDomainRegex = /\d+(?:\.\d+)?\s*ms\s*[：:]\s*([a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9])/i;
             
-            // 域名匹配（支持多级，不含协议）
             const domainRegex = /\b([a-zA-Z0-9][a-zA-Z0-9-]{0,62}\.)+[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?\b/;
             
             for (let token of allTokens) {
                 let extracted = false;
                 
-                // 1. 优先处理延迟+域名格式
+                // 1. 延迟+域名格式
                 let delayMatch = token.match(delayDomainRegex);
                 if (delayMatch && delayMatch[1]) {
                     let domain = delayMatch[1].trim();
@@ -602,22 +573,18 @@
                     continue;
                 }
                 
-                // 2. 处理IP格式（带端口或不带端口）
-                // 先尝试匹配带端口的完整模式，提取IP部分
+                // 2. 处理IP格式（带端口或不带端口）- 【修改点：保留端口号】
                 let ipMatch = token.match(ipWithPortRegex);
                 if (ipMatch) {
-                    // 提取纯IP（去掉端口和国家后缀）
                     let fullMatch = ipMatch[0];
-                    let pureIpMatch = fullMatch.match(pureIpv4Regex);
-                    if (pureIpMatch && pureIpMatch[1]) {
-                        let ip = pureIpMatch[1];
-                        if (!seen.has(ip)) {
-                            seen.add(ip);
-                            targets.push(ip);
-                        }
-                        extracted = true;
-                        continue;
+                    // 去掉 #国家 后缀，保留 IP:端口（如果带端口的话）
+                    let ipWithPort = fullMatch.split('#')[0].trim();
+                    if (!seen.has(ipWithPort)) {
+                        seen.add(ipWithPort);
+                        targets.push(ipWithPort);
                     }
+                    extracted = true;
+                    continue;
                 }
                 
                 // 3. 尝试匹配纯IPv4（无端口）
@@ -639,7 +606,6 @@
                     let domainMatch = token.match(domainRegex);
                     if (domainMatch && domainMatch[0]) {
                         let domain = domainMatch[0];
-                        // 过滤掉像IP的假域名
                         if (!/^\d+\.\d+\.\d+\.\d+$/.test(domain) && !seen.has(domain)) {
                             seen.add(domain);
                             targets.push(domain);
@@ -652,12 +618,10 @@
             return targets;
         }
 
-        // 更新计数显示
         function updateCounter(count) {
             counterSpan.textContent = `已标注: ${count} 行数据`;
         }
 
-        // 标注主逻辑
         function annotateData() {
             const raw = inputData.value;
             if (!raw.trim()) {
@@ -677,7 +641,6 @@
             updateCounter(targets.length);
         }
 
-        // 自动提取：将输入框内容过滤为纯IP/域名（每行一个）
         function autoExtract() {
             const raw = inputData.value;
             if (!raw.trim()) {
@@ -693,7 +656,6 @@
             showMessage(formatMsg);
         }
 
-        // 刷新全部内容
         function refreshAll() {
             inputData.value = '';
             outputData.value = '';
@@ -702,7 +664,6 @@
             showMessage(refreshMsg);
         }
 
-        // 复制结果
         async function copyResult() {
             const content = outputData.value;
             if (!content.trim()) {
@@ -719,7 +680,6 @@
             }
         }
 
-        // 导出 TXT（带模态框）
         function showExportModal() {
             if (!outputData.value.trim()) {
                 alert('没有可导出的内容！');
@@ -734,7 +694,6 @@
             exportModal.style.display = 'none';
         }
 
-        // 安全化文件名
         function sanitizeForFilename(str) {
             if (!str) return '';
             return str.replace(/[\\/:*?"<>|]/g, '_');
@@ -774,18 +733,15 @@
             showMessage(exportMsg);
         }
 
-        // 清空输入框
         function clearInputOnly() {
             inputData.value = '';
             inputData.focus();
         }
 
-        // 友链符号按键
         function openFriendLink() {
             window.open('https://symbols.cool/tw', '_blank');
         }
 
-        // 事件绑定
         processBtn.addEventListener('click', annotateData);
         autoFormatBtn.addEventListener('click', autoExtract);
         refreshBtn.addEventListener('click', refreshAll);
@@ -796,12 +752,10 @@
         cancelExport.addEventListener('click', closeModal);
         friendLinkBtn.addEventListener('click', openFriendLink);
         
-        // 点击模态框背景关闭
         exportModal.addEventListener('click', (e) => {
             if(e.target === exportModal) closeModal();
         });
 
-        // 粘贴后清理多余空白
         inputData.addEventListener('paste', () => {
             setTimeout(() => {
                 let val = inputData.value;
