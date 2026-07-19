@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRP 开机自启配置教程</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#f1f4f9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px;color:#1e293b;}
+        .wrapper{max-width:1000px;margin:0 auto;background:#fff;border-radius:24px;padding:32px 40px;box-shadow:0 8px 30px rgba(0,0,0,0.08);}
+        h1{font-size:26px;font-weight:700;color:#0f172a;border-bottom:2px solid #e9edf2;padding-bottom:16px;margin-bottom:24px;display:flex;align-items:center;gap:10px;}
+        h1 small{font-size:14px;font-weight:400;color:#64748b;}
+        h2{font-size:20px;font-weight:600;color:#1e293b;margin:28px 0 12px;padding-left:14px;border-left:4px solid #2563eb;}
+        .section{background:#f8fafc;border-radius:16px;padding:20px 24px;margin-bottom:24px;border:1px solid #e2e8f0;}
+        .step-list{list-style:none;padding:0;margin:12px 0;}
+        .step-list li{padding:8px 0 8px 32px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%233b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>') left center no-repeat;background-size:18px;border-bottom:1px solid #eef2f6;}
+        .step-list li:last-child{border-bottom:none;}
+        .code-block{background:#0f172a;border-radius:12px;padding:16px 20px;margin:12px 0;position:relative;overflow-x:auto;}
+        .code-block code{color:#e2e8f0;font-family:"JetBrains Mono","Fira Code",monospace;font-size:14px;white-space:pre-wrap;word-break:break-word;line-height:1.6;}
+        .copy-btn{position:absolute;top:10px;right:12px;background:#334155;color:#fff;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;font-weight:500;transition:0.2s;}
+        .copy-btn:hover{background:#475569;}
+        .copy-btn.copied{background:#2b6e4e;color:#d4f0e0;}
+        .info-box{background:#eef2ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:8px;margin:12px 0;font-size:14px;color:#1e293b;}
+        .info-box.success{background:#ecfdf5;border-left-color:#22c55e;}
+        .path-box{background:#e9edf2;padding:4px 12px;border-radius:6px;display:inline-block;font-family:monospace;font-size:14px;margin:4px 0;}
+        .footer{text-align:center;font-size:13px;color:#94a3b8;margin-top:32px;padding-top:16px;border-top:1px solid #e9edf2;}
+        .verification{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;margin:12px 0;}
+        .verification strong{color:#166534;}
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <h1>🔧 FRP 开机自启配置</h1>
+
+    <!-- 服务器端 -->
+    <div class="section">
+        <h2>🖥️ 云服务器（FRP 服务端）</h2>
+        <p style="color:#475569;margin-bottom:8px;">实际路径：<span class="path-box">/root/frp_0.69.1_linux_amd64/</span></p>
+
+        <p style="font-weight:600;margin-top:12px;">第一步：创建 systemd 服务文件</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>sudo nano /etc/systemd/system/frps.service</code>
+        </div>
+
+        <p style="font-weight:600;margin-top:12px;">第二步：粘贴以下内容</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>[Unit]
+Description=FRP Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/frp_0.69.1_linux_amd64
+ExecStart=/root/frp_0.69.1_linux_amd64/frps -c /root/frp_0.69.1_linux_amd64/frps.toml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target</code>
+        </div>
+
+        <p style="font-weight:600;margin-top:12px;">第三步：启用开机自启</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>sudo systemctl enable frps</code>
+        </div>
+
+        <div class="verification">
+            <strong>✅ 验证方法：</strong><br>
+            <span style="font-family:monospace;">sudo systemctl status frps</span><br>
+            看到 <span style="background:#e9edf2;padding:1px 8px;border-radius:4px;font-family:monospace;">active (running)</span> 即为成功。
+        </div>
+    </div>
+
+    <!-- 本地电脑 -->
+    <div class="section">
+        <h2>💻 本地电脑（FRP 客户端）</h2>
+        <p style="color:#475569;margin-bottom:8px;">实际路径：<span class="path-box">D:\frp\</span></p>
+
+        <p style="font-weight:600;margin-top:12px;">第一步：确认 <code>run.vbs</code> 内容</p>
+        <p style="color:#475569;font-size:14px;">在 <code>D:\frp\</code> 目录下，<code>run.vbs</code> 的实际内容如下：</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+            <code>' 杀掉所有 frpc 进程
+CreateObject("WScript.Shell").Run "taskkill /F /IM frpc.exe", 0, True
+
+' 杀掉所有 cmd 进程（关闭弹窗）
+CreateObject("WScript.Shell").Run "taskkill /F /IM cmd.exe", 0, True
+
+' 等待 1 秒
+WScript.Sleep 1000
+
+' 后台启动 frpc（无窗口）
+CreateObject("WScript.Shell").Run "D:\frp\frpc.exe -c D:\frp\frpc.toml", 0, False</code>
+        </div>
+
+        <p style="font-weight:600;margin-top:16px;">第二步：创建快捷方式</p>
+        <ul class="step-list">
+            <li>进入 <code>D:\frp\</code> 文件夹</li>
+            <li>右键 <code>run.vbs</code> → 点击“创建快捷方式”</li>
+        </ul>
+
+        <p style="font-weight:600;margin-top:12px;">第三步：放入启动文件夹</p>
+        <ul class="step-list">
+            <li>按 <code>Win + R</code>，输入 <code>shell:startup</code>，回车</li>
+            <li>把刚才创建的快捷方式复制进去</li>
+        </ul>
+
+        <div class="verification">
+            <strong>✅ 验证方法：</strong><br>
+            重启电脑，打开任务管理器（<code>Ctrl+Shift+Esc</code>），在进程列表中找到 <span style="background:#e9edf2;padding:1px 8px;border-radius:4px;font-family:monospace;">frpc.exe</span> 即为成功。
+        </div>
+    </div>
+
+    <div class="footer">
+        FRP 开机自启配置 · 实际版
+    </div>
+</div>
+
+<script>
+    function copyCode(btn) {
+        const codeBlock = btn.parentElement;
+        const code = codeBlock.querySelector('code');
+        const text = code.textContent;
+        navigator.clipboard.writeText(text).then(function() {
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(function() { 
+                btn.textContent = '📋 复制'; 
+                btn.classList.remove('copied');
+            }, 1800);
+        }).catch(function() {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            btn.textContent = '✅ 已复制';
+            btn.classList.add('copied');
+            setTimeout(function() { 
+                btn.textContent = '📋 复制'; 
+                btn.classList.remove('copied');
+            }, 1800);
+        });
+    }
+</script>
+</body>
+</html>
