@@ -1,0 +1,105 @@
+
+✅ 查看 frpc 进程数量
+powershell
+
+tasklist | findstr frpc
+
+
+如果有多个 frpc 进程，就会显示多行。
+
+✅ 如果有多个，杀掉多余的
+powershell
+
+
+taskkill /F /IM frpc.exe
+
+
+然后重新双击 D:\frp\run.vbs，只会启动一个。
+
+✅ 查看 frpc 运行状态（是否成功）
+powershell
+
+curl http://127.0.0.1:31401/health
+
+
+返回 JSON 数据就说明 frpc 正常工作，不管有几个进程。
+
+
+
+
+frpc.toml    示例：
+
+serverAddr = "8.217.***.***"
+serverPort = 7000
+auth.token = "可以自定义，必须与云服务端一致"
+loginFailExit = false
+
+[[proxies]]
+name = "pi_31400"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31400
+remotePort = 31400
+
+[[proxies]]
+name = "pi_31401"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31401
+remotePort = 31401
+
+[[proxies]]
+name = "pi_31402"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31402
+remotePort = 31402
+
+[[proxies]]
+name = "pi_31403"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31403
+remotePort = 31403
+
+[[proxies]]
+name = "pi_31404"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31404
+remotePort = 31404
+
+[[proxies]]
+name = "pi_31405"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31405
+remotePort = 31405
+
+[[proxies]]
+name = "pi_31406"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31406
+remotePort = 31406
+
+[[proxies]]
+name = "pi_31407"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31407
+remotePort = 31407
+
+[[proxies]]
+name = "pi_31408"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31408
+remotePort = 31408
+
+[[proxies]]
+name = "pi_31409"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31409
+remotePort = 31409
