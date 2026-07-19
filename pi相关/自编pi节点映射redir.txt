@@ -1,0 +1,35 @@
+！！登录服务器
+命令：
+ssh root@IP地址 
+第一次登录会提示导入ssh配置，输入yes即可，然后会提示输入密码
+
+安装openvpn
+命令
+wget https://git.io/vpn -O openvpn-install.sh && bash openvpn-install.sh
+输入名称，可以不输入，直接回车
+
+1 选择协议：输入1 udp；
+2 是选择openvpn使用的端口，默认1194，或自定义；
+3 是选择DNS,我喜欢用2 Google；
+4 是选择openvpn配置文件的文件名，自定义或默认，我选择默认，直接回车；
+5 按任意键安装Openvpn，
+
+回车即可开始安装。
+
+下载openvpn配置文件，命令
+scp -r root@服务器ip地址:/root/client.ovpn c:/vpn_config.ovpn
+说明：用户名@服务器IP 下载到哪个地址
+&redir :31403 10.8.0.2:31403
+将这个配置导入到节点电脑的openvpn就ok了
+
+端口映射
+命令
+apt-get install redir
+
+安装完成之后，添加端口映射：
+命令
+
+redir :31401 10.8.0.2:31401&redir :31402 10.8.0.2:31402&redir :31403 10.8.0.2:31403&redir :31404 10.8.0.2:31404&redir :31405 10.8.0.2:31405&redir :31406 10.8.0.2:31406&redir :31407 10.8.0.2:31407&redir :31408 10.8.0.2:31408&redir :31409 10.8.0.2:31409&redir :31400 10.8.0.2:31400
+
+
+ok
