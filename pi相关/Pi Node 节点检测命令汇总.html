@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pi Node 节点检测命令汇总 | 诊断工具包</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', 'SF Pro Text', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+            padding: 30px 20px;
+            color: #1a2c3e;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .header p {
+            color: #4a627a;
+            margin-top: 8px;
+            font-size: 1rem;
+        }
+
+        .badge {
+            background: #eef2ff;
+            color: #1e3c72;
+            border-radius: 40px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 12px;
+        }
+
+        /* 卡片网格 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        /* 通用卡片样式 */
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            overflow: hidden;
+            border: 1px solid #e9edf2;
+        }
+
+        .card:hover {
+            box-shadow: 0 16px 28px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            padding: 18px 24px 12px 24px;
+            border-bottom: 2px solid #eff3f8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .card-header h2 {
+            font-size: 1.45rem;
+            font-weight: 600;
+            color: #0b2b3f;
+        }
+
+        .env-tag {
+            background: #e8edf4;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #2c5a7a;
+            font-family: monospace;
+        }
+
+        .cmd-block {
+            background: #0f172a;
+            margin: 16px 24px;
+            border-radius: 18px;
+            overflow: hidden;
+            transition: all 0.1s;
+        }
+
+        .cmd-header {
+            background: #1e293b;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+
+        .cmd-content {
+            padding: 16px 20px;
+            background: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .command {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            word-break: break-all;
+            white-space: pre-wrap;
+            background: #0f172a;
+            flex: 1;
+        }
+
+        .copy-btn {
+            background: #2d3a4e;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: #3b4a62;
+        }
+
+        .explanation {
+            padding: 16px 24px 20px 24px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            color: #2c3f55;
+            border-top: 1px solid #eff3f8;
+            background: #fafcff;
+        }
+
+        .explanation strong {
+            color: #155799;
+        }
+
+        .interpret-box {
+            background: #eef6ff;
+            border-left: 4px solid #2a6f97;
+            padding: 12px 18px;
+            margin: 12px 24px 20px 24px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+        }
+
+        hr {
+            margin: 8px 0;
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .footer-note {
+            text-align: center;
+            background: #eef2f9;
+            border-radius: 24px;
+            padding: 18px 24px;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #2c4b6e;
+        }
+
+        @media (max-width: 760px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .command {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>⚡ Pi Node 节点诊断工具箱</h1>
+        <p>一键复制命令 · 精准定位节点状态 · 同步进度解读</p>
+        <div class="badge">✅ 适用于 Docker / WSL Ubuntu / Pi Node 容器环境</div>
+    </div>
+
+    <div class="card-grid">
+        
+        <!-- 卡片 1: 基础状态（最核心） -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📡 核心同步状态</h2>
+                <span class="env-tag">🐳 容器内 | Ubuntu WSL</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header">
+                    <span>🎯 黄金命令 · 实时节点信息</span>
+                </div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-core-info">/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info</div>
+                    <button class="copy-btn" data-cmd="cmd-core-info">📋 复制</button>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>📍 在哪执行：</strong> 先进入 Pi Node 容器内 (<code>docker exec -it testnet2 bash</code>) 或直接在 Ubuntu WSL 终端。<br>
+                <strong>🔍 如何解读：</strong><br>
+                • <code>"state"</code> → <span style="background:#eef2ff;">Catching up</span> (追赶中)  /  <span style="background:#d9f0e1;">Synced!</span> (已同步)<br>
+                • <code>"ledger" : { "num" : xxxxx }</code> → 你当前的本地区块高度。<br>
+                • <code>"status"</code> → 详细动作：例如 <strong>Downloading state file</strong> 或 <strong>Catching up</strong>。<br>
+                • <code>"peers" → "authenticated_count"</code> → 已连接的对等节点数 (&gt;0 即正常)。<br>
+                ✅ 当 <strong>ledger.num</strong> 接近最新区块且 <strong>state 为 Synced!</strong> 时同步完成。
+            </div>
+        </div>
+
+        <!-- 卡片 2: 容器进程总览 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🐙 容器与进程健康</h2>
+                <span class="env-tag">WSL / PowerShell</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>📦 查看 Pi Node 容器状态</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-docker-ps">docker ps | grep testnet2</div>
+                    <button class="copy-btn" data-cmd="cmd-docker-ps">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>⚙️ 查看容器内所有服务</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-supervisor">supervisorctl status</div>
+                    <button class="copy-btn" data-cmd="cmd-supervisor">📋 复制</button>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>📍 执行位置：</strong> 前者在 <strong>WSL/Windows PowerShell</strong> 直接运行；后者需先进入容器 (<code>docker exec -it testnet2 bash</code>)。<br>
+                <strong>📖 解读：</strong> 确保 <code>stellar-core</code>、<code>postgresql</code>、<code>horizon</code>、<code>rpc</code> 均为 <span style="color:#2b6e3b;">RUNNING</span> 状态。若有 STOPPED 进程，执行 <code>supervisorctl start 服务名</code>。
+            </div>
+        </div>
+
+        <!-- 卡片 3: 实时日志跟踪 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📜 实时日志 & 错误追踪</h2>
+                <span class="env-tag">容器内 / WSL</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>📟 跟踪主节点日志 (实时)</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-docker-logs">docker logs -f testnet2</div>
+                    <button class="copy-btn" data-cmd="cmd-docker-logs">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🩺 查看 supervisor 详细日志</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-supervisor-log">tail -100 /var/log/supervisor/supervisord.log</div>
+                    <button class="copy-btn" data-cmd="cmd-supervisor-log">📋 复制</button>
+                </div>
+            </div>
+            <div class="interpret-box">
+                💡 <strong>小技巧：</strong> 使用 <code>docker logs --tail 50 testnet2</code> 只看最后 50 行。 <br>
+                若日志中出现 <strong>ERROR / FAILED / exit status 1</strong> 可截图分析；<br>
+                正常同步时会看到 <code>Catching up... Downloading state file</code> 或 <code>ledger closed</code>。
+            </div>
+        </div>
+
+        <!-- 卡片4: 网络与对等节点 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🌐 网络连接 & 对等节点</h2>
+                <span class="env-tag">容器内执行</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🔌 查看对等节点详情</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-peers">/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command peers</div>
+                    <button class="copy-btn" data-cmd="cmd-peers">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🧭 检查 horizon API 可用性</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-horizon">curl -s http://localhost:8000/ | head -20</div>
+                    <button class="copy-btn" data-cmd="cmd-horizon">📋 复制</button>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>解读：</strong> <code>authenticated_count</code> 建议 >=5；若为0可能网络隔离或防火墙限制。<br>
+                horizon 命令应返回 <code>"horizon"</code> 版本信息，若失败说明 horizon 服务异常。
+            </div>
+        </div>
+
+        <!-- 卡片5: 区块同步进度监控 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>📊 进度监控 & 自动化刷新</h2>
+                <span class="env-tag">实时 watch 命令</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>⏱️ 每 10 秒刷新同步状态</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-watch">watch -n 10 '/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E "state|num|status"'</div>
+                    <button class="copy-btn" data-cmd="cmd-watch">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>📈 仅显示本地区块高度变化</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-ledger-num">watch -n 5 '/usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | jq -r ".info.ledger.num" 2>/dev/null || echo "需要安装jq"'</div>
+                    <button class="copy-btn" data-cmd="cmd-ledger-num">📋 复制</button>
+                </div>
+            </div>
+            <div class="interpret-box">
+                🔄 <strong>使用建议：</strong> 当节点处于 Catching up 状态时，用 watch 命令可以动态观察区块是否增长。初始同步本地高度可能长时间不变（在下载状态文件），一旦开始应用快照，<strong>ledger.num 会跳跃式增长</strong>。
+            </div>
+        </div>
+
+        <!-- 卡片6: 常见故障恢复 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🛠️ 故障诊断 & 重启操作</h2>
+                <span class="env-tag">多环境适用</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🔁 重启容器内的 stellar-core</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-restart-core">supervisorctl restart stellar-core</div>
+                    <button class="copy-btn" data-cmd="cmd-restart-core">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>♻️ 完全重置 WSL + Docker（卡顿时）</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-wsl-shutdown">wsl --shutdown</div>
+                    <button class="copy-btn" data-cmd="cmd-wsl-shutdown">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🧹 进入容器手动执行（高级）</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-docker-exec">docker exec -it testnet2 bash</div>
+                    <button class="copy-btn" data-cmd="cmd-docker-exec">📋 复制</button>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>⚠️ 注意：</strong> <code>wsl --shutdown</code> 会关闭所有 WSL 发行版，请在关闭 Docker Desktop 后执行，然后重启电脑或重启 Docker。<br>
+                如果 horizon/rpc 服务停止，使用 <code>supervisorctl start horizon</code> 等命令恢复。
+            </div>
+        </div>
+
+        <!-- 卡片7: 资源状态监控 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>💾 资源占用 & 磁盘健康</h2>
+                <span class="env-tag">主机 | 容器</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>🖥️ 容器内存/CPU 实时统计</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-docker-stats">docker stats testnet2 --no-stream</div>
+                    <button class="copy-btn" data-cmd="cmd-docker-stats">📋 复制</button>
+                </div>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>📀 查看容器数据目录大小</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-du-core">du -sh /opt/stellar/core/buckets /opt/stellar/postgresql/data</div>
+                    <button class="copy-btn" data-cmd="cmd-du-core">📋 复制</button>
+                </div>
+            </div>
+            <div class="interpret-box">
+                💡 同步过程中 stellar-core 可能占用 1~2GB 内存，CPU 在 catchup 阶段会有波动。磁盘可用空间至少保持 30GB 以上。<br>
+                若 <code>docker stats</code> 显示内存接近限制，可考虑增加 Docker 资源配额。
+            </div>
+        </div>
+
+        <!-- 卡片8: 极简状态概览（一键脚本） -->
+        <div class="card">
+            <div class="card-header">
+                <h2>⚡ 一键健康检查脚本</h2>
+                <span class="env-tag">容器内运行</span>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-header"><span>📋 快速输出节点 + 服务 + 同步摘要</span></div>
+                <div class="cmd-content">
+                    <div class="command" id="cmd-quick-check">echo "=== 节点状态 ===" && /usr/bin/stellar-core --conf /opt/stellar/core/etc/stellar-core.cfg http-command info | grep -E "state|ledger.num|status" && echo -e "\n=== 服务状态 ===" && supervisorctl status | grep -E "RUNNING|FATAL" && echo -e "\n=== 最新日志摘要 ===" && tail -5 /var/log/supervisor/supervisord.log</div>
+                    <button class="copy-btn" data-cmd="cmd-quick-check">📋 复制全部命令</button>
+                </div>
+            </div>
+            <div class="explanation">
+                🚀 粘贴后直接显示 <strong>同步状态、核心服务健康状况、最新错误提示</strong>，最适合日常巡检。如果看到 state 为 Catching up 且 status 包含 Downloading state file 即一切正常。
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用解读提醒区 -->
+    <div class="footer-note">
+        <strong>📌 同步正常时的黄金指标：</strong><br>
+        ✅ <code>"state" : "Catching up"</code> + 下载状态文件 → 属于初始快速追赶。<br>
+        ✅ 对等节点 <code>authenticated_count ≥ 5</code> → 网络连接健康。<br>
+        ✅ 服务 <code>stellar-core</code> 与 <code>postgresql</code> 均为 <span style="color:#116b46;">RUNNING</span>。<br>
+        ⏳ 同步时间取决于网络与硬件，一般需要 2~6 小时，当 <code>ledger.num</code> 从 885万 跳跃至 894万 即表示应用快照成功。<br>
+        💬 如遇长期卡顿，建议执行 <code>wsl --shutdown</code> + 重启电脑，但仍需避免频繁打断同步过程。
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmdId = btn.getAttribute('data-cmd');
+            const commandElement = document.getElementById(cmdId);
+            if (commandElement) {
+                // 获取命令文本 (可能跨多行，但 innerText 合适)
+                let commandText = commandElement.innerText;
+                // 对于一键检测脚本，里面包含多行，保留原文本
+                navigator.clipboard.writeText(commandText).then(() => {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✅ 已复制';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                    }, 1500);
+                }).catch(() => {
+                    alert('手动复制失败，请直接选中命令后 Ctrl+C');
+                });
+            } else {
+                alert('未找到命令');
+            }
+        });
+    });
+</script>
+</body>
+</html>
