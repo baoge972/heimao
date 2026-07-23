@@ -971,7 +971,7 @@ export default {
                                 </template>
                             </div>
                             <div class="click-hint" @click.stop="expandedCard = 'accounting'">
-                                👆 点击查看完整页面
+                                👆 点击查看完整数据源
                             </div>
                         </div>
                     </div>
@@ -1053,7 +1053,7 @@ export default {
                                 </template>
                             </div>
                             <div class="click-hint" @click.stop="expandedCard = 'social'">
-                                👆 点击查看完整页面
+                                👆 点击查看完整数据源
                             </div>
                         </div>
                     </div>
