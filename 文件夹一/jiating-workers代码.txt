@@ -1,0 +1,1898 @@
+export default {
+    async fetch(request, env) {
+        const url = new URL(request.url);
+        const ADMIN_PASSWORD = env.ADMIN_PASSWORD || '123456';
+        const MEMO_PASSWORD = env.MEMO_PASSWORD || 'memo2024';
+
+        // ==================== API 路由 ====================
+        if (url.pathname === '/api/memo' && request.method === 'GET') {
+            try {
+                const data = await env.MEMO_DATA.get('memo_data', 'json');
+                return new Response(JSON.stringify(data || { memoList: [], countdownList: [] }), {
+                    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ memoList: [], countdownList: [] }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+        }
+
+        if (url.pathname === '/api/memo' && request.method === 'POST') {
+            try {
+                const data = await request.json();
+                await env.MEMO_DATA.put('memo_data', JSON.stringify(data));
+                return new Response(JSON.stringify({ success: true }), {
+                    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ success: false, error: e.message }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+        }
+
+        // ==================== 页面 HTML ====================
+        return new Response(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>家庭数据大屏</title>
+    <link rel="icon" href="https://s3.bmp.ovh/2026/07/23/gIgJVDhL.jpg" type="image/jpeg" />
+    <link rel="apple-touch-icon" href="https://s3.bmp.ovh/2026/07/23/gIgJVDhL.jpg" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        :root {
+            --bg-body: #0b1120;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --border-card: rgba(255, 255, 255, 0.12);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        [data-theme="light"] {
+            --bg-body: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --border-card: rgba(0, 0, 0, 0.10);
+            --text-primary: #0b1120;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --shadow-card: 0 8px 32px rgba(0,0,0,0.10);
+        }
+        [data-theme="blue"] {
+            --bg-body: #0c1929;
+            --bg-card: rgba(25, 118, 210, 0.15);
+            --border-card: rgba(25, 118, 210, 0.25);
+            --text-primary: #e3f2fd;
+            --text-secondary: #90caf9;
+            --text-muted: #5472a0;
+            --shadow-card: 0 8px 32px rgba(25, 118, 210, 0.15);
+        }
+        [data-theme="green"] {
+            --bg-body: #0a1a0f;
+            --bg-card: rgba(46, 125, 50, 0.15);
+            --border-card: rgba(46, 125, 50, 0.25);
+            --text-primary: #e8f5e9;
+            --text-secondary: #81c784;
+            --text-muted: #4a7a4f;
+            --shadow-card: 0 8px 32px rgba(46, 125, 50, 0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-body);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.3s, color 0.3s;
+        }
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s, border 0.3s;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+        .header-left .logo { font-size: 22px; flex-shrink: 0; }
+        .header-left h1 {
+            font-size: 17px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+        .header-left .subtitle { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+        .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-card);
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+        .theme-btn {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-card);
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+        .theme-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            min-height: 400px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 18px;
+            padding: 16px 16px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s, border 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+        }
+        .card:hover { border-color: rgba(255, 255, 255, 0.18); }
+        [data-theme="light"] .card:hover { border-color: rgba(0, 0, 0, 0.18); }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 0;
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+        .card-header:hover { background: rgba(255, 255, 255, 0.03); }
+        .card-header .title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        .card-header .title .icon { font-size: 16px; }
+        .card-header .toggle-icon {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            padding: 4px 8px;
+        }
+        .card-header .toggle-icon.rotated { transform: rotate(180deg); }
+        
+        .card-body { 
+            flex: 1; 
+            padding-top: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .card-body.collapsed {
+            max-height: 0 !important;
+            padding-top: 0 !important;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .card-body.expanded {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .click-hint {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: right;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: color 0.3s;
+        }
+        .click-hint:hover { color: var(--text-secondary); }
+
+        /* ===== 记账统计 ===== */
+        .accounting-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .accounting-stats .stat {
+            text-align: center;
+            padding: 10px 4px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: border 0.3s;
+        }
+        [data-theme="light"] .accounting-stats .stat { background: rgba(0, 0, 0, 0.03); }
+        .accounting-stats .stat .num { font-size: 20px; font-weight: 700; }
+        .accounting-stats .stat .label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+        .accounting-stats .stat .num.income { color: #34d399; }
+        .accounting-stats .stat .num.expense { color: #f87171; }
+        .accounting-stats .stat .num.balance { color: #fbbf24; }
+
+        .accounting-categories .cat-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            padding: 3px 0;
+        }
+        .accounting-categories .cat-row .name {
+            width: 52px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+        .accounting-categories .cat-row .bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        [data-theme="light"] .accounting-categories .cat-row .bar { background: rgba(0, 0, 0, 0.08); }
+        .accounting-categories .cat-row .bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .accounting-categories .cat-row .amount {
+            width: 64px;
+            text-align: right;
+            color: var(--text-secondary);
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        /* ===== 人情统计 ===== */
+        .social-stats-mini {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .social-stat-item {
+            text-align: center;
+            padding: 8px 2px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            border: 1px solid transparent;
+        }
+        [data-theme="light"] .social-stat-item { background: rgba(0, 0, 0, 0.03); }
+        .social-stat-item .num { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        .social-stat-item .num.total { color: #fbbf24; }
+        .social-stat-item .num.red { color: #ef4444; }
+        .social-stat-item .num.white { color: #3b82f6; }
+        .social-stat-item .num.other { color: #8b5cf6; }
+        .social-stat-item .label { font-size: 9px; color: var(--text-secondary); margin-top: 2px; }
+
+        .social-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+        [data-theme="light"] .social-summary { background: rgba(0, 0, 0, 0.03); }
+        .social-summary .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .social-summary .summary-row .value { color: var(--text-primary); font-weight: 500; font-size: 12px; }
+        .social-summary .summary-row .value.give { color: #f87171; }
+        .social-summary .summary-row .value.receive { color: #34d399; }
+        .social-summary .summary-row .value.self { color: #60a5fa; }
+        .social-summary .summary-row.border-top {
+            border-top: 1px solid var(--border-card);
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+        .social-valid { margin-top: 6px; font-size: 10px; color: #34d399; text-align: center; }
+
+        /* ===== 备忘录（只读展示） ===== */
+        .memo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .memo-list::-webkit-scrollbar { width: 3px; }
+        .memo-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .memo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 2px solid #3b82f6;
+        }
+        .memo-item .memo-text { color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .memo-item .memo-time { color: var(--text-muted); font-size: 10px; flex-shrink: 0; }
+
+        /* ===== 倒计时（只读展示） ===== */
+        .countdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            max-height: 90px;
+            overflow-y: auto;
+        }
+        .countdown-list::-webkit-scrollbar { width: 3px; }
+        .countdown-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .countdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 2px solid #f59e0b;
+        }
+        .countdown-item .cd-name { color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .countdown-item .cd-days { color: #fbbf24; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+
+        /* ===== 登录提示 ===== */
+        .accounting-login-prompt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 0;
+            gap: 10px;
+        }
+        .accounting-login-prompt .big-icon { font-size: 36px; opacity: 0.5; }
+        .accounting-login-prompt .hint { color: var(--text-secondary); font-size: 13px; }
+        .accounting-login-prompt .btn-login {
+            padding: 8px 24px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+        }
+        .accounting-login-prompt .btn-login:hover { transform: scale(1.02); opacity: 0.9; }
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 8px 0;
+            font-size: 12px;
+        }
+        .empty-state .big-emoji { font-size: 24px; display: block; margin-bottom: 2px; }
+
+        /* ===== 登录遮罩 ===== */
+        #login_overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999999;
+            padding: 20px;
+        }
+        #login_box {
+            background: #fff;
+            padding: 28px 24px;
+            border-radius: 20px;
+            width: 320px;
+            max-width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        #login_box h3 { margin: 0 0 16px; font-size: 18px; color: #333; }
+        #pwd_input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            text-align: center;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        #pwd_input:focus { border-color: #3b82f6; outline: none; }
+        #login_btn {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #login_btn:hover { background: #2563eb; }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 17, 32, 0.92);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            padding: 20px;
+        }
+        .login-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 24px;
+            padding: 28px 24px;
+            width: 340px;
+            max-width: 100%;
+            box-shadow: var(--shadow-card);
+        }
+        .login-box .title { text-align: center; margin-bottom: 16px; }
+        .login-box .title .icon { font-size: 36px; display: block; margin-bottom: 4px; }
+        .login-box .title h3 { color: var(--text-primary); font-size: 18px; font-weight: 500; }
+        .login-box .title p { color: var(--text-secondary); font-size: 13px; }
+        .login-box .error {
+            background: rgba(248, 113, 113, 0.12);
+            color: #f87171;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .login-box .error.show { display: block; }
+        .login-box input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-card);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        .login-box input:focus { border-color: #3b82f6; }
+        .login-box input::placeholder { color: var(--text-muted); }
+        .login-box .actions { display: flex; gap: 8px; margin-top: 4px; }
+        .login-box .actions .btn-primary {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .login-box .actions .btn-primary:hover { opacity: 0.9; }
+        .login-box .actions .btn-secondary {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-card);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-box .actions .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); }
+
+        .iframe-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-body);
+            z-index: 9999;
+            padding: 12px;
+            transition: background 0.3s;
+        }
+        .iframe-fullscreen .iframe-back {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 10000;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s, border 0.3s;
+        }
+        .iframe-fullscreen .iframe-back:hover { background: rgba(255, 255, 255, 0.1); }
+        .iframe-fullscreen iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        /* ===== 详情页样式 ===== */
+        .detail-page {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-card);
+        }
+        .detail-page h3 {
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+        .detail-page h4 {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .detail-page .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .detail-page .item-list .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 2px solid #3b82f6;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .detail-page .item-list .item:hover { background: rgba(255, 255, 255, 0.06); }
+        .detail-page .item-list .item .info { flex: 1; }
+        .detail-page .item-list .item .info .text { color: var(--text-primary); font-size: 13px; }
+        .detail-page .item-list .item .info .time { color: var(--text-muted); font-size: 11px; }
+        .detail-page .item-list .item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .detail-page .item-list .item .actions button {
+            padding: 2px 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .detail-page .item-list .item .actions button:hover { opacity: 0.8; }
+        .detail-page .item-list .item .actions .edit-btn { background: #f59e0b; color: #1a1a2e; }
+        .detail-page .item-list .item .actions .del-btn { background: #ef4444; color: white; }
+        .detail-page .input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .detail-page .input-row input {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-card);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            flex: 1;
+            min-width: 80px;
+        }
+        .detail-page .input-row input:focus { border-color: #3b82f6; }
+        .detail-page .input-row button {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .detail-page .input-row button:hover { opacity: 0.9; }
+        .countdown-item-detail {
+            border-left-color: #f59e0b !important;
+        }
+        .countdown-item-detail .days {
+            color: #fbbf24;
+            font-weight: 600;
+            font-size: 13px;
+            margin-right: 12px;
+        }
+
+        /* ===== 编辑弹窗 ===== */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
+        .edit-modal .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 28px 24px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: var(--shadow-card);
+        }
+        .edit-modal .modal-box h3 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+        .edit-modal .modal-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-card);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+        .edit-modal .modal-box input:focus { border-color: #3b82f6; }
+        .edit-modal .modal-box .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .edit-modal .modal-box .actions button {
+            padding: 6px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .edit-modal .modal-box .actions button:hover { opacity: 0.8; }
+        .edit-modal .modal-box .actions .save-btn { background: #3b82f6; color: white; }
+        .edit-modal .modal-box .actions .cancel-btn { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 480px) {
+            body { padding: 8px !important; margin: 0 !important; overflow-x: hidden !important; }
+            .dashboard { max-width: 100% !important; padding: 0 !important; width: 100% !important; }
+            .header {
+                width: 100% !important;
+                margin: 0 0 10px 0 !important;
+                padding: 10px 12px !important;
+                border-radius: 14px !important;
+                box-sizing: border-box !important;
+                border: 1px solid var(--border-card) !important;
+            }
+            .header-left .logo { font-size: 18px; }
+            .header-left h1 { font-size: 14px; }
+            .header-left .subtitle { font-size: 10px; }
+            .btn-logout { padding: 4px 10px; font-size: 11px; }
+            .theme-btn { padding: 4px 8px; font-size: 14px; }
+            .cards-container {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                padding: 0 !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .card {
+                padding: 12px 12px !important;
+                border-radius: 14px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                margin: 0 !important;
+                border: 2px solid rgba(255, 255, 255, 0.2) !important;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important;
+            }
+            .card-header .title { font-size: 13px; }
+            .card-header .toggle-icon { font-size: 14px; padding: 2px 6px; }
+            .accounting-stats .stat .num { font-size: 18px; }
+            .accounting-stats .stat .label { font-size: 9px; }
+            .social-stat-item .num { font-size: 16px; }
+            .social-stat-item .label { font-size: 8px; }
+            .social-summary .summary-row { font-size: 11px; }
+            .click-hint { font-size: 10px; }
+            .social-stats-mini { grid-template-columns: repeat(2, 1fr); }
+            
+            .accounting-categories .cat-row .name {
+                width: 72px !important;
+                font-size: 12px !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                white-space: normal !important;
+            }
+            .accounting-categories .cat-row .amount { width: 76px !important; font-size: 12px !important; }
+            .accounting-categories .cat-row .bar { height: 6px !important; }
+
+            .memo-list { max-height: 80px; }
+            .countdown-list { max-height: 70px; }
+            .detail-page .input-row { flex-direction: column; }
+            .detail-page .input-row input { min-width: auto; }
+            .edit-modal .modal-box { padding: 20px 16px; }
+            .detail-page { padding: 16px; }
+            .card-body { padding-top: 4px; }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+            body { padding: 12px; }
+            .card { padding: 16px 16px; border-radius: 18px; }
+            .header {
+                padding: 12px 16px;
+                border-radius: 16px;
+                margin-bottom: 12px;
+            }
+            .header-left .logo { font-size: 22px; }
+            .header-left h1 { font-size: 16px; }
+            .header-left .subtitle { font-size: 12px; }
+            .btn-logout { padding: 5px 12px; font-size: 12px; }
+            .cards-container { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .accounting-stats .stat .num { font-size: 20px; }
+            .social-stat-item .num { font-size: 18px; }
+            
+            .accounting-categories .cat-row .name {
+                width: 80px !important;
+                font-size: 13px !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                white-space: normal !important;
+            }
+            .accounting-categories .cat-row .amount { width: 80px !important; font-size: 13px !important; }
+            .detail-page .input-row { flex-wrap: wrap; }
+        }
+        @media (min-width: 769px) {
+    body { padding: 30px 40px; }
+    .header {
+        padding: 20px 32px;
+        border-radius: 20px;
+        margin-bottom: 24px;
+    }
+    .header-left .logo { font-size: 32px; }
+    .header-left h1 { font-size: 24px; }
+    .header-left .subtitle { font-size: 15px; }
+    .btn-logout { padding: 8px 24px; font-size: 14px; }
+    
+    .card { 
+        padding: 24px 28px; 
+        border-radius: 24px;
+        display: flex;
+        flex-direction: column;
+    }
+    .card-header .title { font-size: 16px; }
+    
+    .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .card-body-inner {
+        flex: 1;
+    }
+    
+    .click-hint {
+        margin-top: auto;
+        border-top: 1px solid var(--border-card);
+        padding-top: 14px;
+        margin-bottom: 0;
+        font-size: 13px;
+    }
+    
+    .accounting-stats .stat .num { font-size: 26px; }
+    .social-stat-item .num { font-size: 22px; }
+    .cards-container { gap: 24px; }
+    
+    .accounting-categories .cat-row .name {
+        width: auto !important;
+        max-width: 140px !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+        font-size: 14px !important;
+    }
+    .accounting-categories .cat-row .amount {
+        width: auto !important;
+        min-width: 80px !important;
+        font-size: 14px !important;
+    }
+    .accounting-categories .cat-row .bar { min-width: 60px !important; }
+}
+    </style>
+</head>
+<body>
+
+    <!-- ===== 大屏密码登录遮罩 ===== -->
+    <div id="login_overlay">
+        <div id="login_box">
+            <h3>🔒 请输入访问密码</h3>
+            <input type="password" id="pwd_input" placeholder="输入密码" />
+            <button id="login_btn">确认进入</button>
+        </div>
+    </div>
+
+    <div id="app">
+        <div class="dashboard">
+            <div class="header">
+                <div class="header-left">
+                    <span class="logo">📊</span>
+                    <h1>家庭数据大屏</h1>
+                    <span class="subtitle">· 实时概览</span>
+                </div>
+                <div class="header-right">
+                    <button class="theme-btn" @click="toggleTheme" title="切换主题">🎨</button>
+                    <button class="btn-logout" @click="logout">退出</button>
+                </div>
+            </div>
+
+            <div class="content-area fade-in">
+
+                <!-- ===== 三卡片 ===== -->
+                <div v-if="!expandedCard" class="cards-container">
+
+                    <!-- 卡片1: 记账 -->
+                    <div class="card">
+                        <div class="card-header" @click="toggleCard('accounting')">
+                            <span class="title">
+                                <span class="icon">📊</span> 家庭账本
+                                <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px;">
+                                    {{ accountingToken ? accountingMonth : '未登录' }}
+                                </span>
+                            </span>
+                            <span class="toggle-icon" :class="{ rotated: cardCollapsed.accounting }">▼</span>
+                        </div>
+                        <div class="card-body" :class="cardCollapsed.accounting ? 'collapsed' : 'expanded'">
+                            <div class="card-body-inner" @click.stop>
+                                <template v-if="accountingToken">
+                                    <div class="accounting-stats">
+                                        <div class="stat">
+                                            <div class="num income">¥{{ totalIncome }}</div>
+                                            <div class="label">💰 收入</div>
+                                        </div>
+                                        <div class="stat">
+                                            <div class="num expense">¥{{ totalExpense }}</div>
+                                            <div class="label">💸 支出</div>
+                                        </div>
+                                        <div class="stat">
+                                            <div class="num balance">¥{{ totalBalance }}</div>
+                                            <div class="label">📦 结余</div>
+                                        </div>
+                                    </div>
+                                    <div class="accounting-categories">
+                                        <div v-for="cat in topCategories" :key="cat.name" class="cat-row">
+                                            <span class="name">{{ cat.name }}</span>
+                                            <div class="bar">
+                                                <div class="fill" :style="{ width: cat.percent + '%' }"></div>
+                                            </div>
+                                            <span class="amount">¥{{ cat.amount }}</span>
+                                        </div>
+                                        <div v-if="topCategories.length === 0" class="empty-state">
+                                            <span class="big-emoji">📭</span> 本月暂无支出
+                                        </div>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div class="accounting-login-prompt">
+                                        <span class="big-icon">🔒</span>
+                                        <span class="hint">登录记账账号查看数据</span>
+                                        <button class="btn-login" @click.stop="showAccountingLogin = true">
+                                            <i class="fas fa-sign-in-alt"></i> 登录记账
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="click-hint" @click.stop="expandedCard = 'accounting'">
+                                👆 点击查看完整页面
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 卡片2: 人情 -->
+                    <div class="card">
+                        <div class="card-header" @click="toggleCard('social')">
+                            <span class="title">
+                                <span class="icon">🤝</span> 人情往来
+                                <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px;">
+                                    {{ socialIsAuthed ? '统计分析' : '未登录' }}
+                                </span>
+                            </span>
+                            <span class="toggle-icon" :class="{ rotated: cardCollapsed.social }">▼</span>
+                        </div>
+                        <div class="card-body" :class="cardCollapsed.social ? 'collapsed' : 'expanded'">
+                            <div class="card-body-inner" @click.stop>
+                                <template v-if="socialIsAuthed">
+                                    <div v-if="socialLoading" style="text-align:center;padding:12px;color:var(--text-secondary);font-size:13px;">
+                                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                    </div>
+                                    <template v-else-if="socialStats.totalEvents > 0">
+                                        <div class="social-stats-mini">
+                                            <div class="social-stat-item">
+                                                <div class="num total">{{ socialStats.totalEvents }}</div>
+                                                <div class="label">总公事</div>
+                                            </div>
+                                            <div class="social-stat-item">
+                                                <div class="num red">{{ socialStats.redEvents }}</div>
+                                                <div class="label">红事</div>
+                                            </div>
+                                            <div class="social-stat-item">
+                                                <div class="num white">{{ socialStats.whiteEvents }}</div>
+                                                <div class="label">白事</div>
+                                            </div>
+                                            <div class="social-stat-item">
+                                                <div class="num other">{{ socialStats.otherEvents }}</div>
+                                                <div class="label">其它</div>
+                                            </div>
+                                        </div>
+                                        <div class="social-summary">
+                                            <div class="summary-row">
+                                                <span>👤 往来人数</span>
+                                                <span class="value">{{ socialStats.peopleCount }}</span>
+                                            </div>
+                                            <div class="summary-row">
+                                                <span>📤 我给出的</span>
+                                                <span class="value give">{{ socialStats.giveCount }}次，¥{{ socialStats.giveAmount }}</span>
+                                            </div>
+                                            <div class="summary-row">
+                                                <span>📥 我收到的</span>
+                                                <span class="value receive">{{ socialStats.receiveCount }}次，¥{{ socialStats.receiveAmount }}</span>
+                                            </div>
+                                            <div class="summary-row border-top">
+                                                <span>🏠 自家公事</span>
+                                                <span class="value self">{{ socialStats.selfEventsCount }}个公事 ({{ socialStats.selfRecordsCount }}条记录)</span>
+                                            </div>
+                                        </div>
+                                        <div class="social-valid">
+                                            ✅ 红事({{ socialStats.redEvents }}) + 白事({{ socialStats.whiteEvents }}) + 其它({{ socialStats.otherEvents }}) = {{ socialStats.totalEvents }}
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <div class="accounting-login-prompt">
+                                            <span class="big-icon">🎊</span>
+                                            <span class="hint">暂无人情数据</span>
+                                            <span style="font-size:11px;color:var(--text-muted);">请先在人情页面导入数据</span>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template v-else>
+                                    <div class="accounting-login-prompt">
+                                        <span class="big-icon">🔒</span>
+                                        <span class="hint">登录人情查看数据</span>
+                                        <button class="btn-login" @click.stop="showSocialLogin = true">
+                                            <i class="fas fa-sign-in-alt"></i> 登录人情
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="click-hint" @click.stop="expandedCard = 'social'">
+                                👆 点击查看完整页面
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 卡片3: 备忘录+倒计时 -->
+                    <div class="card">
+                        <div class="card-header" @click="toggleCard('memo')">
+                            <span class="title">
+                                <span class="icon">📋</span> 备忘录 & 倒计时
+                                <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px;">
+                                    {{ memoList.length + countdownList.length }} 项
+                                </span>
+                            </span>
+                            <span class="toggle-icon" :class="{ rotated: cardCollapsed.memo }">▼</span>
+                        </div>
+                        <div class="card-body" :class="cardCollapsed.memo ? 'collapsed' : 'expanded'">
+                            <div class="card-body-inner" @click.stop>
+                                <!-- 备忘录 -->
+                                <div style="margin-bottom:10px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                        <span style="font-size:12px;color:var(--text-secondary);">📝 备忘录</span>
+                                        <span style="font-size:10px;color:var(--text-muted);">{{ memoList.length }} 条</span>
+                                    </div>
+                                    <div class="memo-list">
+                                        <div v-for="(item, idx) in memoList.slice(0, 4)" :key="'memo_'+idx" class="memo-item">
+                                            <span class="memo-text">{{ item.text }}</span>
+                                            <span class="memo-time">{{ formatTime(item.time) }}</span>
+                                        </div>
+                                        <div v-if="memoList.length === 0" class="empty-state" style="padding:4px 0;font-size:11px;">
+                                            <span class="big-emoji" style="font-size:16px;">📭</span> 暂无备忘录
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 倒计时 -->
+                                <div>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                        <span style="font-size:12px;color:var(--text-secondary);">⏳ 倒计时</span>
+                                        <span style="font-size:10px;color:var(--text-muted);">{{ countdownList.length }} 项</span>
+                                    </div>
+                                    <div class="countdown-list">
+                                        <div v-for="(item, idx) in countdownList.slice(0, 3)" :key="'cd_'+idx" class="countdown-item">
+                                            <span class="cd-name">{{ item.name }}</span>
+                                            <span class="cd-days">{{ item.days }}天</span>
+                                        </div>
+                                        <div v-if="countdownList.length === 0" class="empty-state" style="padding:4px 0;font-size:11px;">
+                                            <span class="big-emoji" style="font-size:16px;">📅</span> 暂无倒计时
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="click-hint" @click.stop="showMemoAuth = true">
+                                👆 点击管理（增删改）
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== iframe/详情页 ===== -->
+                <div v-if="expandedCard === 'accounting'" class="iframe-fullscreen">
+                    <button class="iframe-back" @click="expandedCard = null">
+                        <i class="fas fa-arrow-left"></i> 返回
+                    </button>
+                    <iframe src="https://jtjz.baoge.wang/" title="家庭记账" loading="lazy" allow="camera; microphone; clipboard-read; clipboard-write"></iframe>
+                </div>
+
+                <div v-if="expandedCard === 'social'" class="iframe-fullscreen">
+                    <button class="iframe-back" @click="expandedCard = null">
+                        <i class="fas fa-arrow-left"></i> 返回
+                    </button>
+                    <iframe src="https://renqing.baoge.wang/" title="人情往来" loading="lazy" allow="camera; microphone; clipboard-read; clipboard-write"></iframe>
+                </div>
+
+                <!-- ===== 备忘录密码验证弹窗 ===== -->
+                <div v-if="showMemoAuth" class="edit-modal" @click.self="showMemoAuth = false">
+                    <div class="modal-box" style="max-width:360px;">
+                        <h3 style="text-align:center;margin-bottom:12px;">🔐 请输入管理密码</h3>
+                        <p style="text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:16px;">请输入备忘录管理密码以进入</p>
+                        <input type="password" v-model="memoPasswordInput" placeholder="请输入密码" @keydown.enter="verifyMemoPassword" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border-card);background:rgba(255,255,255,0.05);color:var(--text-primary);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px;" />
+                        <div v-if="memoPasswordError" style="color:#f87171;font-size:13px;text-align:center;margin-bottom:12px;">{{ memoPasswordError }}</div>
+                        <div style="display:flex;gap:10px;justify-content:center;">
+                            <button @click="showMemoAuth = false" style="padding:8px 24px;border-radius:8px;border:1px solid var(--border-card);background:transparent;color:var(--text-secondary);cursor:pointer;">取消</button>
+                            <button @click="verifyMemoPassword" style="padding:8px 24px;border-radius:8px;border:none;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white;cursor:pointer;">验证</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 备忘录详情页 -->
+                <div v-if="expandedCard === 'memo'" class="iframe-fullscreen" style="padding:20px;display:flex;flex-direction:column;">
+                    <button class="iframe-back" @click="expandedCard = null; memoAuthed = false;" style="position:relative;top:0;left:0;margin-bottom:16px;display:inline-flex;width:fit-content;">
+                        <i class="fas fa-arrow-left"></i> 返回
+                    </button>
+                    <div class="detail-page">
+                        <h3>📋 备忘录 & 倒计时</h3>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                            <!-- 备忘录 -->
+                            <div>
+                                <h4>📝 备忘录 ({{ memoList.length }})</h4>
+                                <div class="item-list">
+                                    <div v-for="(item, idx) in memoList" :key="'memo_full_'+idx" class="item">
+                                        <div class="info">
+                                            <div class="text">{{ item.text }}</div>
+                                            <div class="time">{{ formatTime(item.time) }}</div>
+                                        </div>
+                                        <div class="actions">
+                                            <button class="edit-btn" @click="openEditMemo(idx)">✏️</button>
+                                            <button class="del-btn" @click="deleteMemo(idx)">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div v-if="memoList.length === 0" class="empty-state">📭 暂无备忘录</div>
+                                </div>
+                                <div class="input-row">
+                                    <input type="text" v-model="memoInput" placeholder="写备忘录..." @keydown.enter="addMemo" />
+                                    <button @click="addMemo">添加</button>
+                                </div>
+                            </div>
+
+                            <!-- 倒计时 -->
+                            <div>
+                                <h4>⏳ 倒计时 ({{ countdownList.length }})</h4>
+                                <div class="item-list">
+                                    <div v-for="(item, idx) in countdownList" :key="'cd_full_'+idx" class="item countdown-item-detail">
+                                        <div class="info">
+                                            <div class="text">{{ item.name }}</div>
+                                            <div class="time">目标日期：{{ item.date }}</div>
+                                        </div>
+                                        <span class="days">{{ item.days }}天</span>
+                                        <div class="actions">
+                                            <button class="edit-btn" @click="openEditCountdown(idx)">✏️</button>
+                                            <button class="del-btn" @click="deleteCountdown(idx)">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div v-if="countdownList.length === 0" class="empty-state">📅 暂无倒计时</div>
+                                </div>
+                                <div class="input-row">
+                                    <input type="text" v-model="countdownName" placeholder="事件名称" />
+                                    <input type="date" v-model="countdownDate" />
+                                    <button @click="addCountdown">添加</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===== 编辑弹窗 ===== -->
+        <div v-if="showEditModal" class="edit-modal" @click.self="closeEditModal">
+            <div class="modal-box">
+                <h3>{{ editModalType === 'memo' ? '✏️ 编辑备忘录' : '✏️ 编辑倒计时' }}</h3>
+                <input type="text" v-model="editForm.text" placeholder="内容" />
+                <input v-if="editModalType === 'countdown'" type="date" v-model="editForm.date" placeholder="日期" />
+                <div class="actions">
+                    <button class="cancel-btn" @click="closeEditModal">取消</button>
+                    <button class="save-btn" @click="saveEdit">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 记账登录弹窗 ===== -->
+        <div v-if="showAccountingLogin" class="login-overlay" style="z-index: 10002;">
+            <div class="login-box">
+                <div class="title">
+                    <span class="icon">📊</span>
+                    <h3>登录记账</h3>
+                    <p>输入记账用户名密码以同步数据</p>
+                </div>
+                <div class="error" :class="{ show: accountingLoginError }">{{ accountingLoginError }}</div>
+                <input type="text" v-model="accountingLoginForm.username" placeholder="记账用户名" @keydown.enter="handleAccountingLogin" />
+                <input type="password" v-model="accountingLoginForm.password" placeholder="记账密码" @keydown.enter="handleAccountingLogin" />
+                <div class="actions">
+                    <button class="btn-primary" @click="handleAccountingLogin" :disabled="accountingLoading">
+                        {{ accountingLoading ? '登录中...' : '登录' }}
+                    </button>
+                    <button class="btn-secondary" @click="showAccountingLogin = false">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 人情登录弹窗 ===== -->
+        <div v-if="showSocialLogin" class="login-overlay" style="z-index: 10002;">
+            <div class="login-box">
+                <div class="title">
+                    <span class="icon">🤝</span>
+                    <h3>登录人情</h3>
+                    <p>输入授权码以查看人情数据</p>
+                </div>
+                <div class="error" :class="{ show: socialLoginError }">{{ socialLoginError }}</div>
+                <input type="password" v-model="socialLoginForm.authCode" placeholder="请输入授权码" @keydown.enter="handleSocialLogin" />
+                <div class="actions">
+                    <button class="btn-primary" @click="handleSocialLogin" :disabled="socialLoading">
+                        {{ socialLoading ? '验证中...' : '登录' }}
+                    </button>
+                    <button class="btn-secondary" @click="showSocialLogin = false">取消</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== 大屏密码验证脚本 ===== -->
+    <script>
+        (function() {
+            const REMEMBER_LOGIN = true;
+            const LOGIN_KEY = "is_login_success";
+            const ADMIN_PASSWORD = "${ADMIN_PASSWORD}";
+            const overlay = document.getElementById('login_overlay');
+            const pwdInput = document.getElementById('pwd_input');
+            const loginBtn = document.getElementById('login_btn');
+
+            if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+                overlay.style.display = 'none';
+                return;
+            }
+
+            function check() {
+                const val = pwdInput.value.trim();
+                if (val === ADMIN_PASSWORD) {
+                    if (REMEMBER_LOGIN) localStorage.setItem(LOGIN_KEY, "true");
+                    overlay.style.display = 'none';
+                } else {
+                    alert('密码错误');
+                    pwdInput.value = '';
+                    pwdInput.focus();
+                }
+            }
+
+            loginBtn.onclick = check;
+            pwdInput.onkeydown = function(e) {
+                if (e.key === 'Enter') check();
+            };
+            pwdInput.focus();
+        })();
+    </script>
+
+    <!-- ===== Vue 应用 ===== -->
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        const app = createApp({
+            setup() {
+                const expandedCard = ref(null);
+                const currentTheme = ref('dark');
+                const isMobile = window.innerWidth <= 480;
+
+                // ===== 备忘录独立密码 =====
+                const showMemoAuth = ref(false);
+                const memoPasswordInput = ref('');
+                const memoPasswordError = ref('');
+                const memoAuthed = ref(false);
+                const MEMO_PASSWORD = "${MEMO_PASSWORD}";
+
+                // ===== 卡片折叠 =====
+                const cardCollapsed = ref({
+                    accounting: false,
+                    social: isMobile ? true : false,
+                    memo: isMobile ? true : false
+                });
+
+                const toggleCard = function(cardName) {
+                    cardCollapsed.value[cardName] = !cardCollapsed.value[cardName];
+                };
+
+                // ===== 备忘录密码验证 =====
+                const verifyMemoPassword = function() {
+                    if (memoPasswordInput.value === MEMO_PASSWORD) {
+                        memoPasswordError.value = '';
+                        memoAuthed.value = true;
+                        showMemoAuth.value = false;
+                        memoPasswordInput.value = '';
+                        expandedCard.value = 'memo';
+                    } else {
+                        memoPasswordError.value = '密码错误，请重试';
+                        memoPasswordInput.value = '';
+                    }
+                };
+
+                // ===== 主题切换 =====
+                const toggleTheme = function() {
+                    const themes = ['dark', 'light', 'blue', 'green'];
+                    const currentIndex = themes.indexOf(currentTheme.value);
+                    const nextIndex = (currentIndex + 1) % themes.length;
+                    currentTheme.value = themes[nextIndex];
+                    document.documentElement.setAttribute('data-theme', currentTheme.value);
+                    localStorage.setItem('dashboard_theme', currentTheme.value);
+                };
+
+                const loadTheme = function() {
+                    const saved = localStorage.getItem('dashboard_theme');
+                    if (saved && ['dark', 'light', 'blue', 'green'].includes(saved)) {
+                        currentTheme.value = saved;
+                        document.documentElement.setAttribute('data-theme', saved);
+                    }
+                };
+
+                // ===== 记账 =====
+                const API_BASE = 'https://shujv.baoge.wang';
+                const ACCOUNTING_TOKEN_KEY = 'dashboard_accounting_token';
+
+                const showAccountingLogin = ref(false);
+                const accountingLoading = ref(false);
+                const accountingLoginError = ref('');
+                const accountingLoginForm = ref({ username: '', password: '' });
+                const accountingToken = ref('');
+
+                const records = ref([]);
+                const categories = ref([]);
+                const accounts = ref([]);
+
+                // ===== 人情 =====
+                const SOCIAL_AUTH_KEY = 'social_auth';
+                const SOCIAL_AUTH_CODE = 'baoge888';
+
+                const showSocialLogin = ref(false);
+                const socialLoading = ref(false);
+                const socialLoginError = ref('');
+                const socialLoginForm = ref({ authCode: '' });
+                const socialIsAuthed = ref(false);
+
+                const socialStats = ref({
+                    totalEvents: 0,
+                    redEvents: 0,
+                    whiteEvents: 0,
+                    otherEvents: 0,
+                    peopleCount: 0,
+                    giveCount: 0,
+                    giveAmount: 0,
+                    receiveCount: 0,
+                    receiveAmount: 0,
+                    selfEventsCount: 0,
+                    selfRecordsCount: 0
+                });
+
+                // ===== 备忘录 =====
+                const memoList = ref([]);
+                const memoInput = ref('');
+
+                // ===== 倒计时 =====
+                const countdownList = ref([]);
+                const countdownName = ref('');
+                const countdownDate = ref('');
+
+                // ===== 编辑弹窗 =====
+                const showEditModal = ref(false);
+                const editModalType = ref('memo');
+                const editIndex = ref(-1);
+                const editForm = ref({ text: '', date: '' });
+
+                // ===== 退出 =====
+                const logout = function() {
+                    localStorage.removeItem('dashboard_auth');
+                    localStorage.removeItem('is_login_success');
+                    document.getElementById('login_overlay').style.display = 'flex';
+                };
+
+                // ===== 保存到KV =====
+                const saveMemoAndCountdown = async function() {
+                    try {
+                        const data = {
+                            memoList: memoList.value,
+                            countdownList: countdownList.value
+                        };
+                        localStorage.setItem('memo_data', JSON.stringify(data));
+                        await fetch('/api/memo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                    } catch (e) {
+                        console.error('保存到KV失败:', e);
+                    }
+                };
+
+                // ===== 从KV加载 =====
+                const loadMemoAndCountdown = async function() {
+                    try {
+                        const localData = localStorage.getItem('memo_data');
+                        if (localData) {
+                            const parsed = JSON.parse(localData);
+                            memoList.value = parsed.memoList || [];
+                            countdownList.value = parsed.countdownList || [];
+                        }
+                        const response = await fetch('/api/memo');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.memoList) memoList.value = data.memoList;
+                            if (data.countdownList) countdownList.value = data.countdownList;
+                            localStorage.setItem('memo_data', JSON.stringify(data));
+                        }
+                    } catch (e) {
+                        console.error('从KV加载失败:', e);
+                    }
+                };
+
+                // ===== 备忘录方法 =====
+                const addMemo = function() {
+                    const text = memoInput.value.trim();
+                    if (!text) return;
+                    memoList.value.push({ text: text, time: Date.now() });
+                    memoInput.value = '';
+                    saveMemoAndCountdown();
+                };
+
+                const deleteMemo = function(index) {
+                    memoList.value.splice(index, 1);
+                    saveMemoAndCountdown();
+                };
+
+                const openEditMemo = function(index) {
+                    editModalType.value = 'memo';
+                    editIndex.value = index;
+                    editForm.value = {
+                        text: memoList.value[index].text,
+                        date: ''
+                    };
+                    showEditModal.value = true;
+                };
+
+                // ===== 倒计时方法 =====
+                const addCountdown = function() {
+                    const name = countdownName.value.trim();
+                    const date = countdownDate.value;
+                    if (!name || !date) {
+                        alert('请填写事件名称和日期');
+                        return;
+                    }
+                    const days = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
+                    countdownList.value.push({ name: name, date: date, days: days });
+                    countdownName.value = '';
+                    countdownDate.value = '';
+                    saveMemoAndCountdown();
+                };
+
+                const deleteCountdown = function(index) {
+                    countdownList.value.splice(index, 1);
+                    saveMemoAndCountdown();
+                };
+
+                const openEditCountdown = function(index) {
+                    editModalType.value = 'countdown';
+                    editIndex.value = index;
+                    const item = countdownList.value[index];
+                    editForm.value = {
+                        text: item.name,
+                        date: item.date
+                    };
+                    showEditModal.value = true;
+                };
+
+                // ===== 编辑弹窗 =====
+                const closeEditModal = function() {
+                    showEditModal.value = false;
+                    editIndex.value = -1;
+                    editForm.value = { text: '', date: '' };
+                };
+
+                const saveEdit = function() {
+                    const text = editForm.value.text.trim();
+                    if (!text) {
+                        alert('内容不能为空');
+                        return;
+                    }
+                    if (editModalType.value === 'memo') {
+                        memoList.value[editIndex.value].text = text;
+                    } else {
+                        const date = editForm.value.date;
+                        if (!date) {
+                            alert('请选择日期');
+                            return;
+                        }
+                        const days = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
+                        countdownList.value[editIndex.value] = {
+                            name: text,
+                            date: date,
+                            days: days
+                        };
+                    }
+                    saveMemoAndCountdown();
+                    closeEditModal();
+                };
+
+                const formatTime = function(ts) {
+                    if (!ts) return '';
+                    const d = new Date(ts);
+                    return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                };
+
+                // ===== 记账方法 =====
+                const loadAccountingToken = function() {
+                    const saved = localStorage.getItem(ACCOUNTING_TOKEN_KEY);
+                    if (saved) {
+                        accountingToken.value = saved;
+                        fetchAccountingData();
+                    }
+                };
+
+                const handleAccountingLogin = async function() {
+                    const username = accountingLoginForm.value.username;
+                    const password = accountingLoginForm.value.password;
+                    if (!username || !password) {
+                        accountingLoginError.value = '请输入用户名和密码';
+                        return;
+                    }
+                    accountingLoginError.value = '';
+                    accountingLoading.value = true;
+
+                    try {
+                        const res = await fetch(API_BASE + '/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: username, password: password })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            accountingToken.value = data.token;
+                            localStorage.setItem(ACCOUNTING_TOKEN_KEY, data.token);
+                            showAccountingLogin.value = false;
+                            accountingLoginForm.value = { username: '', password: '' };
+                            await fetchAccountingData();
+                        } else {
+                            accountingLoginError.value = data.error || '登录失败';
+                        }
+                    } catch (e) {
+                        accountingLoginError.value = '网络请求失败';
+                    } finally {
+                        accountingLoading.value = false;
+                    }
+                };
+
+                const fetchAccountingData = async function() {
+                    if (!accountingToken.value) return;
+                    try {
+                        const res = await fetch(API_BASE + '/api/data', {
+                            headers: { 'Authorization': 'Bearer ' + accountingToken.value }
+                        });
+                        if (res.status === 401) {
+                            localStorage.removeItem(ACCOUNTING_TOKEN_KEY);
+                            accountingToken.value = '';
+                            return;
+                        }
+                        const data = await res.json();
+                        records.value = data.records || [];
+                        categories.value = data.categories || [];
+                        accounts.value = data.accounts || [];
+                    } catch (e) {
+                        console.error('数据加载失败:', e);
+                    }
+                };
+
+                // ===== 人情方法 =====
+                const checkSocialAuth = function() {
+                    try {
+                        const saved = localStorage.getItem(SOCIAL_AUTH_KEY);
+                        if (saved) {
+                            const data = JSON.parse(saved);
+                            if (data.authCode === SOCIAL_AUTH_CODE && data.expireTime > Date.now()) {
+                                socialIsAuthed.value = true;
+                                loadSocialData();
+                                return true;
+                            }
+                        }
+                    } catch (e) { return false; }
+                };
+
+                const handleSocialLogin = async function() {
+                    const input = socialLoginForm.value.authCode.trim();
+                    if (!input) {
+                        socialLoginError.value = '请输入授权码';
+                        return;
+                    }
+                    if (input !== SOCIAL_AUTH_CODE) {
+                        socialLoginError.value = '授权码错误';
+                        return;
+                    }
+
+                    socialLoginError.value = '';
+                    socialLoading.value = true;
+
+                    try {
+                        localStorage.setItem(SOCIAL_AUTH_KEY, JSON.stringify({
+                            authCode: input,
+                            expireTime: Date.now() + 30 * 24 * 60 * 60 * 1000
+                        }));
+                        socialIsAuthed.value = true;
+                        showSocialLogin.value = false;
+                        socialLoginForm.value = { authCode: '' };
+                        await loadSocialData();
+                    } catch (e) {
+                        socialLoginError.value = '加载数据失败';
+                    } finally {
+                        socialLoading.value = false;
+                    }
+                };
+
+                const loadSocialData = async function() {
+                    socialLoading.value = true;
+                    try {
+                        const response = await fetch('https://renqingwangla.baoge.wang/api/download');
+                        if (!response.ok) {
+                            console.error('获取人情数据失败:', response.status);
+                            socialLoading.value = false;
+                            return;
+                        }
+                        const data = await response.json();
+
+                        const events = data.events || [];
+                        const giftRecords = data.accountBookData?.giftRecords || [];
+
+                        const selfEventMap = new Map();
+                        giftRecords.forEach(function(r) {
+                            const key = r.batchId || (r.eventType || '未知') + '_' + (r.name || '未知');
+                            if (!selfEventMap.has(key)) {
+                                selfEventMap.set(key, { type: r.eventType || '公事' });
+                            }
+                        });
+                        const uniqueAccountBookEvents = Array.from(selfEventMap.values());
+
+                        const isRed = function(type) {
+                            if (!type) return false;
+                            const lowerType = type.toLowerCase();
+                            return lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') ||
+                                lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学');
+                        };
+
+                        const isWhite = function(type) {
+                            if (!type) return false;
+                            const lowerType = type.toLowerCase();
+                            return lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
+                                lowerType.includes('悼') || lowerType.includes('祭') || lowerType.includes('葬礼');
+                        };
+
+                        const totalEvents = events.length + uniqueAccountBookEvents.length;
+
+                        let redEvents = 0;
+                        events.forEach(function(e) {
+                            if (isRed(e.type)) redEvents++;
+                        });
+                        uniqueAccountBookEvents.forEach(function(e) {
+                            if (isRed(e.type)) redEvents++;
+                        });
+
+                        let whiteEvents = 0;
+                        events.forEach(function(e) {
+                            if (isWhite(e.type)) whiteEvents++;
+                        });
+                        uniqueAccountBookEvents.forEach(function(e) {
+                            if (isWhite(e.type)) whiteEvents++;
+                        });
+
+                        const otherEvents = totalEvents - redEvents - whiteEvents;
+
+                        let giveCount = 0;
+                        let giveAmount = 0;
+                        events.forEach(function(e) {
+                            if (e.direction === 'out') {
+                                giveCount++;
+                                giveAmount += Number(e.myGift) || 0;
+                            }
+                        });
+
+                        let receiveCount = 0;
+                        let receiveAmount = 0;
+                        giftRecords.forEach(function(r) {
+                            receiveCount++;
+                            receiveAmount += Number(r.amount) || 0;
+                        });
+
+                        const peopleSet = new Set();
+                        events.forEach(function(e) {
+                            if (e.hostName) peopleSet.add(e.hostName);
+                        });
+                        giftRecords.forEach(function(r) {
+                            if (r.name) peopleSet.add(r.name);
+                        });
+
+                        socialStats.value = {
+                            totalEvents: totalEvents,
+                            redEvents: redEvents,
+                            whiteEvents: whiteEvents,
+                            otherEvents: otherEvents,
+                            peopleCount: peopleSet.size,
+                            giveCount: giveCount,
+                            giveAmount: Math.round(giveAmount),
+                            receiveCount: receiveCount,
+                            receiveAmount: Math.round(receiveAmount),
+                            selfEventsCount: uniqueAccountBookEvents.length,
+                            selfRecordsCount: giftRecords.length
+                        };
+
+                        socialLoading.value = false;
+                        console.log('人情数据加载成功:', socialStats.value);
+
+                    } catch (e) {
+                        console.error('加载人情数据失败:', e);
+                        socialLoading.value = false;
+                    }
+                };
+
+                // ===== 计算属性 =====
+                const getCategoryName = function(id) {
+                    const cat = categories.value.find(function(c) { return c.id === id; });
+                    return cat ? cat.name : '未知分类';
+                };
+
+                const currentMonth = computed(function() {
+                    const now = new Date();
+                    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+                });
+
+                const monthRecords = computed(function() {
+                    return records.value.filter(function(r) { return r.date && r.date.startsWith(currentMonth.value); });
+                });
+
+                const totalIncome = computed(function() {
+                    const sum = monthRecords.value.filter(function(r) { return r.type === 'income'; }).reduce(function(s, r) { return s + r.amount; }, 0);
+                    return Math.round(sum);
+                });
+
+                const totalExpense = computed(function() {
+                    const sum = monthRecords.value.filter(function(r) { return r.type === 'expense'; }).reduce(function(s, r) { return s + r.amount; }, 0);
+                    return Math.round(sum);
+                });
+
+                const totalBalance = computed(function() {
+                    return totalIncome.value - totalExpense.value;
+                });
+
+                const accountingMonth = computed(function() {
+                    const now = new Date();
+                    return now.getFullYear() + '年' + (now.getMonth() + 1) + '月';
+                });
+
+                const topCategories = computed(function() {
+                    const map = {};
+                    monthRecords.value.filter(function(r) { return r.type === 'expense'; }).forEach(function(r) {
+                        const name = getCategoryName(r.category) || '未分类';
+                        map[name] = (map[name] || 0) + r.amount;
+                    });
+                    const arr = Object.keys(map).map(function(name) { return { name: name, amount: Math.round(map[name]) }; });
+                    arr.sort(function(a, b) { return b.amount - a.amount; });
+                    const max = arr.length > 0 ? arr[0].amount : 1;
+                    arr.forEach(function(item) {
+                        item.percent = Math.round((item.amount / max) * 100);
+                    });
+                    return arr.slice(0, 6);
+                });
+
+                // ===== 初始化 =====
+                onMounted(function() {
+                    loadTheme();
+                    loadAccountingToken();
+                    checkSocialAuth();
+                    loadMemoAndCountdown();
+
+                    window.addEventListener('resize', function() {
+                        const newIsMobile = window.innerWidth <= 480;
+                        if (newIsMobile && !isMobile) {
+                            cardCollapsed.value.social = true;
+                            cardCollapsed.value.memo = true;
+                        }
+                        if (!newIsMobile && isMobile) {
+                            cardCollapsed.value.social = false;
+                            cardCollapsed.value.memo = false;
+                        }
+                    });
+                });
+
+                return {
+                    expandedCard,
+                    currentTheme,
+                    cardCollapsed,
+                    toggleCard,
+                    toggleTheme,
+                    showAccountingLogin,
+                    accountingLoading,
+                    accountingLoginError,
+                    accountingLoginForm,
+                    accountingToken,
+                    records,
+                    categories,
+                    accounts,
+                    showSocialLogin,
+                    socialLoading,
+                    socialLoginError,
+                    socialLoginForm,
+                    socialIsAuthed,
+                    socialStats,
+                    totalIncome,
+                    totalExpense,
+                    totalBalance,
+                    accountingMonth,
+                    topCategories,
+                    memoList,
+                    memoInput,
+                    countdownList,
+                    countdownName,
+                    countdownDate,
+                    showEditModal,
+                    editModalType,
+                    editIndex,
+                    editForm,
+                    showMemoAuth,
+                    memoPasswordInput,
+                    memoPasswordError,
+                    memoAuthed,
+                    logout,
+                    handleAccountingLogin,
+                    handleSocialLogin,
+                    loadSocialData,
+                    checkSocialAuth,
+                    addMemo,
+                    deleteMemo,
+                    openEditMemo,
+                    addCountdown,
+                    deleteCountdown,
+                    openEditCountdown,
+                    closeEditModal,
+                    saveEdit,
+                    formatTime,
+                    saveMemoAndCountdown,
+                    loadMemoAndCountdown,
+                    verifyMemoPassword
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+
+</body>
+</html>`, {
+            headers: {
+                "content-type": "text/html;charset=UTF-8",
+                "x-powered-by": "Cloudflare Workers"
+            }
+        });
+    }
+};
