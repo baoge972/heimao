@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资源站格式转换工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #eef3fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 12px 48px rgba(0, 20, 40, 0.10);
+            padding: 28px 24px 32px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0a1a2f;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #4b6a8b;
+            background: #eaf0f8;
+            padding: 2px 14px;
+            border-radius: 30px;
+        }
+        .sub {
+            color: #3e5e7e;
+            font-size: 14px;
+            padding: 8px 16px;
+            background: #f0f6ff;
+            border-radius: 8px;
+            margin: 6px 0 20px 0;
+            border-left: 4px solid #2b6eff;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 820px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: #f9fcff;
+            border: 1px solid #dfe8f3;
+            border-radius: 18px;
+            padding: 16px 16px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .panel-head h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #142b44;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #ccd9ea;
+            background: white;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1f3d5e;
+            cursor: pointer;
+            transition: all 0.12s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn:hover {
+            background: #eaf1fb;
+            border-color: #8ab0e6;
+        }
+        .btn-primary {
+            background: #1a4cff;
+            border-color: #1a4cff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0039d6;
+            border-color: #0039d6;
+        }
+        .btn-success {
+            background: #0a7d55;
+            border-color: #0a7d55;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #086543;
+            border-color: #086543;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px dashed #7f9bc0;
+        }
+        .btn-outline:hover {
+            background: #ecf3fd;
+            border-color: #4a7fc7;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 14px 16px;
+            border: 1px solid #d7e2f0;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.7;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            background: #ffffff;
+            resize: vertical;
+            color: #0b1d32;
+            transition: 0.1s;
+        }
+        textarea:focus {
+            outline: 2px solid #2b6eff;
+            outline-offset: -1px;
+            border-color: transparent;
+        }
+        textarea[readonly] {
+            background: #f5f9ff;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 6px 4px 0 4px;
+        }
+        .status-msg {
+            padding: 5px 16px;
+            border-radius: 40px;
+            font-size: 13px;
+            background: #e5effa;
+            color: #004099;
+        }
+        .status-msg.ok {
+            background: #daf1e4;
+            color: #0a6844;
+        }
+        .status-msg.err {
+            background: #ffe6e6;
+            color: #b00020;
+        }
+        .badge-count {
+            background: #e5ecf5;
+            padding: 3px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            color: #1f3d60;
+        }
+        .file-input-hidden {
+            display: none;
+        }
+        .ouo-tag {
+            background: #0a1a2f;
+            color: #b6ceff;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #e1eaf3;
+            margin: 12px 0 6px 0;
+        }
+        .hint-text {
+            font-size: 12px;
+            color: #5b7496;
+            padding: 4px 6px;
+        }
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>
+            <span>⚡</span> 格式转换器
+            <small>JSON → ouo 数组</small>
+        </h1>
+        <span class="ouo-tag">导出 ouo*.json</span>
+    </div>
+    <div class="sub">
+        📌 支持 <strong>嵌套结构</strong>（如 <code>{ "cache_time": 7200, "api_site": { ... } }</code>）<br>
+        自动提取 <code>api_site</code> 或 <code>data</code> 内的站点列表
+    </div>
+
+    <div class="grid">
+        <!-- ====== 左侧：输入 ====== -->
+        <div class="panel">
+            <div class="panel-head">
+                <h2><span>📥</span> 源数据</h2>
+                <div class="btn-group">
+                    <label class="btn btn-outline" for="fileInput">📂 导入 JSON</label>
+                    <input type="file" id="fileInput" class="file-input-hidden" accept=".json,.txt">
+                    <button class="btn" id="pasteBtn">📋 粘贴</button>
+                    <button class="btn btn-primary" id="convertBtn">⟳ 转换</button>
+                </div>
+            </div>
+            <textarea id="inputArea" spellcheck="false" placeholder="在此粘贴 JSON 数据，或点击「导入 JSON」选择文件…"></textarea>
+            <div class="status-bar">
+                <span id="inputCount" class="badge-count">📦 0 项</span>
+                <span id="statusMsg" class="status-msg">⚪ 就绪</span>
+            </div>
+        </div>
+
+        <!-- ====== 右侧：输出 ====== -->
+        <div class="panel">
+            <div class="panel-head">
+                <h2><span>📤</span> 转换结果 <span style="font-weight:400;font-size:13px;color:#4b6a8b;">ouo 格式</span></h2>
+                <div class="btn-group">
+                    <button class="btn btn-success" id="exportBtn">⬇ 导出 JSON</button>
+                    <button class="btn" id="copyBtn">📄 复制</button>
+                    <button class="btn" id="clearBtn">🗑 清空</button>
+                </div>
+            </div>
+            <textarea id="outputArea" spellcheck="false" readonly placeholder="转换后的数组将显示在这里…"></textarea>
+            <div class="status-bar">
+                <span id="outputCount" class="badge-count">📤 0 项</span>
+                <span style="font-size:12px;color:#5b7496;">✨ 自动生成 id (域名转连字符)</span>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:#4a6a8a;padding-top:6px;">
+        <span>💡 支持格式：<code>{ "api_site": { "key": { "name":"", "api":"", "detail":"" } } }</code> 或普通对象/数组</span>
+        <span>🔹 导入后自动识别，点击「转换」生成</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM
+        const inputArea = document.getElementById('inputArea');
+        const outputArea = document.getElementById('outputArea');
+        const convertBtn = document.getElementById('convertBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const fileInput = document.getElementById('fileInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const inputCount = document.getElementById('inputCount');
+        const outputCount = document.getElementById('outputCount');
+        const statusMsg = document.getElementById('statusMsg');
+
+        // ---------- 核心转换 ----------
+        function extractSiteData(parsed) {
+            // 如果数据中有 api_site 字段，提取它
+            if (parsed.api_site && typeof parsed.api_site === 'object') {
+                return parsed.api_site;
+            }
+            // 如果有 data 字段
+            if (parsed.data && typeof parsed.data === 'object') {
+                return parsed.data;
+            }
+            // 否则返回原数据
+            return parsed;
+        }
+
+        function transformToTarget(rawData) {
+            let parsed;
+            try {
+                parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+            } catch (e) {
+                throw new Error('JSON 格式错误，请检查语法');
+            }
+
+            // 提取站点数据（处理嵌套结构）
+            const siteData = extractSiteData(parsed);
+
+            // 如果已经是数组
+            if (Array.isArray(siteData)) {
+                return siteData.map(item => {
+                    const id = item.id || generateId(item.api || item.url || item.detail || '');
+                    const name = item.name || item.title || '未命名';
+                    const url = item.api || item.url || '';
+                    const detailUrl = item.detail || item.detailUrl || extractDetail(url);
+                    return {
+                        id: id,
+                        name: name,
+                        url: url,
+                        detailUrl: detailUrl,
+                        isEnabled: item.isEnabled !== undefined ? item.isEnabled : true
+                    };
+                }).filter(item => item.url && item.url.length > 0);
+            }
+
+            // 对象格式 { key: { name, api, detail } }
+            if (typeof siteData === 'object' && siteData !== null) {
+                const keys = Object.keys(siteData);
+                if (keys.length === 0) return [];
+                const result = [];
+                for (const key of keys) {
+                    const entry = siteData[key];
+                    if (typeof entry !== 'object' || entry === null) continue;
+                    const name = entry.name || entry.title || key;
+                    let api = entry.api || entry.url || '';
+                    let detail = entry.detail || entry.detailUrl || '';
+
+                    // 补全协议
+                    if (api && !api.startsWith('http://') && !api.startsWith('https://')) {
+                        api = 'https://' + api;
+                    }
+                    if (detail && !detail.startsWith('http://') && !detail.startsWith('https://')) {
+                        if (detail.includes('.')) detail = 'https://' + detail;
+                    }
+                    // 如果 detail 为空，从 api 提取
+                    if (!detail && api) {
+                        try {
+                            detail = new URL(api).origin;
+                        } catch (_) {
+                            const m = api.match(/^(?:https?:\/\/)?([^\/]+)/);
+                            if (m) detail = 'https://' + m[1];
+                        }
+                    }
+
+                    let id = key.replace(/\./g, '-').replace(/[^a-zA-Z0-9\-_]/g, '');
+                    if (!id) id = generateId(api || detail || name);
+
+                    result.push({
+                        id: id,
+                        name: name || '未命名',
+                        url: api || '',
+                        detailUrl: detail || '',
+                        isEnabled: entry.isEnabled !== undefined ? entry.isEnabled : true
+                    });
+                }
+                return result.filter(item => item.url && item.url.length > 0);
+            }
+
+            throw new Error('无法识别的数据格式，请提供 JSON 对象或数组');
+        }
+
+        function generateId(str) {
+            try {
+                let host = '';
+                if (str.startsWith('http://') || str.startsWith('https://')) {
+                    host = new URL(str).hostname;
+                } else {
+                    const m = str.match(/^(?:https?:\/\/)?([^\/]+)/);
+                    host = m ? m[1] : str;
+                }
+                host = host.replace(/^www\./, '');
+                return host.replace(/\./g, '-').replace(/[^a-zA-Z0-9\-]/g, '');
+            } catch (_) {
+                return str.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 30);
+            }
+        }
+
+        function extractDetail(api) {
+            if (!api) return '';
+            try {
+                return new URL(api).origin;
+            } catch (_) {
+                const m = api.match(/^(?:https?:\/\/)?([^\/]+)/);
+                return m ? 'https://' + m[1] : '';
+            }
+        }
+
+        // ---------- UI 更新 ----------
+        function setStatus(msg, type) {
+            statusMsg.textContent = msg;
+            statusMsg.className = 'status-msg';
+            if (type === 'ok') statusMsg.classList.add('ok');
+            else if (type === 'err') statusMsg.classList.add('err');
+        }
+
+        function updateCounts(inputArr, outputArr) {
+            const inLen = Array.isArray(inputArr) ? inputArr.length : 0;
+            inputCount.textContent = `📦 ${inLen} 项`;
+            outputCount.textContent = `📤 ${outputArr.length} 项`;
+        }
+
+        function performConversion() {
+            const raw = inputArea.value.trim();
+            if (!raw) {
+                setStatus('⚠️ 请先粘贴或导入数据', 'err');
+                outputArea.value = '[]';
+                outputCount.textContent = '📤 0 项';
+                return;
+            }
+
+            try {
+                const result = transformToTarget(raw);
+                if (!Array.isArray(result)) throw new Error('转换结果不是数组');
+                const pretty = JSON.stringify(result, null, 2);
+                outputArea.value = pretty;
+                // 尝试统计输入项
+                try {
+                    const p = JSON.parse(raw);
+                    const siteData = extractSiteData(p);
+                    const cnt = Array.isArray(siteData) ? siteData.length : Object.keys(siteData).length;
+                    inputCount.textContent = `📦 ${cnt} 项`;
+                } catch (_) {}
+                outputCount.textContent = `📤 ${result.length} 项`;
+                setStatus(`✅ 转换成功 (${result.length} 项)`, 'ok');
+            } catch (err) {
+                setStatus(`❌ ${err.message}`, 'err');
+                outputArea.value = `// 转换失败\n// ${err.message}`;
+                outputCount.textContent = '📤 0 项';
+            }
+        }
+
+        // ---------- 事件绑定 ----------
+        convertBtn.addEventListener('click', performConversion);
+
+        // 粘贴
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                inputArea.value = text;
+                setStatus('📋 已粘贴，点击「转换」', 'ok');
+                try {
+                    const p = JSON.parse(text);
+                    const siteData = extractSiteData(p);
+                    const cnt = Array.isArray(siteData) ? siteData.length : Object.keys(siteData).length;
+                    inputCount.textContent = `📦 ${cnt} 项`;
+                } catch (_) {}
+            } catch (_) {
+                setStatus('❌ 无法读取剪贴板，请手动粘贴', 'err');
+            }
+        });
+
+        // 导入文件
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const content = ev.target.result;
+                    inputArea.value = content;
+                    setStatus(`📂 已加载: ${file.name}`, 'ok');
+                    // 自动转换
+                    performConversion();
+                } catch (err) {
+                    setStatus(`❌ 读取文件失败: ${err.message}`, 'err');
+                }
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+
+        // 导出
+        exportBtn.addEventListener('click', function() {
+            const content = outputArea.value;
+            if (!content || content.trim() === '' || content.trim() === '[]') {
+                setStatus('⚠️ 没有数据可导出', 'err');
+                return;
+            }
+            try {
+                JSON.parse(content);
+            } catch (_) {
+                setStatus('❌ 输出内容不是合法 JSON', 'err');
+                return;
+            }
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const ts = new Date().toISOString().slice(0, 10);
+            a.download = `ouo_resources_${ts}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setStatus(`✅ 已导出 ouo_resources_${ts}.json`, 'ok');
+        });
+
+        // 复制
+        copyBtn.addEventListener('click', function() {
+            const content = outputArea.value;
+            if (!content) {
+                setStatus('⚠️ 无内容可复制', 'err');
+                return;
+            }
+            navigator.clipboard.writeText(content).then(() => {
+                setStatus('📄 已复制到剪贴板', 'ok');
+            }).catch(() => {
+                outputArea.select();
+                document.execCommand('copy');
+                setStatus('📄 已复制 (fallback)', 'ok');
+            });
+        });
+
+        // 清空
+        clearBtn.addEventListener('click', function() {
+            outputArea.value = '';
+            outputCount.textContent = '📤 0 项';
+            setStatus('🗑 已清空', 'ok');
+        });
+
+        // Ctrl+Enter 快速转换
+        inputArea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                performConversion();
+            }
+        });
+
+        // 初始状态
+        setStatus('⚪ 请粘贴或导入数据', '');
+        outputArea.value = '[]';
+        outputCount.textContent = '📤 0 项';
+        inputCount.textContent = '📦 0 项';
+    })();
+</script>
+</body>
+</html>
