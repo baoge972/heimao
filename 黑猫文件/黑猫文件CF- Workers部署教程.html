@@ -233,41 +233,130 @@
         </p>
 
         <h2>🔐 Hash 计算指南</h2>
-        <p>用于生成 <code>ADMIN_PASSWORD_HASH</code> 环境变量值</p>
-        
-        <div class="step">
-            <span class="step-number">1</span>
-            <strong>公式</strong>
-            <ul>
-                <li>输入：<code>盐值 + 密码</code>（直接拼接，无空格）</li>
-                <li>示例：<code>D-File-2024-Secureadmin123</code></li>
-            </ul>
-        </div>
-        
-        <div class="step">
-            <span class="step-number">2</span>
-            <strong>计算</strong>
-            <ul>
-                <li>在线工具：<a href="https://www.lzltool.com/data-sha256" target="_blank">lzltool.com/data-sha256</a></li>
-                <li>或浏览器控制台：
-<pre><code>crypto.subtle.digest('SHA-256', new TextEncoder().encode('D-File-2024-Secureadmin123'))
-  .then(h => console.log(Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,'0')).join('')))</code></pre>
-                </li>
-            </ul>
-        </div>
-        
-        <div class="step">
-            <span class="step-number">3</span>
-            <strong>结果</strong>
-            <ul>
-                <li>复制 64 位哈希值 → 填入 <code>ADMIN_PASSWORD_HASH</code></li>
-                <li>示例：<code>d0c53f565930885c93a1b6193de1835a5bd6fb85df14bf55f797b8364fc298cc</code></li>
-            </ul>
-        </div>
-        
-        <div class="warning">
-            ⚠️ 盐值必须与 <code>PASSWORD_SALT</code> 一致 | 区分大小写 | 无空格
-        </div>
+<p>用于生成 <code>ADMIN_PASSWORD_HASH</code> 环境变量值</p>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <strong>公式</strong>
+    <ul>
+        <li>输入：<code>盐值 + 密码</code>（直接拼接，无空格）</li>
+        <li>盐值：<code>D-File-2024-Secure</code></li>
+    </ul>
+</div>
+
+<div class="step">
+    <span class="step-number">2</span>
+    <strong>计算</strong>
+    <ul>
+        <li>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;">
+                <span style="color:#999;">盐值 + 密码：</span>
+                <code style="background:#1e1e1e;padding:6px 12px;border-radius:4px;border:1px solid #333;">D-File-2024-Secure</code>
+                <span style="color:#ff9000;">+</span>
+                <input type="password" id="hashPwdInput" placeholder="输入你的密码" style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:6px 12px;color:#fff;min-width:150px;" />
+                <button onclick="calcHash()" style="background:#ff9000;color:#000;border:none;border-radius:4px;padding:6px 16px;cursor:pointer;font-weight:bold;">计算哈希</button>
+                <button onclick="document.getElementById('hashPwdInput').value=''" style="background:#333;color:#fff;border:1px solid #555;border-radius:4px;padding:6px 12px;cursor:pointer;">清空</button>
+            </div>
+            <div id="hashResult" style="margin-top:8px;padding:12px;background:#0a0a0a;border:1px solid #333;border-radius:6px;font-family:monospace;font-size:14px;color:#4ade80;display:none;">
+                <span style="color:#999;">哈希值：</span>
+                <span id="hashValue"></span>
+                <button onclick="copyHashResult()" style="margin-left:12px;background:#333;color:#fff;border:1px solid #555;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px;">📋 复制</button>
+            </div>
+            <div id="hashError" style="margin-top:8px;padding:12px;background:#0a0a0a;border:1px solid #f87171;border-radius:6px;color:#f87171;display:none;"></div>
+        </li>
+        <li style="margin-top:8px;color:#666;font-size:13px;">
+            💡 或使用在线工具：<a href="https://www.lzltool.com/data-sha256" target="_blank" style="color:#ff9000;">lzltool.com/data-sha256</a>
+        </li>
+    </ul>
+</div>
+
+<div class="step">
+    <span class="step-number">3</span>
+    <strong>结果</strong>
+    <ul>
+        <li>复制 64 位哈希值 → 填入 <code>ADMIN_PASSWORD_HASH</code></li>
+        <li>示例密码 <code>admin123</code> 的哈希：<code>cfb36cf8d162c02ab8c0f78cd31a4db68bca86dc8a2f90b3ee8a578b19e45648</code></li>
+    </ul>
+</div>
+
+<div class="warning">
+    ⚠️ 盐值必须与 <code>PASSWORD_SALT</code> 一致 | 区分大小写 | 无空格
+</div>
+
+<script>
+function calcHash() {
+    const pwdInput = document.getElementById('hashPwdInput');
+    const password = pwdInput.value.trim();
+    const resultDiv = document.getElementById('hashResult');
+    const errorDiv = document.getElementById('hashError');
+    const hashSpan = document.getElementById('hashValue');
+    
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    if (!password) {
+        errorDiv.textContent = '⚠️ 请输入你的密码';
+        errorDiv.style.display = 'block';
+        pwdInput.focus();
+        return;
+    }
+    
+    if (password.length < 4) {
+        errorDiv.textContent = '⚠️ 密码至少 4 位，建议使用复杂密码';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // 盐值（从页面中获取，保持一致）
+    const salt = 'D-File-2024-Secure';
+    const msg = salt + password;
+    
+    // 计算哈希
+    const encoder = new TextEncoder();
+    const data = encoder.encode(msg);
+    
+    crypto.subtle.digest('SHA-256', data)
+        .then(h => {
+            const hex = Array.from(new Uint8Array(h))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+            hashSpan.textContent = hex;
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderColor = '#4ade80';
+            // 清空密码框（安全）
+            pwdInput.value = '';
+        })
+        .catch(err => {
+            errorDiv.textContent = '❌ 计算失败：' + err.message;
+            errorDiv.style.display = 'block';
+        });
+}
+
+function copyHashResult() {
+    const hash = document.getElementById('hashValue').textContent;
+    navigator.clipboard.writeText(hash).then(() => {
+        const btn = event.target;
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => { btn.textContent = '📋 复制'; }, 2000);
+    }).catch(() => {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = hash;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('已复制哈希值');
+    });
+}
+
+// 回车键触发计算
+document.getElementById('hashPwdInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        calcHash();
+    }
+});
+</script>
         
         <h2>📊 系统架构</h2>
         <p><strong>工作流程：</strong></p>
