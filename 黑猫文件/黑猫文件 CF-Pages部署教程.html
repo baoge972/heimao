@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑猫文件管理系统 CF-Pages 部署教程</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #ff9000;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        h2 {
+            color: #ff9000;
+            margin: 30px 0 15px;
+            font-size: 22px;
+            border-left: 4px solid #ff9000;
+            padding-left: 12px;
+        }
+        h3 {
+            color: #ffb347;
+            margin: 20px 0 10px;
+            font-size: 18px;
+        }
+        .step {
+            background: rgba(255, 144, 0, 0.05);
+            border: 1px solid rgba(255, 144, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff9000, #ffb347);
+            color: #000;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: "Courier New", monospace;
+            color: #4ade80;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: #e0e0e0;
+        }
+        .tip {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .warning {
+            background: rgba(248, 113, 113, 0.1);
+            border-left: 4px solid #f87171;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .highlight {
+            color: #ff9000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 黑猫文件管理系统 CF-Pages 部署教程</h1>
+        
+        <div class="step">
+            <h2><span class="step-number">1</span>准备文件</h2>
+            <p>本目录下已有优化好的 <code>黑猫文件-hash.html</code>（已修复滚动问题+完善删除逻辑）</p>
+            <div class="tip">
+                💡 <strong>说明</strong>：上传到 GitHub 时需命名为 <code>index.html</code>，该文件已集成所有功能（登录验证、5主题、CDN测速、文件管理等），无需其他依赖文件
+            </div>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">2</span>创建 GitHub Token</h2>
+            <h3>目标</h3>
+            <p>生成访问 GitHub API 的令牌（必需权限：public_repo）</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>打开 <a href="https://github.com/settings/tokens/new" target="_blank">GitHub Token 创建页面</a></li>
+                <li>Token 名称填写：<code>D-File Pages</code></li>
+                <li>过期时间选择：<code>No expiration</code>（或按需选择）</li>
+                <li>勾选权限：<code>public_repo</code>（公开仓库访问）</li>
+                <li>滚动到底部点击 <strong>Generate token</strong></li>
+                <li>⚠️ <strong>立即复制 Token</strong>（格式：ghp_xxxxxxxxxxxx，只显示一次）</li>
+            </ol>
+            
+            <div class="warning">
+                ⚠️ <strong>重要</strong>：Token 生成后只显示一次，务必立即复制保存到安全位置！
+            </div>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">3</span>创建 GitHub 仓库</h2>
+            <h3>目标</h3>
+            <p>创建一个新的 GitHub 仓库用于托管文件</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>打开 <a href="https://github.com/new" target="_blank">https://github.com/new</a></li>
+                <li>填写仓库名称（如 <code>dfile-pages</code>）</li>
+                <li>选择 <strong>Public</strong>（公开仓库）</li>
+                <li>勾选 <strong>Add a README file</strong></li>
+                <li>点击 <strong>Create repository</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">4</span>上传 index.html</h2>
+            <h3>目标</h3>
+            <p>将单文件上传到仓库根目录</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>打开刚创建的 GitHub 仓库</li>
+                <li>点击 <strong>Add file</strong> → <strong>Upload files</strong></li>
+                <li>将 <code>黑猫文件-hash.html</code> 的内容保存为 <code>index.html</code></li>
+                <li>填写 Commit message（如 <code>"初始部署"</code>）</li>
+                <li>点击 <strong>Commit changes</strong></li>
+            </ol>
+            
+            <div class="tip">
+                ✅ <strong>完成标志</strong>：仓库根目录能看到 <code>index.html</code> 文件
+            </div>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">5</span>Cloudflare Pages 部署</h2>
+            <h3>目标</h3>
+            <p>在 Cloudflare 绑定仓库，自动部署 Pages</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>打开 <a href="https://dash.cloudflare.com/" target="_blank">Cloudflare Dashboard</a></li>
+                <li>左侧菜单点击 <strong>Workers & Pages</strong></li>
+                <li>点击 <strong>Create application</strong> → 选择 <strong>Pages</strong> 标签</li>
+                <li>点击 <strong>Connect to Git</strong></li>
+                <li>授权 GitHub 账号 → 选择刚创建的仓库</li>
+                <li>配置部署设置：
+                    <ul>
+                        <li><strong>Production branch</strong>: <code>main</code></li>
+                        <li><strong>Build command</strong>: <strong>留空</strong>（纯静态无需构建）</li>
+                        <li><strong>Build output directory</strong>: <strong>留空</strong>（默认根目录）</li>
+                    </ul>
+                </li>
+                <li>点击 <strong>Save and Deploy</strong></li>
+            </ol>
+            
+            <div class="tip">
+                ⏱️ <strong>预计耗时</strong>：首次部署约 1-2 分钟
+            </div>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">6</span>访问与配置</h2>
+            <h3>目标</h3>
+            <p>验证部署成功并配置 GitHub Token</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>部署完成后，CF 会生成域名：<code>https://你的项目名.pages.dev</code></li>
+                <li>浏览器打开该域名 → 应看到登录界面</li>
+                <li>输入密码 <code class="highlight">baoge</code> 登录</li>
+                <li>点击 <strong>⚙️ 配置</strong> → 输入仓库地址和 GitHub Token</li>
+                <li>点击 <strong>💾 保存配置</strong> → 页面自动刷新</li>
+                <li>应能看到仓库文件列表</li>
+            </ol>
+            
+            <div class="warning">
+                ⚠️ <strong>重要</strong>：GitHub Token 需要 <code>public_repo</code> 权限<br>
+                创建地址：<a href="https://github.com/settings/tokens/new" target="_blank">https://github.com/settings/tokens/new</a>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2><span class="step-number">7</span>后续更新</h2>
+            <h3>目标</h3>
+            <p>修改代码后自动重新部署</p>
+            
+            <h3>操作</h3>
+            <ol>
+                <li>在 GitHub 仓库中点击 <code>index.html</code></li>
+                <li>点击右上角 <strong>✏️ Edit</strong> 按钮</li>
+                <li>修改代码内容</li>
+                <li>填写 Commit message → 点击 <strong>Commit changes</strong></li>
+                <li>Cloudflare Pages 会自动检测推送并在 <strong>30 秒内</strong>重新部署</li>
+            </ol>
+            
+            <div class="tip">
+                ✅ <strong>自动部署</strong>：每次 Commit 都会触发 Pages 重新构建，无需手动操作
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>🔐 安全配置说明</h2>
+            
+            <h3>1. 登录密码修改</h3>
+            <p>编辑 <code>index.html</code> 第 <code>997</code> 行：</p>
+            <pre><code>const LOGIN_PASSWORD = "baoge"; // 修改为你的密码</code></pre>
+            
+            <h3>2. 删除密码哈希计算（SHA256+Salt）</h3>
+            <p>文件使用哈希验证删除操作，修改密码需要重新计算哈希值：</p>
+            <ol>
+                <li>打开浏览器控制台（F12）</li>
+                <li>粘贴以下代码并回车：</li>
+            </ol>
+            <pre><code>// 复制运行，输入你的密码，生成哈希值
+async function generateHash(password) {
+    const SALT = "D-File-2024-Secure";
+    const msgBuffer = new TextEncoder().encode(SALT + password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log("你的密码哈希值：", hashHex);
+    return hashHex;
+}
+generateHash("你的新密码");</code></pre>
+            <li>将输出的哈希值替换到 <code>index.html</code> 第 <code>1054</code> 行：</li>
+            <pre><code>const CORRECT_PASSWORD_HASH = "你的哈希值";</code></pre>
+            
+            <div class="tip">
+                💡 <strong>提示</strong>：登录密码（第 997 行）和删除密码（第 1054 行）可以不同，建议分别设置
+            </div>
+            
+            <h3>3. 盐值修改（可选）</h3>
+            <p>增强安全性，可修改盐值（第 1047 行）：</p>
+            <pre><code>const PASSWORD_SALT = "自定义盐值"; // 修改后需重新计算哈希</code></pre>
+        </div>
+
+        <div class="step">
+            <h2>📋 常见问题</h2>
+            
+            <h3>Q1: 访问显示 404？</h3>
+            <p>检查仓库根目录是否有 <code>index.html</code> 文件</p>
+            
+            <h3>Q2: 登录失败？</h3>
+            <p>默认密码为 <code class="highlight">baoge</code>（区分大小写）</p>
+            
+            <h3>Q3: 文件列表加载失败？</h3>
+            <p>检查 GitHub Token 是否有效，权限是否包含 <code>public_repo</code></p>
+            
+            <h3>Q4: 如何自定义域名？</h3>
+            <p>在 Cloudflare Pages 设置 → Custom domains → 添加你的域名</p>
+        </div>
+
+        <div class="tip" style="margin-top: 40px; text-align: center;">
+            🎉 <strong>部署完成</strong>！现在可以通过 Cloudflare Pages 域名访问黑猫文件管理系统了
+        </div>
+    </div>
+</body>
+</html>
