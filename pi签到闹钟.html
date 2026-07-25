@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>pi签到闹钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f5f0ff 0%, #e8dff5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            /* 移动端安全区域 */;
+        }
+
+        /* 主卡片 — 移动优先设计 */
+        .alarm-card {
+            max-width: 460px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 36px;
+            box-shadow: 0 20px 48px -12px rgba(120, 80, 200, 0.25),
+                        0 8px 24px -6px rgba(80, 40, 160, 0.08),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            padding: 24px 20px 30px;
+            border: 1px solid rgba(200, 170, 240, 0.25);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        /* 重置按钮 — 右上角，触摸友好 */
+        .reset-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(200, 175, 240, 0.25);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(180, 140, 230, 0.2);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            color: #5a3d8a;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(100, 60, 180, 0.06);
+            z-index: 10;
+            touch-action: manipulation;
+        }
+
+        .reset-btn:hover {
+            background: rgba(200, 175, 240, 0.4);
+            transform: rotate(60deg) scale(1.05);
+        }
+
+        .reset-btn:active {
+            transform: rotate(120deg) scale(0.92);
+            background: rgba(180, 140, 230, 0.3);
+        }
+
+        .reset-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* 头部 — 移动适配 */
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-right: 50px;
+            /* 给重置按钮让位 */;
+        }
+
+        .card-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #6a3da8, #8b5fcf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-header h1 span {
+            font-size: 24px;
+            -webkit-text-fill-color: initial;
+            color: #b38bdf;
+        }
+
+        .badge {
+            background: rgba(130, 80, 200, 0.10);
+            backdrop-filter: blur(4px);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #5a3d8a;
+            border: 0.5px solid rgba(180, 140, 230, 0.25);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .badge .live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #a78bdb;
+            border-radius: 10px;
+            box-shadow: 0 0 0 2px rgba(140, 100, 210, 0.20);
+            animation: pulse-dot 1.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* 当前时间显示 — 触摸友好 */
+        .now-display {
+            background: rgba(200, 175, 240, 0.15);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 0.5px solid rgba(180, 140, 230, 0.20);
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #4a3570;
+        }
+
+        .now-display .now-label {
+            opacity: 0.6;
+            font-weight: 450;
+        }
+
+        .now-display .now-value {
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 2px 16px;
+            border-radius: 20px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+            color: #4a2f7a;
+            font-size: 16px;
+        }
+
+        /* 输入组 — 移动优化 */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 14px;
+        }
+
+        .input-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a3570;
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .input-group label .hint {
+            font-weight: 400;
+            opacity: 0.5;
+            font-size: 12px;
+        }
+
+        /* 输入框 — 触摸区域放大 */
+        .input-field {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(4px);
+            border: 1.5px solid rgba(180, 140, 230, 0.25);
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #2d1f4a;
+            outline: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.5px;
+            font-variant-numeric: tabular-nums;
+            min-height: 52px;
+            /* 触摸友好 */;
+        }
+
+        .input-field:focus {
+            border-color: #9b7bdb;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 0 4px rgba(140, 100, 210, 0.10), 0 2px 8px rgba(100, 60, 180, 0.06);
+        }
+
+        .input-field::placeholder {
+            color: #b0a0c8;
+            font-weight: 400;
+            opacity: 0.6;
+            font-size: 16px;
+            letter-spacing: 0.3px;
+        }
+
+        .input-field.input-advance {
+            max-width: 120px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* 格式化显示 — 整合到输入框下方 */
+        .format-display {
+            font-size: 14px;
+            color: #5a4380;
+            padding: 4px 6px 0 6px;
+            min-height: 26px;
+            font-weight: 450;
+            letter-spacing: 0.2px;
+            opacity: 0.85;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .format-display .fmt-label {
+            opacity: 0.5;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        .format-display .fmt-highlight {
+            background: rgba(160, 120, 220, 0.10);
+            padding: 0 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            color: #4a2f7a;
+            font-size: 14px;
+        }
+        .format-display .fmt-empty {
+            opacity: 0.35;
+            font-weight: 400;
+            font-size: 13px;
+        }
+
+        .row-duo {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .row-duo .input-group {
+            flex: 1 1 0;
+            min-width: 110px;
+        }
+
+        .row-duo .input-group:last-child {
+            flex: 0 0 auto;
+        }
+
+        /* 结果区域 — 移动突出 */
+        .result-section {
+            margin: 18px 0 16px;
+            background: rgba(200, 175, 240, 0.15);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border: 1px solid rgba(180, 140, 230, 0.20);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 6px 14px -8px rgba(100, 60, 180, 0.08);
+        }
+
+        .result-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-label .icon-bell {
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .result-label span {
+            font-weight: 500;
+            color: #3d2a60;
+            font-size: 15px;
+            letter-spacing: 0.2px;
+        }
+
+        .result-time {
+            font-size: 32px;
+            font-weight: 600;
+            color: #2d1a52;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 2px 18px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+            letter-spacing: 1.5px;
+            font-variant-numeric: tabular-nums;
+            border: 0.5px solid rgba(255, 255, 255, 0.3);
+            min-width: 80px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .result-time.placeholder {
+            color: #b0a0c8;
+            font-weight: 400;
+            font-size: 20px;
+            padding: 2px 14px;
+        }
+
+        /* 按钮 — 移动触摸优化 */
+        .action-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #7a4fc0, #9b6fd8);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 18px;
+            font-weight: 550;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 16px -6px rgba(100, 60, 180, 0.30);
+            backdrop-filter: blur(4px);
+            border: 0.5px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 56px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+            background: #6a3fa8;
+        }
+
+        .action-btn i {
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* 脚注 */
+        .footnote {
+            margin-top: 16px;
+            text-align: center;
+            color: #6a5390;
+            font-size: 12px;
+            opacity: 0.6;
+            letter-spacing: 0.2px;
+            border-top: 0.5px solid rgba(160, 130, 200, 0.15);
+            padding-top: 14px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        .footnote strong {
+            font-weight: 500;
+            color: #4a2f7a;
+        }
+
+        .format-tip {
+            display: inline-block;
+            background: rgba(160, 120, 220, 0.06);
+            padding: 1px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            color: #6a5390;
+            font-weight: 400;
+        }
+
+        /* ========== 移动端专项优化 ========== */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+
+            .alarm-card {
+                padding: 20px 16px 24px;
+                border-radius: 28px;
+                margin: 0 auto;
+            }
+
+            .card-header {
+                padding-right: 48px;
+                margin-bottom: 16px;
+            }
+
+            .card-header h1 {
+                font-size: 18px;
+            }
+            .card-header h1 span {
+                font-size: 20px;
+            }
+
+            .reset-btn {
+                top: 14px;
+                right: 14px;
+                width: 40px;
+                height: 40px;
+                min-height: 40px;
+                min-width: 40px;
+            }
+            .reset-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            .badge {
+                font-size: 10px;
+                padding: 3px 10px;
+            }
+
+            .now-display {
+                padding: 8px 14px;
+                font-size: 13px;
+                margin-bottom: 14px;
+                border-radius: 24px;
+            }
+            .now-display .now-value {
+                font-size: 14px;
+                padding: 1px 12px;
+            }
+
+            .row-duo {
+                gap: 10px;
+                flex-direction: row;
+            }
+
+            .row-duo .input-group {
+                flex: 1 1 0;
+                min-width: 0;
+            }
+
+            .row-duo .input-group:last-child {
+                flex: 0 0 38%;
+                max-width: 38%;
+            }
+
+            .input-field {
+                padding: 12px 14px;
+                font-size: 16px;
+                min-height: 46px;
+                border-radius: 16px;
+            }
+
+            .input-field.input-advance {
+                max-width: 100%;
+                font-size: 18px;
+                min-height: 46px;
+            }
+
+            .format-display {
+                font-size: 12px;
+                min-height: 22px;
+                padding: 2px 4px 0 4px;
+            }
+            .format-display .fmt-label {
+                font-size: 11px;
+            }
+            .format-display .fmt-highlight {
+                font-size: 12px;
+                padding: 0 8px;
+            }
+            .format-display .fmt-empty {
+                font-size: 11px;
+            }
+
+            .result-section {
+                padding: 12px 14px;
+                margin: 14px 0 12px;
+                border-radius: 22px;
+            }
+
+            .result-label span {
+                font-size: 14px;
+            }
+            .result-label .icon-bell {
+                font-size: 18px;
+            }
+
+            .result-time {
+                font-size: 26px;
+                padding: 0 14px;
+                min-width: 70px;
+            }
+            .result-time.placeholder {
+                font-size: 18px;
+                padding: 0 10px;
+            }
+
+            .action-btn {
+                padding: 14px 16px;
+                font-size: 16px;
+                min-height: 50px;
+                border-radius: 32px;
+                margin-top: 10px;
+            }
+
+            .footnote {
+                font-size: 11px;
+                padding-top: 12px;
+                margin-top: 12px;
+            }
+
+            .format-tip {
+                font-size: 10px;
+                padding: 0 8px;
+            }
+        }
+
+        /* 极小屏幕 (iPhone SE等) */
+        @media (max-width: 380px) {
+            .alarm-card {
+                padding: 16px 12px 20px;
+                border-radius: 24px;
+            }
+
+            .card-header h1 {
+                font-size: 16px;
+            }
+            .card-header h1 span {
+                font-size: 18px;
+            }
+
+            .reset-btn {
+                top: 10px;
+                right: 10px;
+                width: 36px;
+                height: 36px;
+                min-height: 36px;
+                min-width: 36px;
+            }
+            .reset-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .input-field {
+                padding: 10px 12px;
+                font-size: 15px;
+                min-height: 40px;
+            }
+
+            .result-time {
+                font-size: 22px;
+                min-width: 60px;
+                padding: 0 10px;
+            }
+
+            .action-btn {
+                padding: 12px 14px;
+                font-size: 15px;
+                min-height: 44px;
+            }
+        }
+
+        /* 横屏提示优化 */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 8px 16px;
+                align-items: center;
+            }
+            .alarm-card {
+                padding: 16px 18px 20px;
+                max-width: 500px;
+            }
+            .card-header {
+                margin-bottom: 10px;
+            }
+            .now-display {
+                margin-bottom: 10px;
+                padding: 6px 14px;
+            }
+            .input-group {
+                margin-bottom: 8px;
+            }
+            .result-section {
+                margin: 10px 0 10px;
+                padding: 10px 14px;
+            }
+            .action-btn {
+                margin-top: 8px;
+                padding: 12px 16px;
+                min-height: 42px;
+            }
+            .footnote {
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="alarm-card" role="main" aria-label="签到闹钟 · 移动优化">
+        <!-- 重置按钮 — 右上角 -->
+        <button class="reset-btn" id="resetBtn" title="清空所有输入，重置计算" aria-label="重置">
+            <svg viewBox="0 0 24 24">
+                <path d="M1 4v6h6" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+        </button>
+
+        <div class="card-header">
+            <h1>
+                <span>⏰</span> 签到闹钟
+            </h1>
+            <div class="badge">
+                <span class="live-dot"></span> 24h
+            </div>
+        </div>
+
+        <!-- 当前时间 (自动) -->
+        <div class="now-display">
+            <span class="now-label">📡 当前时间</span>
+            <span class="now-value" id="autoNowTime">--:--</span>
+        </div>
+
+        <!-- 隐藏的 nowInput 用于计算 -->
+        <input type="hidden" id="nowTime" value="">
+
+        <!-- 两个输入：剩余时间 & 提前时间 -->
+        <div class="row-duo">
+            <div class="input-group">
+                <label for="remainTime">
+                    ⏳ 剩余时间
+                    <span class="format-tip">如 1122</span>
+                </label>
+                <input type="text" id="remainTime" class="input-field" 
+                       placeholder="输入数字" maxlength="4" inputmode="numeric"
+                       value="" autocomplete="off">
+                <div class="format-display" id="remainFormat">
+                    <span class="fmt-label">距签到到期的时长</span>
+                    <span class="fmt-empty" id="remainEmpty">⏱️ 等待输入</span>
+                    <span class="fmt-highlight" id="remainValue" style="display:none;"></span>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="advanceTime">
+                    ⏩ 提前
+                    <span class="format-tip">分钟</span>
+                </label>
+                <input type="text" id="advanceTime" class="input-field input-advance" 
+                       placeholder="0" maxlength="3" inputmode="numeric"
+                       value="" autocomplete="off">
+                <div class="format-display" id="advanceFormat">
+                    <span class="fmt-label">提前打开应用</span>
+                    <span class="fmt-empty" id="advanceEmpty">⏱️ 等待输入</span>
+                    <span class="fmt-highlight" id="advanceValue" style="display:none;"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 输出：闹钟时间 -->
+        <div class="result-section" id="resultSection">
+            <div class="result-label">
+                <span class="icon-bell">🔔</span>
+                <span>闹钟时间</span>
+            </div>
+            <div class="result-time placeholder" id="alarmDisplay">--:--</div>
+        </div>
+
+        <button class="action-btn" id="calculateBtn">
+            <i>⚡</i> 计算闹钟
+        </button>
+
+        <div class="footnote">
+            <strong>规则</strong> · 每次签到后需等待 <strong>24小时</strong> 到期<br>
+            闹钟 = 当前时间 + 剩余时间 − 提前时间
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // DOM
+            const nowInput = document.getElementById('nowTime');
+            const remainInput = document.getElementById('remainTime');
+            const advanceInput = document.getElementById('advanceTime');
+            const alarmDisplay = document.getElementById('alarmDisplay');
+            const calcBtn = document.getElementById('calculateBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const autoNowDisplay = document.getElementById('autoNowTime');
+
+            const remainEmpty = document.getElementById('remainEmpty');
+            const remainValue = document.getElementById('remainValue');
+            const advanceEmpty = document.getElementById('advanceEmpty');
+            const advanceValue = document.getElementById('advanceValue');
+
+            // ---- 解析：数字 → { hour, minute, totalMinutes, display } ----
+            function parseTimeInput(raw) {
+                let digits = raw.replace(/\D/g, '');
+                if (digits.length === 0) {
+                    return { valid: false, hour: 0, minute: 0, totalMinutes: 0, display: '' };
+                }
+                let padded = digits;
+                while (padded.length < 4) padded = '0' + padded;
+                padded = padded.slice(0, 4);
+                let hour = parseInt(padded.slice(0, 2), 10);
+                let minute = parseInt(padded.slice(2, 4), 10);
+                if (isNaN(hour)) hour = 0;
+                if (isNaN(minute)) minute = 0;
+                if (hour > 23) hour = 23;
+                if (minute > 59) minute = 59;
+                const total = hour * 60 + minute;
+                let parts = [];
+                if (hour > 0) parts.push(`${hour}小时`);
+                if (minute > 0) parts.push(`${minute}分钟`);
+                if (parts.length === 0) parts.push('0分钟');
+                return {
+                    valid: true,
+                    hour, minute, totalMinutes: total,
+                    display: parts.join(' ')
+                };
+            }
+
+            // ---- 更新格式化显示 ----
+            function updateRemainFormat() {
+                const val = remainInput.value;
+                if (val.length === 0) {
+                    remainEmpty.style.display = 'inline';
+                    remainValue.style.display = 'none';
+                    return;
+                }
+                const parsed = parseTimeInput(val);
+                if (parsed.valid) {
+                    remainEmpty.style.display = 'none';
+                    remainValue.style.display = 'inline';
+                    remainValue.textContent = `⏱️ ${parsed.display}`;
+                } else {
+                    remainEmpty.style.display = 'inline';
+                    remainValue.style.display = 'none';
+                }
+            }
+
+            function updateAdvanceFormat() {
+                const val = advanceInput.value;
+                if (val.length === 0) {
+                    advanceEmpty.style.display = 'inline';
+                    advanceValue.style.display = 'none';
+                    return;
+                }
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && num >= 0) {
+                    advanceEmpty.style.display = 'none';
+                    advanceValue.style.display = 'inline';
+                    advanceValue.textContent = `⏱️ ${num} 分钟`;
+                } else {
+                    advanceEmpty.style.display = 'inline';
+                    advanceValue.style.display = 'none';
+                }
+            }
+
+            // ---- 当前时间 ----
+            function updateCurrentTime() {
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${h}:${m}`;
+                autoNowDisplay.textContent = timeStr;
+                nowInput.value = timeStr;
+                return timeStr;
+            }
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 30000);
+
+            // ---- 工具 ----
+            function timeToMinutes(timeStr) {
+                if (!timeStr) return 0;
+                const parts = timeStr.split(':').map(Number);
+                return parts.length === 2 ? parts[0] * 60 + parts[1] : 0;
+            }
+
+            function minutesToTime(total) {
+                if (total < 0) total += 1440;
+                total = total % 1440;
+                const h = Math.floor(total / 60);
+                const m = total % 60;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+
+            // ---- 核心计算 ----
+            function calculateAlarm() {
+                const nowStr = nowInput.value;
+                if (!nowStr) {
+                    alarmDisplay.textContent = '--:--';
+                    alarmDisplay.classList.add('placeholder');
+                    return;
+                }
+                const nowMinutes = timeToMinutes(nowStr);
+
+                const remainRaw = remainInput.value.trim();
+                if (remainRaw === '') {
+                    alarmDisplay.textContent = '--:--';
+                    alarmDisplay.classList.add('placeholder');
+                    return;
+                }
+                const remainParsed = parseTimeInput(remainRaw);
+                if (!remainParsed.valid) {
+                    alarmDisplay.textContent = '--:--';
+                    alarmDisplay.classList.add('placeholder');
+                    return;
+                }
+                const remainMinutes = remainParsed.totalMinutes;
+
+                const advanceRaw = advanceInput.value.trim();
+                let advanceMinutes = 0;
+                if (advanceRaw !== '') {
+                    const num = parseInt(advanceRaw, 10);
+                    if (!isNaN(num) && num >= 0) advanceMinutes = num;
+                }
+
+                let alarmMinutes = nowMinutes + remainMinutes - advanceMinutes;
+                if (alarmMinutes < 0) alarmMinutes += 1440;
+                alarmMinutes = alarmMinutes % 1440;
+
+                const alarmTimeStr = minutesToTime(alarmMinutes);
+                alarmDisplay.textContent = alarmTimeStr;
+                alarmDisplay.classList.remove('placeholder');
+
+                // 动效
+                alarmDisplay.style.transition = 'transform 0.1s ease';
+                alarmDisplay.style.transform = 'scale(1.04)';
+                setTimeout(() => { alarmDisplay.style.transform = 'scale(1)'; }, 120);
+            }
+
+            // ---- 重置功能 ----
+            function resetAll() {
+                remainInput.value = '';
+                advanceInput.value = '';
+                updateRemainFormat();
+                updateAdvanceFormat();
+                alarmDisplay.textContent = '--:--';
+                alarmDisplay.classList.add('placeholder');
+                updateCurrentTime();
+                remainInput.focus();
+                resetBtn.style.transform = 'rotate(120deg) scale(0.92)';
+                setTimeout(() => {
+                    resetBtn.style.transform = '';
+                }, 300);
+            }
+
+            // ---- 事件 ----
+            remainInput.addEventListener('input', function(e) {
+                let val = this.value.replace(/\D/g, '');
+                if (val.length > 4) val = val.slice(0, 4);
+                this.value = val;
+                updateRemainFormat();
+            });
+
+            advanceInput.addEventListener('input', function(e) {
+                let val = this.value.replace(/\D/g, '');
+                if (val.length > 3) val = val.slice(0, 3);
+                this.value = val;
+                updateAdvanceFormat();
+            });
+
+            remainInput.addEventListener('blur', updateRemainFormat);
+            advanceInput.addEventListener('blur', updateAdvanceFormat);
+
+            [remainInput, advanceInput].forEach(inp => {
+                inp.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); calculateAlarm(); }
+                });
+            });
+
+            calcBtn.addEventListener('click', calculateAlarm);
+            resetBtn.addEventListener('click', resetAll);
+            document.getElementById('resultSection').addEventListener('dblclick', calculateAlarm);
+            document.querySelector('.card-header').addEventListener('dblclick', function() {
+                updateCurrentTime();
+                calculateAlarm();
+            });
+
+            // ---- 初始化 ----
+            setTimeout(() => {
+                updateCurrentTime();
+                updateRemainFormat();
+                updateAdvanceFormat();
+                alarmDisplay.textContent = '--:--';
+                alarmDisplay.classList.add('placeholder');
+            }, 50);
+
+            console.log('✨ Pi  · 签到闹钟已启动 (移动优化)');
+        })();
+    </script>
+</body>
+</html>
