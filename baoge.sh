@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # ============================================
-# 服务器全面检测脚本 v3.1
+# 服务器全面检测脚本 v3.2
 # 同时支持：宿主机Nginx + Docker Nginx（科技lion）
+# 修复：完整显示所有 server_name，修复 SSL 检测错误
 # 用法: ./baoge.sh
 # ============================================
 
@@ -173,11 +174,19 @@ if command -v nginx &> /dev/null && systemctl is-active --quiet nginx 2>/dev/nul
     for conf in /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
         if [ -f "$conf" ]; then
             DOMAIN=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
-            HAS_SSL=$(grep -c "listen 443" "$conf" 2>/dev/null || echo 0)
-            HAS_PROXY=$(grep -c "proxy_pass" "$conf" 2>/dev/null || echo 0)
             if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
-                SSL_STATUS=$([ $HAS_SSL -gt 0 ] && echo "✅ HTTPS" || echo "❌ HTTP")
-                PROXY_STATUS=$([ $HAS_PROXY -gt 0 ] && echo "反向代理" || echo "静态文件")
+                # 判断 SSL
+                if grep -q "listen 443" "$conf" 2>/dev/null; then
+                    SSL_STATUS="✅ HTTPS"
+                else
+                    SSL_STATUS="❌ HTTP"
+                fi
+                # 判断类型
+                if grep -q "proxy_pass" "$conf" 2>/dev/null; then
+                    PROXY_STATUS="反向代理"
+                else
+                    PROXY_STATUS="静态文件"
+                fi
                 echo "    - $DOMAIN ($PROXY_STATUS, $SSL_STATUS)"
                 echo "      配置文件: $conf"
             fi
@@ -191,10 +200,15 @@ if command -v docker &> /dev/null && docker ps --format '{{.Names}}' 2>/dev/null
     echo "  [Docker容器] Nginx 状态: 运行中"
     echo "  配置文件:"
     for conf in $(docker exec nginx ls /etc/nginx/conf.d/ 2>/dev/null | grep '\.conf$' | grep -v default); do
-        DOMAIN=$(docker exec nginx cat "/etc/nginx/conf.d/$conf" 2>/dev/null | grep -E "^\s*server_name\s+" | head -1 | awk '{print $2}' | sed 's/;//')
+        # 修复：提取所有 server_name（使用 sed 替代 awk）
+        DOMAIN=$(docker exec nginx cat "/etc/nginx/conf.d/$conf" 2>/dev/null | grep -E "^\s*server_name\s+" | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
         if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
-            HAS_SSL=$(docker exec nginx grep -c "listen 443" "/etc/nginx/conf.d/$conf" 2>/dev/null || echo 0)
-            SSL_STATUS=$([ "$HAS_SSL" -gt 0 ] && echo "✅ HTTPS" || echo "❌ HTTP")
+            # 修复：使用 grep -q 判断 SSL，避免 [: too many arguments 错误
+            if docker exec nginx grep -q "listen 443" "/etc/nginx/conf.d/$conf" 2>/dev/null; then
+                SSL_STATUS="✅ HTTPS"
+            else
+                SSL_STATUS="❌ HTTP"
+            fi
             echo "    - $DOMAIN ($SSL_STATUS)"
             echo "      配置文件: /etc/nginx/conf.d/$conf"
         fi
