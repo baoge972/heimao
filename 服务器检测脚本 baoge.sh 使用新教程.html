@@ -27,13 +27,17 @@
         td{padding:10px 14px;border:1px solid #e2e8f0;color:#475569}
         .badge{display:inline-block;padding:2px 12px;border-radius:12px;font-size:12px;font-weight:600}
         .badge.blue{background:#dbeafe;color:#1e40af}
+        .badge.green{background:#d1fae5;color:#065f46}
         .badge.purple{background:#ede9fe;color:#5b21b6}
         .badge.orange{background:#fef3c7;color:#92400e}
+        .badge.red{background:#fecaca;color:#991b1b}
         .footer{text-align:center;margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:13px;color:#94a3b8}
         .method-box{background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin:20px 0}
         .method-box h3{margin-top:0;color:#1a1a2e}
         .warning{background:#fdedec;border-left:4px solid #e74c3c;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#922b21}
         .warning code{background:#f8d7da;padding:2px 6px;border-radius:4px}
+        .upgrade-note{background:#fef9e7;border-left:4px solid #f1c40f;padding:14px 18px;border-radius:6px;margin:16px 0;font-size:14px;color:#7d6608}
+        .upgrade-note code{background:#fdebd0;padding:2px 6px;border-radius:4px}
         @media(max-width:600px){.container{padding:20px}.code-block{padding:14px;font-size:13px}}
     </style>
 </head>
@@ -43,6 +47,13 @@
     <h1>📊 服务器检测脚本 <code>baoge.sh</code></h1>
 
     <p style="font-size:16px;color:#334155;">一个轻量级服务器检测脚本，一键生成包含 CPU、内存、硬盘、端口、Docker、服务、防火墙、已部署项目清单等 13 项信息的全面报告。</p>
+
+    <div class="upgrade-note">
+        <strong>🎉 最新版 v3.4 更新：</strong><br>
+        ✅ 修复了 Nginx 站点域名显示不完整的问题<br>
+        ✅ 域名直接显示为 <code>https://域名</code> 格式<br>
+        ✅ 优化了脚本执行方式，换行符已自动处理
+    </div>
 
     <h2>📋 检测内容</h2>
     <table>
@@ -68,27 +79,38 @@
     <div class="method-box">
         <h3><span class="badge blue">方式一</span> 直接创建并执行（推荐）</h3>
         <p>适用场景：<strong>单台服务器</strong>，想要快速运行检测</p>
-        <div class="code-block" data-command='curl -sL https://git.baoge.wang/baoge.sh | sed s/\\r$// > baoge.sh && chmod +x baoge.sh && ./baoge.sh'>
+        <div class="code-block" data-command='curl -sL https://git.baoge.wang/baoge.sh > baoge.sh && chmod +x baoge.sh && ./baoge.sh'>
             <button class="copy-btn" onclick="copyCommand(this)">📋 复制</button>
-            <code>curl -sL https://git.baoge.wang/baoge.sh | sed s/\r$// > baoge.sh && chmod +x baoge.sh && ./baoge.sh</code>
+            <code>curl -sL https://git.baoge.wang/baoge.sh > baoge.sh && chmod +x baoge.sh && ./baoge.sh</code>
         </div>
-        <div class="tip">💡 从远程拉取脚本，自动处理换行符，保存为 baoge.sh 并执行。以后直接执行 ./baoge.sh 即可。</div>
+        <div class="tip">💡 从远程拉取脚本，保存为 baoge.sh 并执行。以后直接执行 <code>./baoge.sh</code> 即可。<br>✅ v3.4 版本已自动处理换行符，无需手动转换。</div>
     </div>
 
     <!-- 方式二 -->
     <div class="method-box">
-        <h3><span class="badge purple">方式二</span> 直接运行（不保存文件）</h3>
+        <h3><span class="badge green">方式二</span> 直接运行（不保存文件，最简洁）</h3>
         <p>适用场景：<strong>一次性检测</strong>，不想要脚本文件</p>
+        <div class="code-block" data-command="curl -sL https://git.baoge.wang/baoge.sh | bash">
+            <button class="copy-btn" onclick="copyCommand(this)">📋 复制</button>
+            <code>curl -sL https://git.baoge.wang/baoge.sh | bash</code>
+        </div>
+        <div class="tip">💡 <strong>最简洁的方式！</strong> v3.4 版本已彻底解决换行符问题，无需 <code>sed</code> 或 <code>PATH</code> 前缀。<br>适用于 Ubuntu/Debian 等主流系统。</div>
+    </div>
+
+    <!-- 方式三（兼容旧版） -->
+    <div class="method-box">
+        <h3><span class="badge purple">方式三</span> 兼容旧版命令（带过滤）</h3>
+        <p>适用场景：<strong>习惯旧命令</strong>，或需要兼容 Alpine 等精简系统</p>
         <div class="code-block" data-command="curl -sL https://git.baoge.wang/baoge.sh | sed 's/\r$//' | PATH=/usr/bin:/bin:/usr/sbin:/sbin bash">
             <button class="copy-btn" onclick="copyCommand(this)">📋 复制</button>
             <code>curl -sL https://git.baoge.wang/baoge.sh | sed 's/\r$//' | PATH=/usr/bin:/bin:/usr/sbin:/sbin bash</code>
         </div>
-        <div class="tip">💡 <strong>说明：</strong><code>PATH=...</code> 用于确保脚本在精简系统（如 Alpine）中能正常找到 <code>uniq</code> 等基础命令。如果您的系统是 Ubuntu/Debian，通常无需额外操作。</div>
+        <div class="tip">💡 <strong>说明：</strong>如果您在 Alpine 等精简系统上遇到 <code>uniq: not found</code> 错误，请先执行 <code>apk add coreutils</code>。<br>⚠️ 此命令对 v3.4 脚本也有效，但方式二更简洁。</div>
     </div>
 
-    <!-- 方式三 -->
+    <!-- 方式四：dos2unix -->
     <div class="method-box">
-        <h3><span class="badge orange">方式三</span> 安装 dos2unix 后运行</h3>
+        <h3><span class="badge orange">方式四</span> 安装 dos2unix 后运行</h3>
         <p>适用场景：<strong>多台服务器</strong>，愿意安装 dos2unix</p>
         <p><strong>第一步：安装 dos2unix</strong></p>
         <div class="code-block" data-command='apt update && apt install dos2unix -y'>
@@ -127,21 +149,22 @@
         执行 <code>chmod +x baoge.sh</code> 添加执行权限即可。
     </div>
     <div class="warning">
-        <strong>Q: 报错 "sed: unknown option to 's'"？</strong><br>
-        使用方式二或方式三，通过 sed 或 dos2unix 转换换行符解决。
-    </div>
-    <div class="warning">
         <strong>Q: 在 Alpine Linux 上执行报错 <code>uniq: not found</code>？</strong><br>
         Alpine 默认不包含 GNU <code>coreutils</code>，需要手动安装：<br>
         <code>apk add coreutils</code><br>
         安装后重新执行方式二的命令即可。
     </div>
     <div class="warning">
+        <strong>Q: Nginx 站点域名显示不完整？</strong><br>
+        v3.4 版本已修复此问题，直接从配置文件名提取域名，确保完整显示。如果仍有问题，请确认脚本版本是否为 v3.4：<br>
+        <code>curl -sL https://git.baoge.wang/baoge.sh | head -5</code>
+    </div>
+    <div class="warning">
         <strong>⚠️ 注意：</strong><br>
         需要在 <strong>root 用户</strong> 或具有 <strong>sudo 权限</strong> 的用户下执行，否则部分信息无法完整显示。
     </div>
 
-    <div class="footer">baoge.sh 服务器检测脚本 · 版本 3.1 · 同时支持宿主机Nginx + Docker Nginx</div>
+    <div class="footer">baoge.sh 服务器检测脚本 · 版本 3.4 · 同时支持宿主机Nginx + Docker Nginx · 已修复域名显示问题</div>
 
 </div>
 
