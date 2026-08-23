@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Redis 数据库映射 | 1Panel Docker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: #eef2ff;
+            padding: 2rem 1rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #0f1322;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 1px solid #232742;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.6);
+        }
+        .header {
+            background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
+            padding: 1.8rem 2rem 1.2rem;
+            border-bottom: 1px solid #2a2f4e;
+        }
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .header .sub {
+            color: #9aa9d4;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+        .header .sub code {
+            background: #1a1f33;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.6rem 0 0;
+        }
+        .badge {
+            background: #1e243f;
+            padding: 0.15rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.65rem;
+            color: #a5b4fc;
+            border: 1px solid #2e3a5e;
+        }
+        .content { padding: 1.5rem 2rem; }
+
+        .env-card {
+            background: #0b0f1a;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #3b82f6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .env-card .item { font-size: 0.8rem; }
+        .env-card .item code {
+            background: #1a1f33;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: #a5b4fc;
+        }
+
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            background: #0c1020;
+            border-radius: 0.8rem;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .mapping-table th {
+            background: #1a1f33;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            color: #a5b4fc;
+            font-weight: 500;
+        }
+        .mapping-table td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #1a1f33;
+        }
+        .mapping-table tr:last-child td { border-bottom: none; }
+        .mapping-table tr:hover td { background: #141928; }
+        .db-tag {
+            background: #2d3a6e;
+            padding: 0.05rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #a5b4fc;
+        }
+        .app-name {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+        }
+        .redis-url {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            color: #86efac;
+            word-break: break-all;
+        }
+        .config-loc {
+            font-size: 0.7rem;
+            color: #9aa9d4;
+        }
+        .badge-vercel {
+            background: #1a2a1a;
+            color: #4ade80;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            font-size: 0.6rem;
+        }
+        .badge-docker {
+            background: #1a1a2a;
+            color: #60a5fa;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            font-size: 0.6rem;
+        }
+        .badge-local {
+            background: #2a1a1a;
+            color: #f87171;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            font-size: 0.6rem;
+        }
+
+        .cmd-section {
+            background: #0c1020;
+            border-radius: 0.8rem;
+            border: 1px solid #232742;
+            margin-top: 1.5rem;
+            overflow: hidden;
+        }
+        .cmd-section .title {
+            background: #11172b;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-bottom: 1px solid #232742;
+        }
+        .cmd-item {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #1a1f33;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .cmd-item:last-child { border-bottom: none; }
+        .cmd-item .desc {
+            font-size: 0.7rem;
+            color: #9aa9d4;
+            flex-shrink: 0;
+            min-width: 130px;
+        }
+        .cmd-item .cmd {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            color: #e2e8f0;
+            flex: 1;
+            word-break: break-all;
+        }
+        .cmd-item .copy-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            padding: 0.15rem 0.7rem;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .cmd-item .copy-btn:hover {
+            background: #2d3a6e;
+            color: white;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.8rem;
+            margin: 1rem 0 1.5rem;
+        }
+        .summary-card {
+            background: #0c1020;
+            border-radius: 0.8rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid #232742;
+            text-align: center;
+        }
+        .summary-card .num {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #c084fc;
+        }
+        .summary-card .label {
+            font-size: 0.65rem;
+            color: #6f7c9e;
+            margin-top: 0.2rem;
+        }
+
+        .note {
+            background: #1a1f33;
+            border-radius: 0.8rem;
+            padding: 0.6rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            border-left: 3px solid #facc15;
+        }
+        .note.warning {
+            background: #2d1f1f;
+            border-left-color: #f97316;
+        }
+        .note.success {
+            background: #0f2a1f;
+            border-left-color: #4ade80;
+        }
+
+        .footer {
+            background: #0b0f1a;
+            padding: 0.8rem;
+            text-align: center;
+            font-size: 0.65rem;
+            color: #6f7c9e;
+            border-top: 1px solid #1e243f;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            backdrop-filter: blur(8px);
+            border-left: 3px solid #4ade80;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .key-list {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            color: #86efac;
+            line-height: 1.6;
+        }
+        @media (max-width: 780px) {
+            .content { padding: 1rem; }
+            .env-card { flex-direction: column; gap: 0.3rem; }
+            .cmd-item { flex-direction: column; align-items: flex-start; }
+            .cmd-item .desc { min-width: auto; }
+            .mapping-table { font-size: 0.65rem; }
+            .mapping-table th, .mapping-table td { padding: 0.3rem 0.5rem; }
+            .redis-url { font-size: 0.5rem; }
+        }
+
+        #login_overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                        url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999999;
+        }
+        #login_box {
+            background: #0f1322;
+            padding: 30px 35px;
+            border-radius: 16px;
+            width: 320px;
+            text-align: center;
+            border: 1px solid #2a2f4e;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        #login_box h3 { color: #c084fc; font-size: 18px; margin-bottom: 4px; }
+        #login_box .sub { color: #9aa9d4; font-size: 0.75rem; margin-bottom: 16px; }
+        #pwd_input {
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border: 1px solid #2a2f4e;
+            border-radius: 8px;
+            font-size: 15px;
+            background: #0a0e1a;
+            color: #eef2ff;
+            text-align: center;
+            outline: none;
+        }
+        #pwd_input:focus { border-color: #3b82f6; }
+        #login_btn {
+            width: 100%;
+            padding: 10px;
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #login_btn:hover { background: #2563eb; }
+        #login_error {
+            color: #f87171;
+            font-size: 0.7rem;
+            margin-top: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="login_overlay">
+    <div id="login_box">
+        <h3>🔒 访问验证</h3>
+        <p class="sub">请输入页面访问密码</p>
+        <input type="password" id="pwd_input" placeholder="输入密码">
+        <button id="login_btn">确认进入</button>
+        <p id="login_error">❌ 密码错误，请重试</p>
+    </div>
+</div>
+
+<div class="container" id="main_content" style="display:none;">
+    <div class="header">
+        <h1>🗺 Redis 数据库映射</h1>
+        <div class="sub">
+            实例：<code>172.245.88.184:6379</code> ｜
+            密码：<code>redis_zppwFr</code> ｜
+            数据库：<code>0 ~ 15</code>
+        </div>
+        <div class="badge-group">
+            <span class="badge">🐳 Docker</span>
+            <span class="badge">📊 5 个应用</span>
+            <span class="badge">📦 31 个键</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="env-card">
+            <span class="item">📌 Redis 实例：<code>172.245.88.184:6379</code></span>
+            <span class="item">🔑 密码：<code>redis_zppwFr</code></span>
+            <span class="item">🗄️ 数据库范围：<code>0 ~ 15</code></span>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card"><div class="num">5</div><div class="label">📱 应用数</div></div>
+            <div class="summary-card"><div class="num">5</div><div class="label">🗄️ 使用数据库</div></div>
+            <div class="summary-card"><div class="num">31</div><div class="label">📦 总键数</div></div>
+            <div class="summary-card"><div class="num">3</div><div class="label">🌐 部署位置</div></div>
+        </div>
+
+        <div class="section-title">📋 应用 → 数据库 映射表</div>
+        <table class="mapping-table">
+            <thead>
+                <tr>
+                    <th>数据库</th>
+                    <th>应用名称</th>
+                    <th>键数</th>
+                    <th>Redis 引用地址</th>
+                    <th>配置位置</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="db-tag">db0</span></td>
+                    <td><span class="app-name">moontvplus</span></td>
+                    <td>14</td>
+                    <td><span class="redis-url">redis://:redis_zppwFr@172.245.88.184:6379</span></td>
+                    <td><span class="config-loc">🐳 容器环境变量 REDIS_URL</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db1</span></td>
+                    <td><span class="app-name">书签收藏2</span></td>
+                    <td>1</td>
+                    <td><span class="redis-url">redis://:redis_zppwFr@172.245.88.184:6379/1</span></td>
+                    <td><span class="config-loc"><span class="badge-vercel">▲ Vercel</span> baofeng</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db2</span></td>
+                    <td><span class="app-name">accounting-app</span></td>
+                    <td>4</td>
+                    <td><span class="redis-url">redis://:redis_zppwFr@172.245.88.184:6379/2</span></td>
+                    <td><span class="config-loc">🐳 容器启动时配置</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db3</span></td>
+                    <td><span class="app-name">DecoTV-1</span></td>
+                    <td>9</td>
+                    <td><span class="redis-url">redis://:redis_zppwFr@172.245.88.184:6379/3</span></td>
+                    <td><span class="config-loc"><span class="badge-vercel">▲ Vercel</span> baoge6789</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db4</span></td>
+                    <td><span class="app-name">DecoTV-2</span></td>
+                    <td>3</td>
+                    <td><span class="redis-url">redis://:redis_zppwFr@172.245.88.184:6379/4</span></td>
+                    <td><span class="config-loc"><span class="badge-docker">🐳 电脑 Docker</span></span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">📊 各数据库数据特征</div>
+        <table class="mapping-table">
+            <thead>
+                <tr><th>数据库</th><th>应用</th><th>键数</th><th>数据特征</th><th>键列表</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="db-tag">db0</span></td>
+                    <td>moontvplus</td>
+                    <td>14</td>
+                    <td>用户信息、Token、配置</td>
+                    <td><span class="key-list">u:baoge:sh, user_tokens:123, user_tokens:baoge, user:123:info, tvbox:token:427e..., user:list, global:source-script:registry, u:123:skip, user:baoge:info, u:123:sh, admin:config, u:123:pr, u:baoge:skip, u:baoge:pr</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db1</span></td>
+                    <td>书签收藏2</td>
+                    <td>1</td>
+                    <td>链接分类</td>
+                    <td><span class="key-list">main_user_links_categories</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db2</span></td>
+                    <td>accounting-app</td>
+                    <td>4</td>
+                    <td>用户数据、ID映射</td>
+                    <td><span class="key-list">user:baoge, userid:600ec3a8-..., data:3a8a6063-..., data:600ec3a8-...</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db3</span></td>
+                    <td>DecoTV-1</td>
+                    <td>9</td>
+                    <td>播放记录、跳过设置</td>
+                    <td><span class="key-list">u:baoge:sh, u:baoge:skip:jszyapi.com+21921, u:baoge:skip:xinlangapi.com+168566, u:baoge:skip:ikunzy.com+69908, u:baoge:pr:xinlangapi.com+168566, u:baoge:pr:iqiyizyapi.com+83546, u:baoge:pr:ikunzy.com+69761, u:baoge:pr:ikunzy.com+69908, admin:config</span></td>
+                </tr>
+                <tr>
+                    <td><span class="db-tag">db4</span></td>
+                    <td>DecoTV-2</td>
+                    <td>3</td>
+                    <td>管理员配置、播放记录、用户设置</td>
+                    <td><span class="key-list">admin:config, u:baoge:pr:iqiyizyapi.com+82080, u:baoge:sh</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="cmd-section">
+            <div class="title">⚡ 查询命令（点击复制，到终端执行）</div>
+
+            <div class="cmd-item">
+                <span class="desc">查看所有数据库键数量</span>
+                <span class="cmd">for db in {0..15}; do echo -n "db$db: "; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null; done</span>
+                <button class="copy-btn" data-code='for db in {0..15}; do echo -n "db$db: "; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null; done'>复制</button>
+            </div>
+
+            <div class="cmd-item">
+                <span class="desc">查看所有有数据的数据库键</span>
+                <span class="cmd">for db in {0..15}; do count=$(docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null); if [ "$count" -gt 0 ]; then echo "=== db$db ($count keys) ==="; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db KEYS "*"; echo ""; fi; done</span>
+                <button class="copy-btn" data-code='for db in {0..15}; do count=$(docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null); if [ "$count" -gt 0 ]; then echo "=== db$db ($count keys) ==="; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db KEYS "*"; echo ""; fi; done'>复制</button>
+            </div>
+
+            <div class="cmd-item">
+                <span class="desc">查找使用该 Redis 的应用</span>
+                <span class="cmd">docker ps --format "{{.Names}}" | while read name; do if docker exec $name env 2>/dev/null | grep -q "172.245.88.184"; then echo "=== $name ==="; docker exec $name env 2>/dev/null | grep "172.245.88.184"; fi; done</span>
+                <button class="copy-btn" data-code='docker ps --format "{{.Names}}" | while read name; do if docker exec $name env 2>/dev/null | grep -q "172.245.88.184"; then echo "=== $name ==="; docker exec $name env 2>/dev/null | grep "172.245.88.184"; fi; done'>复制</button>
+            </div>
+        </div>
+
+        <div class="note success">
+            <p>📌 <strong>部署位置说明</strong></p>
+            <p>• <span class="badge-local">● 本机</span> moontvplus、accounting-app（本机 Docker 容器）</p>
+            <p>• <span class="badge-vercel">▲ Vercel</span> 书签收藏2（baofeng）、DecoTV-1（baoge6789）</p>
+            <p>• <span class="badge-docker">● 电脑 Docker</span> DecoTV-2（其他电脑的 Docker）</p>
+        </div>
+
+        <div class="note warning">
+            ⚠️ 密码 <code>redis_zppwFr</code> 在命令行中明文显示，使用后建议执行 <code>history -c</code> 清除历史
+        </div>
+
+        <div class="footer">
+            Redis 实例：172.245.88.184:6379 ｜ 密码：redis_zppwFr ｜ 共 5 个应用，31 个键
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">✅ 已复制</div>
+
+<script>
+    const CORRECT_HASH = "06a9e94ceb731a81b5ed9119cd359f1883ed808cd20baa6277018b9ca3dc3975";
+
+    const toastEl = document.getElementById('toast');
+
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 已复制';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 1500);
+    }
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const code = btn.getAttribute('data-code');
+            if (!code) return;
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast('✅ 已复制');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✓';
+                setTimeout(() => { btn.innerHTML = original; }, 1200);
+            } catch {
+                const ta = document.createElement('textarea');
+                ta.value = code;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('✅ 已复制');
+                const original = btn.innerHTML;
+                btn.innerHTML = '✓';
+                setTimeout(() => { btn.innerHTML = original; }, 1200);
+            }
+        });
+    });
+
+    async function sha256(text) {
+        const enc = new TextEncoder();
+        const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function checkPassword() {
+        const val = document.getElementById('pwd_input').value.trim();
+        const inputHash = await sha256(val);
+        if (inputHash === CORRECT_HASH) {
+            document.getElementById('login_overlay').remove();
+            document.getElementById('main_content').style.display = 'block';
+        } else {
+            document.getElementById('login_error').style.display = 'block';
+            document.getElementById('pwd_input').value = '';
+            document.getElementById('pwd_input').focus();
+        }
+    }
+
+    document.getElementById('login_btn').onclick = checkPassword;
+    document.getElementById('pwd_input').onkeydown = (e) => { if (e.key === 'Enter') checkPassword(); };
+    setTimeout(() => document.getElementById('pwd_input').focus(), 100);
+</script>
+</body>
+</html>
