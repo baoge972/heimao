@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宝哥导航 ⇄ Card Tab 互转</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      width: 1300px;
+      max-width: 100%;
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      padding: 24px 28px 32px;
+    }
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      margin: 0 0 6px 0;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subhead {
+      color: #475569;
+      margin-bottom: 22px;
+      font-size: 0.98rem;
+      border-left: 4px solid #3b82f6;
+      padding-left: 16px;
+      background: #f8fafc;
+      border-radius: 0 12px 12px 0;
+      line-height: 1.5;
+    }
+    .subhead code {
+      background: #e2e8f0;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #0f172a;
+    }
+    .flex-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .col {
+      flex: 1 1 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .col-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .col-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+      color: #1e293b;
+    }
+    .badge {
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    textarea {
+      width: 100%;
+      height: 400px;
+      padding: 16px 18px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', monospace;
+      font-size: 13.5px;
+      line-height: 1.6;
+      border: 1px solid #cbd5e1;
+      border-radius: 18px;
+      background: #ffffff;
+      resize: vertical;
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+    }
+    textarea:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.15), inset 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      padding: 10px 18px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #1e293b;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      flex: 1 0 auto;
+    }
+    button:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    button.primary {
+      background: #1e293b;
+      border-color: #1e293b;
+      color: white;
+    }
+    button.primary:hover {
+      background: #0f172a;
+      border-color: #0f172a;
+    }
+    button.accent {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+    button.accent:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+    button.outline {
+      background: transparent;
+      border-color: #cbd5e1;
+    }
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: white;
+      border: 1px dashed #94a3b8;
+      padding: 10px 18px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #1e293b;
+      flex: 1 0 auto;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .file-input-label:hover {
+      background: #f1f5f9;
+      border-color: #3b82f6;
+    }
+    .file-input-label input[type="file"] {
+      display: none;
+    }
+    .swap-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+    .info-note {
+      margin-top: 14px;
+      padding: 14px 18px;
+      background: #f1f5f9;
+      border-radius: 16px;
+      font-size: 0.86rem;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+    .info-note span {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .footer-note {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .error-msg {
+      color: #b91c1c;
+      background: #fee2e2;
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-block;
+      margin-top: 6px;
+    }
+    .success-msg {
+      color: #065f46;
+      background: #d1fae5;
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-block;
+      margin-top: 6px;
+    }
+    .export-icon {
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🔄 宝哥导航 ⇄ Card Tab</h1>
+  <div class="subhead">
+    <code>格式1</code> 宝哥导航 - baoge456 &nbsp;|&nbsp;
+    <code>格式2</code> Card Tab - 宝哥导航 &nbsp;|&nbsp; 支持文件导入 / 导出 & 双向互转
+  </div>
+
+  <div class="flex-row">
+    <!-- 左侧：格式1 -->
+    <div class="col">
+      <div class="col-header">
+        <h2>📋 格式1 · 宝哥导航</h2>
+        <span class="badge">baoge456 原始</span>
+      </div>
+      <textarea id="format1Area" placeholder='粘贴格式1 JSON，或通过下方按钮导入文件'></textarea>
+      <div class="button-group">
+        <button class="accent" id="convertToFormat2Btn">⬇️ 转为 格式2</button>
+        <label class="file-input-label">
+          📂 导入文件
+          <input type="file" id="importFormat1File" accept=".json,application/json">
+        </label>
+        <button id="exportFormat1Btn">💾 导出文件</button>
+        <button id="clearFormat1Btn">🗑️ 清空</button>
+        <button id="sampleFormat1Btn">📄 示例</button>
+      </div>
+      <div id="format1Msg" style="min-height: 28px;"></div>
+    </div>
+
+    <!-- 右侧：格式2 -->
+    <div class="col">
+      <div class="col-header">
+        <h2>🧩 格式2 · Card Tab</h2>
+        <span class="badge">categories 结构</span>
+      </div>
+      <textarea id="format2Area" placeholder='粘贴格式2 JSON，或通过下方按钮导入文件'></textarea>
+      <div class="button-group">
+        <button class="accent" id="convertToFormat1Btn">⬆️ 转为 格式1</button>
+        <label class="file-input-label">
+          📂 导入文件
+          <input type="file" id="importFormat2File" accept=".json,application/json">
+        </label>
+        <button id="exportFormat2Btn">💾 导出文件</button>
+        <button id="clearFormat2Btn">🗑️ 清空</button>
+        <button id="sampleFormat2Btn">📄 示例</button>
+      </div>
+      <div id="format2Msg" style="min-height: 28px;"></div>
+    </div>
+  </div>
+
+  <!-- 提示区 -->
+  <div class="info-note">
+    <span>ℹ️ 转换规则</span><br>
+    • <strong>格式1 → 格式2</strong>：按 catelog 分组，<code>is_private</code> 映射为 <code>isPrivate</code>；<code>logo</code> → <code>icon</code>；<code>desc</code> → <code>tips</code>；保留排序与时间字段。<br>
+    • <strong>格式2 → 格式1</strong>：展开分类下的链接，补充 id、create_time、update_time、catelog 等字段，isPrivate 映射回 is_private（0/1）。<br>
+    • <strong>文件导入</strong>：点击「导入文件」选择 .json 文件，内容自动填充到对应文本框。<br>
+    • <strong>文件导出</strong>：点击「导出文件」将当前文本框内容保存为 .json 文件，便于备份或分享。
+  </div>
+
+  <div class="footer-note">
+    <span>⚡ 互转保持分类、排序、私有状态、图标与描述</span>
+    <span>version 1.1 · 文件导入导出</span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ---------- DOM 元素 ----------
+    const format1Area = document.getElementById('format1Area');
+    const format2Area = document.getElementById('format2Area');
+    const format1Msg = document.getElementById('format1Msg');
+    const format2Msg = document.getElementById('format2Msg');
+
+    // 文件输入
+    const importFormat1File = document.getElementById('importFormat1File');
+    const importFormat2File = document.getElementById('importFormat2File');
+
+    // 清空消息
+    function clearMessages() {
+      format1Msg.innerHTML = '';
+      format2Msg.innerHTML = '';
+    }
+
+    // 显示消息 (type: 'error' | 'success')
+    function showMsg(container, text, type = 'error') {
+      container.innerHTML = `<span class="${type === 'error' ? 'error-msg' : 'success-msg'}">${text}</span>`;
+    }
+
+    // ---------- 工具函数 ----------
+    function safeParseJSON(str, sourceName) {
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        throw new Error(`${sourceName} JSON 解析失败: ${e.message}`);
+      }
+    }
+
+    // 生成近似唯一的id (基于时间戳与随机数)
+    function generateId() {
+      return Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
+    }
+
+    // 获取当前时间字符串 'YYYY-MM-DD HH:mm:ss'
+    function getCurrentTimeStr() {
+      const d = new Date();
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // ---------- 格式1 → 格式2 转换 ----------
+    function convertFormat1ToFormat2(data) {
+      if (!Array.isArray(data)) {
+        throw new Error('格式1 数据必须是数组');
+      }
+
+      const categoriesMap = new Map(); // catelog -> { isHidden: false, links: [] }
+
+      data.forEach(item => {
+        if (!item || typeof item !== 'object') return;
+
+        let catelog = item.catelog;
+        if (!catelog || typeof catelog !== 'string' || catelog.trim() === '') {
+          catelog = '未分类';
+        } else {
+          catelog = catelog.trim();
+        }
+
+        if (!categoriesMap.has(catelog)) {
+          categoriesMap.set(catelog, {
+            isHidden: false,
+            links: []
+          });
+        }
+
+        const categoryObj = categoriesMap.get(catelog);
+
+        const link = {
+          name: item.name || '',
+          url: item.url || '',
+          category: catelog,
+          tips: item.desc || '',
+          icon: item.logo || '',
+          isPrivate: item.is_private === 1 || item.is_private === true,
+          _id: item.id,
+          _sort_order: item.sort_order,
+          _create_time: item.create_time,
+          _update_time: item.update_time,
+        };
+
+        categoryObj.links.push(link);
+      });
+
+      // 对每个分类内的 links 按 _sort_order 排序
+      for (let [cat, catObj] of categoriesMap.entries()) {
+        catObj.links.sort((a, b) => {
+          const orderA = a._sort_order !== undefined ? a._sort_order : 9999;
+          const orderB = b._sort_order !== undefined ? b._sort_order : 9999;
+          if (orderA !== orderB) return orderA - orderB;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+      }
+
+      // 将 Map 转为普通对象, 分类名排序
+      const categoriesObj = {};
+      const sortedCats = Array.from(categoriesMap.keys()).sort((a, b) => a.localeCompare(b, 'zh'));
+      for (let cat of sortedCats) {
+        const catData = categoriesMap.get(cat);
+        categoriesObj[cat] = {
+          isHidden: catData.isHidden,
+          links: catData.links
+        };
+      }
+
+      return { categories: categoriesObj };
+    }
+
+    // ---------- 格式2 → 格式1 转换 ----------
+    function convertFormat2ToFormat1(data) {
+      if (!data || typeof data !== 'object' || !data.categories || typeof data.categories !== 'object') {
+        throw new Error('格式2 数据必须包含 categories 对象');
+      }
+
+      const categories = data.categories;
+      const resultArray = [];
+      const nowStr = getCurrentTimeStr();
+
+      for (let catName in categories) {
+        if (!categories.hasOwnProperty(catName)) continue;
+        const cat = categories[catName];
+        if (!cat || !Array.isArray(cat.links)) continue;
+
+        for (let link of cat.links) {
+          if (!link || typeof link !== 'object') continue;
+
+          const format1Item = {
+            id: link._id !== undefined ? link._id : generateId(),
+            name: link.name || '',
+            url: link.url || '',
+            logo: link.icon || '',
+            desc: link.tips || '',
+            catelog: catName,                     // 使用父级分类名
+            sort_order: link._sort_order !== undefined ? link._sort_order : 9999,
+            create_time: link._create_time || nowStr,
+            update_time: link._update_time || nowStr,
+            is_private: (link.isPrivate === true || link.isPrivate === 1) ? 1 : 0,
+          };
+
+          resultArray.push(format1Item);
+        }
+      }
+
+      resultArray.sort((a, b) => (a.sort_order || 9999) - (b.sort_order || 9999));
+      return resultArray;
+    }
+
+    // ---------- 文件导入通用逻辑 ----------
+    function handleFileImport(file, targetTextarea, targetMsg, formatName) {
+      if (!file) return;
+      if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+        showMsg(targetMsg, `请选择 .json 文件`, 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target.result;
+          // 简单验证是否为合法 JSON
+          JSON.parse(content);
+          targetTextarea.value = content;
+          showMsg(targetMsg, `✓ 已导入 ${file.name}`, 'success');
+        } catch (err) {
+          showMsg(targetMsg, `文件内容不是有效 JSON: ${err.message}`, 'error');
+        }
+      };
+      reader.onerror = () => {
+        showMsg(targetMsg, `读取文件失败`, 'error');
+      };
+      reader.readAsText(file);
+    }
+
+    // ---------- 文件导出通用逻辑 ----------
+    function exportToFile(textarea, defaultFileName) {
+      const content = textarea.value.trim();
+      if (!content) {
+        alert('内容为空，无法导出');
+        return;
+      }
+      // 简单检查 JSON 是否合法
+      try {
+        JSON.parse(content);
+      } catch (e) {
+        alert('当前内容不是有效的 JSON，请检查后再导出。\n错误: ' + e.message);
+        return;
+      }
+
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = defaultFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ---------- 事件绑定 ----------
+    // 格式1 → 格式2
+    document.getElementById('convertToFormat2Btn').addEventListener('click', () => {
+      clearMessages();
+      const raw = format1Area.value.trim();
+      if (!raw) {
+        showMsg(format1Msg, '请输入格式1 JSON', 'error');
+        return;
+      }
+      try {
+        const parsed = safeParseJSON(raw, '格式1');
+        const result = convertFormat1ToFormat2(parsed);
+        format2Area.value = JSON.stringify(result, null, 2);
+        showMsg(format1Msg, '✓ 转换成功，已输出到右侧', 'success');
+      } catch (err) {
+        showMsg(format1Msg, `✗ ${err.message}`, 'error');
+      }
+    });
+
+    // 格式2 → 格式1
+    document.getElementById('convertToFormat1Btn').addEventListener('click', () => {
+      clearMessages();
+      const raw = format2Area.value.trim();
+      if (!raw) {
+        showMsg(format2Msg, '请输入格式2 JSON', 'error');
+        return;
+      }
+      try {
+        const parsed = safeParseJSON(raw, '格式2');
+        const result = convertFormat2ToFormat1(parsed);
+        format1Area.value = JSON.stringify(result, null, 2);
+        showMsg(format2Msg, '✓ 转换成功，已输出到左侧', 'success');
+      } catch (err) {
+        showMsg(format2Msg, `✗ ${err.message}`, 'error');
+      }
+    });
+
+    // 清空按钮
+    document.getElementById('clearFormat1Btn').addEventListener('click', () => {
+      format1Area.value = '';
+      clearMessages();
+    });
+    document.getElementById('clearFormat2Btn').addEventListener('click', () => {
+      format2Area.value = '';
+      clearMessages();
+    });
+
+    // 填充示例1 (格式1)
+    document.getElementById('sampleFormat1Btn').addEventListener('click', () => {
+      const sample1 = [
+        {
+          "id": 390,
+          "name": "和风天气-泰安",
+          "url": "https://www.qweather.com/weather/tai'an-101120801.html",
+          "logo": "https://www.qweather.com/apple-touch-icon.png?v=",
+          "desc": "泰安市今日实时天气预报，空气质量，降水预报，极端天气预警和历史天气。和风天气是专业的天气预报平台，提供精准天气信息、空气质量、生活指数等全方位气象服务，支持全球天气查询。",
+          "catelog": "发现-天气",
+          "sort_order": 14,
+          "create_time": "2025-12-22 04:32:45",
+          "update_time": "2025-12-22 04:32:45",
+          "is_private": 0
+        },
+        {
+          "id": 391,
+          "name": "墨迹天气-岱岳区",
+          "url": "https://tianqi.moji.com/weather/china/shandong/daiyue-district",
+          "logo": "https://h5tq.moji.com/f5/assets/icon/favicon.ico",
+          "desc": "这是山东省岱岳区的天气信息页面。墨迹天气是专业的天气预报平台，提供精准天气信息、生活指数、空气质量等全方位气象服务。",
+          "catelog": "发现-天气",
+          "sort_order": 15,
+          "create_time": "2025-12-22 04:32:45",
+          "update_time": "2025-12-22 04:32:45",
+          "is_private": 0
+        },
+        {
+          "id": 480,
+          "name": "sunpanel-pc",
+          "url": "https://sunpanel.baoge456.dpdns.org/",
+          "logo": "https://sunpanel.baoge.wang/favicon.ico",
+          "desc": null,
+          "catelog": "常用",
+          "sort_order": 29,
+          "create_time": "2026-05-18 02:54:06",
+          "update_time": "2026-05-18 03:06:19",
+          "is_private": 1
+        },
+        {
+          "id": 383,
+          "name": "NewsNow",
+          "url": "https://newsnow.amclubss.com",
+          "logo": "https://newsnow.amclubss.com/icon.svg",
+          "desc": "NewsNow - 实时新闻聚合阅读器，汇集全球热点新闻，提供优雅的阅读体验",
+          "catelog": "发现-新闻",
+          "sort_order": 29,
+          "create_time": "2025-12-22 04:32:45",
+          "update_time": "2026-05-18 02:38:49",
+          "is_private": 0
+        }
+      ];
+      format1Area.value = JSON.stringify(sample1, null, 2);
+      clearMessages();
+    });
+
+    // 填充示例2 (格式2)
+    document.getElementById('sampleFormat2Btn').addEventListener('click', () => {
+      const sample2 = {
+        "categories": {
+          "常用": {
+            "isHidden": false,
+            "links": [
+              {
+                "name": "自由导航",
+                "url": "https://jiguang.baoge.wang/",
+                "category": "常用",
+                "tips": "",
+                "icon": "",
+                "isPrivate": false
+              },
+              {
+                "name": "sunpanel-pc",
+                "url": "https://sunpanel.baoge456.dpdns.org/",
+                "category": "常用",
+                "tips": "自建面板",
+                "icon": "https://sunpanel.baoge.wang/favicon.ico",
+                "isPrivate": true,
+                "_id": 480,
+                "_sort_order": 29,
+                "_create_time": "2026-05-18 02:54:06",
+                "_update_time": "2026-05-18 03:06:19"
+              }
+            ]
+          },
+          "影视": {
+            "isHidden": false,
+            "links": [
+              {
+                "name": "moontvplus",
+                "url": "https://moontvplus.baoge.wang/",
+                "category": "影视",
+                "tips": "",
+                "icon": "",
+                "isPrivate": false
+              }
+            ]
+          }
+        }
+      };
+      format2Area.value = JSON.stringify(sample2, null, 2);
+      clearMessages();
+    });
+
+    // ---------- 导入文件事件 ----------
+    importFormat1File.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFileImport(file, format1Area, format1Msg, '格式1');
+      }
+      e.target.value = ''; // 允许重复选择同一文件
+    });
+
+    importFormat2File.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFileImport(file, format2Area, format2Msg, '格式2');
+      }
+      e.target.value = '';
+    });
+
+    // ---------- 导出文件事件 ----------
+    document.getElementById('exportFormat1Btn').addEventListener('click', () => {
+      exportToFile(format1Area, 'baoge456_format1.json');
+    });
+
+    document.getElementById('exportFormat2Btn').addEventListener('click', () => {
+      exportToFile(format2Area, 'cardtab_format2.json');
+    });
+
+  })();
+</script>
+</body>
+</html>
