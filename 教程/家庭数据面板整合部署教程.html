@@ -52,7 +52,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 </table>
 <p>要上传的内容：</p>
 <pre>jiating-pages/
-├── _worker.js        ← 大屏 + 全部后端
+├── _worker.js        ← 大屏 + 全部后端（订阅区两个变体见 §7）
 ├── jz/index.html     ← 记账前端
 └── rq/index.html     ← 人情前端</pre>
 <div class="d"><b>别传</b><code>历史数据/</code>、<code>合并源码/</code>、<code>*.txt</code>（含源码明文，传上去等于公开）。</div>
@@ -126,7 +126,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td>大屏 · 备忘录卡片</td><td><b>不要</b>，直接编辑</td><td>全局一份</td></tr>
 <tr><td>大屏 · 人情卡片</td><td><b>不要</b>，走开放接口 <code>/rq-api/api/social-stats</code></td><td>只有汇总数字，<b>无明细</b></td></tr>
 <tr><td>记账本 <code>/jz/</code></td><td>要账号登录</td><td><b>自助注册，已去掉邀请码</b>；用户间数据隔离</td></tr>
-<tr><td>人情本 <code>/rq/</code></td><td>要授权码</td><td>服务端比对 <code>SOCIAL_AUTH_CODE</code> → 下发 <b>HttpOnly Cookie <code>rq_auth</code></b>（30 天）</td></tr>
+<tr><td>人情本 <code>/rq/</code></td><td>要授权码，<b>每次进入都要重新输入</b></td><td>服务端比对 <code>SOCIAL_AUTH_CODE</code> → 下发 <b>HttpOnly Cookie <code>rq_auth</code></b> 供数据接口放行；<b>前端已取消"记住登录"自动放行</b></td></tr>
 </table>
 <ul>
 <li>授权码<b>不写在前端</b>，改服务端变量校验；<code>/rq-api</code> 除 <code>/api/health</code>、<code>/api/social-stats</code> 外，<b>无合法 Cookie 一律 401</b>——绕过遮罩也拿不到数据。</li>
@@ -136,21 +136,48 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 </section>
 
 <section>
-<h2><span class="n">7</span>验收（把 域名 换成实际域名）</h2>
+<h2><span class="n">7</span>按需定制 <code>_worker.js</code>（订阅区 &amp; 大屏初始模式）</h2>
+
+<h3 style="margin:12px 0 6px;font-size:16px;color:#1b6a48">① 订阅区：两套代码，按对象选一份上传</h3>
+<p>大屏底部"订阅"卡片里，<b>☁️ 云服 / 🌐 域名</b> 一般只有自己用才需要；分享给家人朋友时通常只保留 <b>📱 手机套餐</b>。已备好两份源码，<b>选一份改名成 <code>_worker.js</code></b> 放进 <code>jiating-pages/</code> 再上传：</p>
+<table>
+<tr><th>选用文件</th><th>订阅区显示</th><th>适用对象</th></tr>
+<tr><td><code>_worker - 订阅下三个卡片.js</code></td><td>📱 手机 / ☁️ 云服 / 🌐 域名</td><td>自己用（要监控云服、域名）</td></tr>
+<tr><td><code>_worker-订阅下仅手机卡片.js</code></td><td>只剩 📱 手机（展开、折叠都只有手机）</td><td>给别人用</td></tr>
+</table>
+<div class="w">两份<b>仅"订阅卡片"这一处不同</b>，其余（大屏门禁、记账、人情、备忘录、所有接口）完全一致，可放心互换。</div>
+
+<h3 style="margin:14px 0 6px;font-size:16px;color:#1b6a48">② 大屏初始模式：轮播还是固定（<code>_worker.js</code> 约 2800 行）</h3>
+<p>大屏布局有两种：<b>轮播</b>（单张卡片大图、每隔几秒切一张）与<b>固定</b>（三列平铺、一次看全部）。初始表现由紧邻的两行决定：</p>
+<pre>// 约 2800 行附近
+const isAutoPlay = ref(false);    // 是否自动播放
+const viewMode = ref('carousel'); // 'carousel'=轮播  'grid'=固定</pre>
+<table>
+<tr><th>想要的初始效果</th><th><code>isAutoPlay</code></th><th><code>viewMode</code></th></tr>
+<tr><td>打开即<b>固定</b>三列、完全不转（给别人推荐）</td><td><code>false</code></td><td><code>'grid'</code></td></tr>
+<tr><td>轮播布局但<b>初始暂停</b>，点顶部 ▶️ 才转</td><td><code>false</code></td><td><code>'carousel'</code></td></tr>
+<tr><td>轮播布局且<b>打开就自动播放</b>（最原始）</td><td><code>true</code></td><td><code>'carousel'</code></td></tr>
+</table>
+<p>顶部 <code>📋固定 / 🔄轮播</code> 按钮可随时互切；<b>一旦切到轮播，代码会自动开始播放</b>（<code>toggleViewMode</code> 内强制 <code>isAutoPlay = true</code>），所以这两个初值只决定"刚打开"那一下的状态。</p>
+<div class="w">现成默认：<b>三卡片版</b> = 轮播布局 + 初始暂停（<code>isAutoPlay=false, viewMode='carousel'</code>）；<b>仅手机卡片版</b> = 固定（<code>isAutoPlay=false, viewMode='grid'</code>）。要别的组合，按上表改这两行即可；改完运行 <code>node --check _worker.js</code> 确认无语法报错再上传。</div>
+</section>
+
+<section>
+<h2><span class="n">8</span>验收（把 域名 换成实际域名）</h2>
 <ol>
 <li><code>https://域名/</code> 输密码进得去，无"服务器未配置密码"。</li>
 <li>访问 <code>/jz/</code> 注册：只有用户名/密码/确认密码，<b>无邀请码</b>；注册后记账、刷新数据还在。</li>
 <li>大屏账本卡片点"登录记账"，用上一步账号登录 → 显示该账号本月数据。</li>
 <li>大屏备忘录"点击管理"<b>不弹密码框</b>，可保存。</li>
 <li>大屏人情卡片免验证就有汇总数字。</li>
-<li>访问 <code>/rq/</code> 弹授权码框：错码提示错误，对码加载明细；关浏览器再开<b>不再询问</b>。</li>
+<li>访问 <code>/rq/</code> 弹授权码框：错码提示错误，对码加载明细；<b>刷新或重开页面都会再次要求输入</b>（已按要求取消免输入）。</li>
 <li>新标签打开 <code>https://域名/rq-api/api/files</code> → 返回 <code>{"success":false,"error":"未授权：请先输入有效授权码"}</code>（说明保护生效）。</li>
 </ol>
-<div class="w">Cookie 与 localStorage <b>按设备各存一份</b>，手机首次要各自验证一次，不是 bug。</div>
+<div class="w">人情页已改为<b>每次进入都要输入授权码</b>（不再凭 Cookie 免输入）；Cookie 与 localStorage <b>按设备各存</b>，只用于数据接口放行。</div>
 </section>
 
 <section>
-<h2><span class="n">8</span>更新与排错</h2>
+<h2><span class="n">9</span>更新与排错</h2>
 <p><b>更新</b>：改文件 → <b>Deploys</b> → 重新上传 <code>jiating-pages</code> → 等 <b>Success</b> → <b>Ctrl+F5</b> 或无痕验证。改了 Secret/变量若没自动产生新部署，手动 Redeploy 一次。重传只换代码，<b>KV/D1 数据不受影响</b>。</p>
 <table>
 <tr><th>现象</th><th>处理</th></tr>
@@ -166,7 +193,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 </table>
 </section>
 
-<footer>本地留存 · 未上传 · 配套代码：jiating-pages/</footer>
+<footer>本地留存 · 未上传 · 配套代码：jiating-pages/（_worker.js 两个变体见 §7）</footer>
 </main>
 </body>
 </html>
