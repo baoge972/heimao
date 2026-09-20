@@ -46,9 +46,9 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td><code>/rq-api/*</code></td><td>人情接口（读写/文件/统计）</td><td>D1 <code>DB</code></td></tr>
 <tr><td><code>/api/auth/dashboard</code></td><td>大屏密码门</td><td>—</td></tr>
 <tr><td><code>/api/auth/social</code> · <code>/social-check</code></td><td>人情授权码校验 / 登录态复查</td><td>—</td></tr>
-<tr><td><code>/api/memo</code></td><td>备忘录 &amp; 倒计时（<b>写需大屏鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/api/memo</code></td><td>备忘录 &amp; 倒计时（<b>读写均需管理密码</b> <code>SOCIAL_AUTH_CODE</code>）</td><td>KV <code>MEMO_DATA</code></td></tr>
 <tr><td><code>/api/cost-config</code></td><td>读订阅展示配置（公开，不含数据源 url）</td><td>KV <code>MEMO_DATA</code></td></tr>
-<tr><td><code>/api/cost-admin</code></td><td>读写订阅配置 + 数据源 url（<b>需鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/api/cost-admin</code></td><td>读写订阅配置 + 数据源 url（<b>需管理码鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
 <tr><td><code>/api/vps</code> · <code>/phone-cost</code> · <code>/domains</code></td><td>云服 / 话费 / 域名数据代理（<b>先读 KV 里的 url，空则回退环境变量</b>）</td><td>外部</td></tr>
 <tr><td><code>/status/*</code> · <code>/assets/*</code></td><td>renewlet 订阅转发</td><td>外部</td></tr>
 </table>
@@ -57,8 +57,6 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 ├── _worker.js        ← 大屏 + 全部后端（订阅区运行时可配置，见 §7）
 ├── jz/index.html     ← 记账前端
 └── rq/index.html     ← 人情前端</pre>
-<div class="d"><b>别传</b><code>历史数据/</code>、<code>合并源码/</code>、<code>*.txt</code>（含源码明文，传上去等于公开）。</div>
-<div class="w"><b>上传前检查 <code>rq/index.html</code></b>若里面出现 <code>export default {</code>、<code>new Response(</code>、或成片的 <code>\`</code> / <code>\${</code> / <code>\\d</code>，说明还是 Worker 模板字符串的转义态，传上去必然"满屏代码"。</div>
 </section>
 
 <section>
@@ -116,7 +114,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td><code>DOMAINS_DATA_URL</code></td><td>大屏"域名监控"数据源</td></tr>
 </table>
 <p>不配只影响对应卡片。数据文件可直接放在同一项目里，变量填 <code>https://域名/vps.txt</code>。</p>
-<div class="w"><b>可被前端覆盖</b>这三个变量只是“默认值”。部署后可在大屏 <b>订阅区 ⚙️ 设置</b>里直接改数据源 url（存进 KV <code>MEMO_DATA</code>，改后<b>以 KV 为准</b>；某项<b>清空</b>则自动回退到这里的环境变量）。改 url / 存配置都要大屏密码。</div>
+<div class="w"><b>可被前端覆盖</b>这三个变量只是“默认值”。部署后可在大屏 <b>订阅区 ⚙️ 设置</b>里直接改数据源 url（存进 KV <code>MEMO_DATA</code>，改后<b>以 KV 为准</b>；某项<b>清空</b>则自动回退到这里的环境变量）。改 url / 存配置都要管理密码（<code>SOCIAL_AUTH_CODE</code>）。</div>
 <div class="w"><b>无需配置</b>本面板只需要 <code>ADMIN_PASSWORD</code>、<code>SOCIAL_AUTH_CODE</code> 两个密钥 + 三个数据源变量。<code>ACCOUNTING_USER</code> / <code>ACCOUNTING_PASS</code>（原用于自动建 <code>family</code> 默认账号）与 <code>MEMO_PASSWORD</code>（备忘录密码门连同 <code>/api/auth/memo</code> 接口已删除）都已不再被代码引用，<b>从来没配过就不用管</b>；若旧项目里残留，删掉也无影响。</div>
 </section>
 
@@ -151,7 +149,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td>分享别人，只留 📱 手机</td><td>⚙️ 取消“云服”“域名”，只留“手机”（＝旧的仅手机版）</td></tr>
 <tr><td>一张都不展示</td><td>三个全不勾，订阅区自动收起</td></tr>
 </table>
-<div class="w"><b>每次点 ⚙️ 都要输大屏密码</b>，验证通过才显示配置与数据源。配置<b>存 <code>MEMO_DATA</code>、全局一份</b>：一次设置所有设备跟随（代价是不能各设备各勾各的）。面板里还能<b>直接改三个数据源 url</b>，改后以 KV 为准、<b>留空＝回退 §5 环境变量</b>。</div>
+<div class="w"><b>每次点 ⚙️ 都要输管理密码</b>（<code>SOCIAL_AUTH_CODE</code>，居中弹窗），验证通过才显示配置与数据源。配置<b>存 <code>MEMO_DATA</code>、全局一份</b>：一次设置所有设备跟随（代价是不能各设备各勾各的）。面板里还能<b>直接改三个数据源 url</b>，改后以 KV 为准、<b>留空＝回退 §5 环境变量</b>。</div>
 
 <h3 style="margin:14px 0 6px;font-size:16px;color:#1b6a48">② 大屏初始模式：轮播还是固定（<code>_worker.js</code> 约 2800 行）</h3>
 <p>大屏布局有两种：<b>轮播</b>（单张卡片大图、每隔几秒切一张）与<b>固定</b>（三列平铺、一次看全部）。初始表现由紧邻的两行决定：</p>
@@ -188,7 +186,7 @@ const viewMode = ref('grid');     // 'carousel'=轮播  'grid'=固定</pre>
 <p><b>更新</b>：改文件 → <b>Deploys</b> → 重新上传 <code>jiating-pages</code> → 等 <b>Success</b> → <b>Ctrl+F5</b> 或无痕验证。改了 Secret/变量若没自动产生新部署，手动 Redeploy 一次。重传只换代码，<b>KV/D1 数据不受影响</b>。</p>
 <table>
 <tr><th>现象</th><th>处理</th></tr>
-<tr><td>满屏 <code>{{ }}</code> 原始代码</td><td><code>rq/index.html</code> 还是转义态 → 还原纯 HTML 重传；或 Vue CDN 未加载，改同域自托管</td></tr>
+<tr><td>满屏 <code>{{ }}</code> 原始代码</td><td>Vue CDN 未加载（换同域自托管或可用 CDN）</td></tr>
 <tr><td>"服务器未配置人情授权码"</td><td>加 Secret <code>SOCIAL_AUTH_CODE</code> → 重新部署</td></tr>
 <tr><td>授权码看着对却报错</td><td>值里有空格 / 全角逗号；大小写敏感</td></tr>
 <tr><td><code>/rq/</code> 能进但接口 401</td><td>Cookie 没带上：裸域与 <code>www</code> 混访、或隐私模式禁 Cookie</td></tr>
