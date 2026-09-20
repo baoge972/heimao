@@ -46,13 +46,15 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td><code>/rq-api/*</code></td><td>人情接口（读写/文件/统计）</td><td>D1 <code>DB</code></td></tr>
 <tr><td><code>/api/auth/dashboard</code></td><td>大屏密码门</td><td>—</td></tr>
 <tr><td><code>/api/auth/social</code> · <code>/social-check</code></td><td>人情授权码校验 / 登录态复查</td><td>—</td></tr>
-<tr><td><code>/api/memo</code></td><td>备忘录 &amp; 倒计时</td><td>KV <code>MEMO_DATA</code></td></tr>
-<tr><td><code>/api/vps</code> · <code>/phone-cost</code> · <code>/domains</code></td><td>云服 / 话费 / 域名数据代理</td><td>外部</td></tr>
+<tr><td><code>/api/memo</code></td><td>备忘录 &amp; 倒计时（<b>写需大屏鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/api/cost-config</code></td><td>读订阅展示配置（公开，不含数据源 url）</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/api/cost-admin</code></td><td>读写订阅配置 + 数据源 url（<b>需鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/api/vps</code> · <code>/phone-cost</code> · <code>/domains</code></td><td>云服 / 话费 / 域名数据代理（<b>先读 KV 里的 url，空则回退环境变量</b>）</td><td>外部</td></tr>
 <tr><td><code>/status/*</code> · <code>/assets/*</code></td><td>renewlet 订阅转发</td><td>外部</td></tr>
 </table>
 <p>要上传的内容：</p>
 <pre>jiating-pages/
-├── _worker.js        ← 大屏 + 全部后端（订阅区两个变体见 §7）
+├── _worker.js        ← 大屏 + 全部后端（订阅区运行时可配置，见 §7）
 ├── jz/index.html     ← 记账前端
 └── rq/index.html     ← 人情前端</pre>
 <div class="d"><b>别传</b><code>历史数据/</code>、<code>合并源码/</code>、<code>*.txt</code>（含源码明文，传上去等于公开）。</div>
@@ -103,8 +105,8 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <h3 style="margin:12px 0 6px;font-size:16px;color:#1b6a48">Secrets —— 敏感项一律用密钥（加密、后台不可再查明文）</h3>
 <table>
 <tr><th>名称</th><th>值</th><th>作用</th></tr>
-<tr><td><code>ADMIN_PASSWORD</code></td><td><code>8888</code></td><td>大屏密码门；不配提示"服务器未配置密码"</td></tr>
-<tr><td><code>SOCIAL_AUTH_CODE</code></td><td><code>baoge888</code>，多个逗号分隔 <code>baoge888,baoge777</code></td><td>人情页 <code>/rq/</code> 授权码；<b>不配则你自己也进不去</b></td></tr>
+<tr><td><code>ADMIN_PASSWORD</code></td><td><code>8888</code></td><td>大屏<b>访问</b>密码门（仅决定能否查看大屏，签发 <code>dash_auth</code>）；不配提示“服务器未配置密码”</td></tr>
+<tr><td><code>SOCIAL_AUTH_CODE</code></td><td><code>baoge888</code>，多个逗号分隔 <code>baoge888,baoge777</code></td><td>人情页 <code>/rq/</code> 授权码，<b>兼作“管理密码”</b>：订阅设置/数据源、备忘录读写都要它（签发 <code>mng_auth</code>）；<b>不配则你自己也改不了</b></td></tr>
 </table>
 <h3 style="margin:14px 0 6px;font-size:16px;color:#1b6a48">Environment variables —— 非敏感用文本变量</h3>
 <table>
@@ -114,6 +116,7 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td><code>DOMAINS_DATA_URL</code></td><td>大屏"域名监控"数据源</td></tr>
 </table>
 <p>不配只影响对应卡片。数据文件可直接放在同一项目里，变量填 <code>https://域名/vps.txt</code>。</p>
+<div class="w"><b>可被前端覆盖</b>这三个变量只是“默认值”。部署后可在大屏 <b>订阅区 ⚙️ 设置</b>里直接改数据源 url（存进 KV <code>MEMO_DATA</code>，改后<b>以 KV 为准</b>；某项<b>清空</b>则自动回退到这里的环境变量）。改 url / 存配置都要大屏密码。</div>
 <div class="w"><b>无需配置</b>本面板只需要 <code>ADMIN_PASSWORD</code>、<code>SOCIAL_AUTH_CODE</code> 两个密钥 + 三个数据源变量。<code>ACCOUNTING_USER</code> / <code>ACCOUNTING_PASS</code>（原用于自动建 <code>family</code> 默认账号）与 <code>MEMO_PASSWORD</code>（备忘录密码门连同 <code>/api/auth/memo</code> 接口已删除）都已不再被代码引用，<b>从来没配过就不用管</b>；若旧项目里残留，删掉也无影响。</div>
 </section>
 
@@ -121,9 +124,10 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <h2><span class="n">6</span>鉴权模型（改造后的关键变化）</h2>
 <table>
 <tr><th>位置</th><th>验证</th><th>看谁的数据</th></tr>
-<tr><td>大屏 <code>/</code></td><td>要密码（<code>ADMIN_PASSWORD</code>）</td><td><b>纯门禁，不再签发任何记账 token</b></td></tr>
+<tr><td>大屏 <code>/</code></td><td>要<b>访问密码</b>（<code>ADMIN_PASSWORD</code>）</td><td>登录成功下发 <b>HttpOnly Cookie <code>dash_auth</code></b>（30 天）；仅决定“能否查看大屏”，登录态由服务端 <code>dashboard-check</code> 校验（不再凭 localStorage 放行）；“退出”会清除</td></tr>
 <tr><td>大屏 · 家庭账本卡片</td><td>要，卡片内"登录记账"</td><td>你登录的那个账号（token 存 <code>accounting_card_token</code>）</td></tr>
-<tr><td>大屏 · 备忘录卡片</td><td><b>不要</b>，直接编辑</td><td>全局一份</td></tr>
+<tr><td>大屏 · 备忘录卡片</td><td><b>看和改都要“管理密码”</b>（<code>SOCIAL_AUTH_CODE</code>）：点“管理”每次弹框，<code>GET/POST /api/memo</code> 均校验 <code>mng_auth</code></td><td>全局一份</td></tr>
+<tr><td>大屏 · 订阅设置 ⚙️</td><td><b>每次进入都要“管理密码”</b>（<code>SOCIAL_AUTH_CODE</code>，验证前不暴露配置）</td><td>展示配置全局一份（存 KV），数据源 url 可改</td></tr>
 <tr><td>大屏 · 人情卡片</td><td><b>不要</b>，走开放接口 <code>/rq-api/api/social-stats</code></td><td>只有汇总数字，<b>无明细</b></td></tr>
 <tr><td>记账本 <code>/jz/</code></td><td>要账号登录</td><td><b>自助注册，已去掉邀请码</b>；用户间数据隔离</td></tr>
 <tr><td>人情本 <code>/rq/</code></td><td>要授权码，<b>每次进入都要重新输入</b></td><td>服务端比对 <code>SOCIAL_AUTH_CODE</code> → 下发 <b>HttpOnly Cookie <code>rq_auth</code></b> 供数据接口放行；<b>前端已取消"记住登录"自动放行</b></td></tr>
@@ -132,26 +136,28 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <li>授权码<b>不写在前端</b>，改服务端变量校验；<code>/rq-api</code> 除 <code>/api/health</code>、<code>/api/social-stats</code> 外，<b>无合法 Cookie 一律 401</b>——绕过遮罩也拿不到数据。</li>
 <li><code>family</code> 默认用户已移除。旧 KV 里若有，不影响运行；想清干净就删 <code>user:family</code>、<code>userid:&lt;uuid&gt;</code>、<code>data:&lt;uuid&gt;</code>（uuid 在 <code>user:family</code> 的 value 里）。</li>
 <li>记账卡片固定统计<b>本月</b>；分类排行上限 16 条（超出仍计入总额）；高度不会被截断。</li>
+<li>两级密码：<code>ADMIN_PASSWORD</code>=访问（<code>dash_auth</code>，只看大屏）；<code>SOCIAL_AUTH_CODE</code>=管理（<code>mng_auth</code>，改订阅设置/数据源、读写备忘录）。订阅配置与备忘录存于 <code>MEMO_DATA</code>（全局一份），读写接口凭 <code>mng_auth</code> 放行；<b>两枚 Cookie 都带 <code>Secure</code>，HTTP 下不生效，必须 HTTPS 部署</b>。</li>
 </ul>
 </section>
 
 <section>
-<h2><span class="n">7</span>按需定制 <code>_worker.js</code>（订阅区 &amp; 大屏初始模式）</h2>
+<h2><span class="n">7</span>订阅区配置 &amp; 大屏初始模式（<code>_worker.js</code>）</h2>
 
-<h3 style="margin:12px 0 6px;font-size:16px;color:#1b6a48">① 订阅区：两套代码，按对象选一份上传</h3>
-<p>大屏底部"订阅"卡片里，<b>☁️ 云服 / 🌐 域名</b> 一般只有自己用才需要；分享给家人朋友时通常只保留 <b>📱 手机套餐</b>。已备好两份源码，<b>选一份改名成 <code>_worker.js</code></b> 放进 <code>jiating-pages/</code> 再上传：</p>
+<h3 style="margin:12px 0 6px;font-size:16px;color:#1b6a48">① 订阅区：一份代码，运行时随意勾选</h3>
+<p>用 <b><code>_worker-订阅可配置.js</code></b>（改名成 <code>_worker.js</code> 放进 <code>jiating-pages/</code>）即可，<b>不用再按对象换文件</b>。大屏底部“订阅”卡片有 <b>⚙️ 设置</b>，点开可<b>随意勾选展示哪几张卡</b>（📱 手机 / ☁️ 云服 / 🌐 域名，0~3 张任意组合），并给<b>每张卡单独设时长</b>、设<b>订阅区总时长</b>；折叠名称、顺序、标签栏全部<b>自动跟随</b>。</p>
 <table>
-<tr><th>选用文件</th><th>订阅区显示</th><th>适用对象</th></tr>
-<tr><td><code>_worker - 订阅下三个卡片.js</code></td><td>📱 手机 / ☁️ 云服 / 🌐 域名</td><td>自己用（要监控云服、域名）</td></tr>
-<tr><td><code>_worker-订阅下仅手机卡片.js</code></td><td>只剩 📱 手机（展开、折叠都只有手机）</td><td>给别人用</td></tr>
+<tr><th>想要的效果</th><th>怎么做</th></tr>
+<tr><td>自己用，三张全展示</td><td>⚙️ 里三张都勾选</td></tr>
+<tr><td>分享别人，只留 📱 手机</td><td>⚙️ 取消“云服”“域名”，只留“手机”（＝旧的仅手机版）</td></tr>
+<tr><td>一张都不展示</td><td>三个全不勾，订阅区自动收起</td></tr>
 </table>
-<div class="w">两份<b>仅"订阅卡片"这一处不同</b>，其余（大屏门禁、记账、人情、备忘录、所有接口）完全一致，可放心互换。</div>
+<div class="w"><b>每次点 ⚙️ 都要输大屏密码</b>，验证通过才显示配置与数据源。配置<b>存 <code>MEMO_DATA</code>、全局一份</b>：一次设置所有设备跟随（代价是不能各设备各勾各的）。面板里还能<b>直接改三个数据源 url</b>，改后以 KV 为准、<b>留空＝回退 §5 环境变量</b>。</div>
 
 <h3 style="margin:14px 0 6px;font-size:16px;color:#1b6a48">② 大屏初始模式：轮播还是固定（<code>_worker.js</code> 约 2800 行）</h3>
 <p>大屏布局有两种：<b>轮播</b>（单张卡片大图、每隔几秒切一张）与<b>固定</b>（三列平铺、一次看全部）。初始表现由紧邻的两行决定：</p>
 <pre>// 约 2800 行附近
 const isAutoPlay = ref(false);    // 是否自动播放
-const viewMode = ref('carousel'); // 'carousel'=轮播  'grid'=固定</pre>
+const viewMode = ref('grid');     // 'carousel'=轮播  'grid'=固定</pre>
 <table>
 <tr><th>想要的初始效果</th><th><code>isAutoPlay</code></th><th><code>viewMode</code></th></tr>
 <tr><td>打开即<b>固定</b>三列、完全不转（给别人推荐）</td><td><code>false</code></td><td><code>'grid'</code></td></tr>
@@ -159,7 +165,7 @@ const viewMode = ref('carousel'); // 'carousel'=轮播  'grid'=固定</pre>
 <tr><td>轮播布局且<b>打开就自动播放</b>（最原始）</td><td><code>true</code></td><td><code>'carousel'</code></td></tr>
 </table>
 <p>顶部 <code>📋固定 / 🔄轮播</code> 按钮可随时互切；<b>一旦切到轮播，代码会自动开始播放</b>（<code>toggleViewMode</code> 内强制 <code>isAutoPlay = true</code>），所以这两个初值只决定"刚打开"那一下的状态。</p>
-<div class="w">现成默认：<b>三卡片版</b> = 轮播布局 + 初始暂停（<code>isAutoPlay=false, viewMode='carousel'</code>）；<b>仅手机卡片版</b> = 固定（<code>isAutoPlay=false, viewMode='grid'</code>）。要别的组合，按上表改这两行即可；改完运行 <code>node --check _worker.js</code> 确认无语法报错再上传。</div>
+<div class="w">现成默认：<b>订阅可配置版</b> = 固定（<code>isAutoPlay=false, viewMode='grid'</code>），打开即三列平铺不转。要轮播布局，把 <code>viewMode</code> 改回 <code>'carousel'</code> 即可；改完运行 <code>node --check _worker.js</code> 确认无语法报错再上传。</div>
 </section>
 
 <section>
@@ -168,7 +174,8 @@ const viewMode = ref('carousel'); // 'carousel'=轮播  'grid'=固定</pre>
 <li><code>https://域名/</code> 输密码进得去，无"服务器未配置密码"。</li>
 <li>访问 <code>/jz/</code> 注册：只有用户名/密码/确认密码，<b>无邀请码</b>；注册后记账、刷新数据还在。</li>
 <li>大屏账本卡片点"登录记账"，用上一步账号登录 → 显示该账号本月数据。</li>
-<li>大屏备忘录"点击管理"<b>不弹密码框</b>，可保存。</li>
+<li>未登录时大屏停在<b>访问密码</b>门（<code>ADMIN_PASSWORD</code>）。备忘录卡片默认不显示内容；点“管理”每次弹<b>管理密码</b>（<code>SOCIAL_AUTH_CODE</code>），通过后才能看/改。直接访问 <code>/api/memo</code> 未带管理 Cookie → <code>401</code>。</li>
+<li>点订阅区 <b>⚙️</b>：每次弹<b>管理密码</b>（<code>SOCIAL_AUTH_CODE</code>）框 → 通过后才能看/改配置；勾选、改时长、改数据源 url 后点“完成”提示保存成功；<b>换设备或刷新后配置跟随</b>（全局一份）；数据源 url 清空 → 回退环境变量。</li>
 <li>大屏人情卡片免验证就有汇总数字。</li>
 <li>访问 <code>/rq/</code> 弹授权码框：错码提示错误，对码加载明细；<b>刷新或重开页面都会再次要求输入</b>（已按要求取消免输入）。</li>
 <li>新标签打开 <code>https://域名/rq-api/api/files</code> → 返回 <code>{"success":false,"error":"未授权：请先输入有效授权码"}</code>（说明保护生效）。</li>
@@ -190,10 +197,11 @@ const viewMode = ref('carousel'); // 'carousel'=轮播  'grid'=固定</pre>
 <tr><td>KV/D1 下拉选不到</td><td>与 Pages 不同账户</td></tr>
 <tr><td><code>no such table: user_data_backup</code></td><td>D1 没执行建表 SQL</td></tr>
 <tr><td>大屏 404 / 空白</td><td>output directory 没填 <code>.</code>，或 <code>_worker.js</code> 不在上传内容根目录</td></tr>
+<tr><td>进 ⚙️ / 备忘录管理 反复 401 或要密码</td><td>弹的是<b>管理密码</b>=<code>SOCIAL_AUTH_CODE</code>（不是大屏密码！）；且带 <code>Secure</code> 的 Cookie 在 <code>http://</code> 不生效 → 必须 <b>HTTPS</b>，并确认已配 <code>SOCIAL_AUTH_CODE</code></td></tr>
 </table>
 </section>
 
-<footer>本地留存 · 未上传 · 配套代码：jiating-pages/（_worker.js 两个变体见 §7）</footer>
+<footer>本地留存 · 未上传 · 配套代码：jiating-pages/（_worker.js 订阅区运行时可配置，见 §7）</footer>
 </main>
 </body>
 </html>
