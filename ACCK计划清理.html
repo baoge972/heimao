@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACCK计划清理 · 部署教程</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0d1117;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      color: #c9d1d9;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #f0f6fc;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    .header h1 span {
+      background: #1f6feb;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0.25rem 0.9rem;
+      border-radius: 20px;
+      color: #fff;
+      letter-spacing: 0.3px;
+    }
+
+    .header .subtitle {
+      color: #8b949e;
+      font-size: 1rem;
+      margin-top: 0.6rem;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .badge {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      padding: 0.25rem 1rem;
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
+
+    .badge.green {
+      border-color: #238636;
+      color: #3fb950;
+    }
+
+    .badge.blue {
+      border-color: #1f6feb;
+      color: #58a6ff;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 1.75rem 1.75rem 1.5rem;
+      margin-bottom: 1.75rem;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: #484f58;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: #1f6feb;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+
+    .card-header .optional {
+      font-size: 0.75rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 0.1rem 0.7rem;
+      border-radius: 12px;
+      margin-left: 0.5rem;
+      font-weight: 400;
+    }
+
+    .card p {
+      color: #8b949e;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .card ul, .card ol {
+      color: #8b949e;
+      font-size: 0.95rem;
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card li {
+      margin-bottom: 0.4rem;
+    }
+
+    .card li strong {
+      color: #c9d1d9;
+    }
+
+    .code-block {
+      position: relative;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin: 1rem 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.75rem;
+      color: #8b949e;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    .code-header .lang {
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .copy-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 0.2rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .copy-btn:hover {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+
+    .copy-btn.copied {
+      background: #238636;
+      border-color: #2ea043;
+      color: #fff;
+    }
+
+    pre {
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: #e6edf3;
+      tab-size: 2;
+    }
+
+    pre code {
+      font-family: inherit;
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .inline-code {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.85em;
+      color: #e6edf3;
+    }
+
+    .note {
+      background: #0d1117;
+      border-left: 3px solid #1f6feb;
+      border-radius: 0 6px 6px 0;
+      padding: 0.8rem 1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #8b949e;
+    }
+
+    .note.warn {
+      border-left-color: #d29922;
+    }
+
+    .note.danger {
+      border-left-color: #f85149;
+    }
+
+    .note strong {
+      color: #c9d1d9;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #30363d;
+      color: #484f58;
+      font-size: 0.85rem;
+    }
+
+    .footer .highlight {
+      color: #58a6ff;
+    }
+
+    .status-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 1rem 0;
+    }
+
+    .status-table th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      background: #0d1117;
+      color: #8b949e;
+      font-weight: 500;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .status-table td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid #21262d;
+      color: #c9d1d9;
+    }
+
+    .status-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-table .ok {
+      color: #3fb950;
+    }
+
+    .status-table .skip {
+      color: #8b949e;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem 0.75rem;
+      }
+      .header h1 {
+        font-size: 1.5rem;
+        flex-wrap: wrap;
+      }
+      .card {
+        padding: 1.25rem 1rem;
+      }
+      pre {
+        font-size: 0.75rem;
+        padding: 0.8rem;
+      }
+      .code-header {
+        padding: 0.4rem 0.75rem;
+      }
+      .status-table {
+        font-size: 0.75rem;
+      }
+      .status-table th, .status-table td {
+        padding: 0.4rem 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== 头部 ==================== -->
+    <header class="header">
+      <h1>
+        ACCK 计划清理
+        <span>v1.0</span>
+      </h1>
+      <p class="subtitle">Docker 容器日志 + apt 缓存 + journal 定期清理方案</p>
+      <div class="badge-row">
+        <span class="badge green">✅ 适用于 Debian / Ubuntu</span>
+        <span class="badge blue">🐳 依赖 Docker</span>
+        <span class="badge">⏱ 每周一凌晨 3:00</span>
+      </div>
+    </header>
+
+    <!-- ==================== 步骤 1 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">1</span>
+        <h2>创建清理脚本</h2>
+      </div>
+      <p>在 <span class="inline-code">/root/clean_system.sh</span> 写入以下内容。脚本会依次清空容器日志、清理 apt 缓存、精简 journal（保留 50M），<strong>不会删除 certbot 镜像</strong>，也<strong>不会执行 apt autoremove</strong>。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code>cat &gt; /root/clean_system.sh &lt;&lt;'EOF'
+#!/bin/bash
+# 系统定期清理脚本
+# 功能：清空 Docker 容器日志、清理 apt 缓存、精简 journal
+# 注意：不删除 certbot 镜像（证书续期依赖），不执行 apt autoremove（避免误删）
+
+echo "=========================================="
+echo "清理开始: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=========================================="
+
+echo "=== 清理前 ==="
+df -h /
+
+echo ""
+echo "=== 清空容器日志 ==="
+truncate -s 0 /var/lib/docker/containers/*/*-json.log
+echo "已清空所有容器 json.log"
+
+echo ""
+echo "=== 清理 apt 缓存 ==="
+apt-get clean
+echo "apt 缓存已清理"
+
+echo ""
+echo "=== 清理 journal（保留 50M）==="
+journalctl --vacuum-size=50M
+
+echo ""
+echo "=== 清理后 ==="
+df -h /
+
+echo ""
+echo "清理完成: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=========================================="
+EOF</code></pre>
+      </div>
+
+      <div class="note">
+        <strong>💡 说明：</strong> certbot 镜像保留是因为续期脚本 <span class="inline-code">auto_cert_renewal.sh</span> 依赖它；不执行 autoremove 是为了避免误删系统依赖。
+      </div>
+    </div>
+
+    <!-- ==================== 步骤 2 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">2</span>
+        <h2>赋予执行权限</h2>
+      </div>
+      <p>让脚本可执行。</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code>chmod +x /root/clean_system.sh</code></pre>
+      </div>
+    </div>
+
+    <!-- ==================== 步骤 3 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">3</span>
+        <h2>手动执行验证</h2>
+      </div>
+      <p>先手动跑一次，确认输出正常、无报错。</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code>/root/clean_system.sh</code></pre>
+      </div>
+      <div class="note">
+        <strong>📌 预期输出：</strong> 清理前后会各打印一次 <span class="inline-code">df -h /</span>，中间显示各步骤执行情况。journal 显示 <span class="inline-code">freed 0B</span> 是正常的（未达到 50M 阈值）。
+      </div>
+    </div>
+
+    <!-- ==================== 步骤 4 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">4</span>
+        <h2>添加定时任务</h2>
+      </div>
+      <p>备份当前 crontab，然后追加每周一凌晨 3:00 执行的任务（自动去重）。</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code># 备份当前 crontab
+crontab -l &gt; /root/crontab_backup_$(date +%Y%m%d).txt
+
+# 追加新任务（自动去重）
+( crontab -l 2&gt;/dev/null | grep -v "clean_system.sh" ; echo "0 3 * * 1 /root/clean_system.sh &gt;&gt; /var/log/clean_system.log 2&gt;&amp;1" ) | crontab -</code></pre>
+      </div>
+
+      <p><strong>定时规则解读：</strong> <span class="inline-code">0 3 * * 1</span> 表示每周一 03:00 执行，输出追加到 <span class="inline-code">/var/log/clean_system.log</span>。</p>
+    </div>
+
+    <!-- ==================== 步骤 5 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">5</span>
+        <h2>确认定时任务已生效</h2>
+      </div>
+      <p>查看当前 crontab 列表，确认新增行已存在。</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code>crontab -l</code></pre>
+      </div>
+
+      <p>应能看到类似以下内容（最后一行是新增的）：</p>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="lang">output</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+        </div>
+        <pre><code>*/30 * * * * /usr/freemem.sh &gt;&gt; /tmp/tmp.txt
+0 0 * * * ~/auto_cert_renewal.sh
+0 2 * * * docker exec nginx apk add logrotate &amp;&amp; docker exec nginx logrotate -f /etc/logrotate.conf
+@reboot sleep 30 &amp;&amp; pgrep -f 'cf-vps-monitor|vps-monitor-service' &gt;/dev/null || /root/.cf-vps-monitor/bin/vps-monitor-service.sh
+@reboot iptables-restore &lt; /etc/iptables/rules.v4
+0 3 * * 1 /root/clean_system.sh &gt;&gt; /var/log/clean_system.log 2&gt;&amp;1</code></pre>
+      </div>
+    </div>
+
+    <!-- ==================== 后续维护 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">📋</span>
+        <h2>后续维护与排查</h2>
+      </div>
+
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>命令</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>查看最近清理日志</td>
+            <td><span class="inline-code">tail -50 /var/log/clean_system.log</span></td>
+          </tr>
+          <tr>
+            <td>手动应急清理</td>
+            <td><span class="inline-code">/root/clean_system.sh</span></td>
+          </tr>
+          <tr>
+            <td>恢复 crontab 备份</td>
+            <td><span class="inline-code">crontab /root/crontab_backup_YYYYMMDD.txt</span></td>
+          </tr>
+          <tr>
+            <td>查看磁盘使用</td>
+            <td><span class="inline-code">df -h /</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note warn">
+        <strong>⚠️ 注意：</strong> 该脚本针对 <strong>Debian/Ubuntu + systemd + Docker</strong> 环境。若迁移到 CentOS/RHEL，请将 <span class="inline-code">apt-get clean</span> 替换为 <span class="inline-code">yum clean all</span>。非 Docker 环境可移除日志清理部分。
+      </div>
+    </div>
+
+    <!-- ==================== 适用性速查 ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-num">🔍</span>
+        <h2>适用性速查</h2>
+      </div>
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>环境</th>
+            <th>是否适用</th>
+            <th>调整建议</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Debian / Ubuntu + Docker</td>
+            <td class="ok">✅ 直接使用</td>
+            <td>无需修改</td>
+          </tr>
+          <tr>
+            <td>CentOS / RHEL</td>
+            <td class="skip">⚠️ 需修改</td>
+            <td>apt → yum</td>
+          </tr>
+          <tr>
+            <td>非 systemd 系统</td>
+            <td class="skip">⚠️ 需修改</td>
+            <td>移除 journalctl 行</td>
+          </tr>
+          <tr>
+            <td>无 Docker 环境</td>
+            <td class="skip">⚠️ 需修改</td>
+            <td>移除 truncate 行</td>
+          </tr>
+          <tr>
+            <td>磁盘充裕（&lt;70%）</td>
+            <td class="skip">💤 不必要</td>
+            <td>可加阈值判断或跳过</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <strong>💡 通用化建议：</strong> 在脚本开头加入磁盘使用率阈值判断，例如 <span class="inline-code">usage=$(df / | awk 'NR==2 {gsub("%",""); print $5}')</span>，超过 85% 才执行清理。长期方案建议配置 Docker 日志轮转（<span class="inline-code">max-size=10m</span>，<span class="inline-code">max-file=3</span>）。
+      </div>
+    </div>
+
+    <!-- ==================== 页脚 ==================== -->
+    <footer class="footer">
+      <p>ACCK 计划清理 · 部署教程 · <span class="highlight">v1.0</span></p>
+      <p style="margin-top:0.4rem; font-size:0.8rem;">适用于 Debian/Ubuntu + systemd + Docker 环境 · 请根据实际发行版调整包管理命令</p>
+    </footer>
+
+  </div>
+
+  <!-- ==================== 复制功能 ==================== -->
+  <script>
+    function copyCode(btn) {
+      const codeBlock = btn.closest('.code-block');
+      const code = codeBlock.querySelector('pre code');
+      if (!code) return;
+
+      const text = code.innerText;
+
+      // 使用 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showCopied(btn);
+        }).catch(() => {
+          fallbackCopy(text, btn);
+        });
+      } else {
+        fallbackCopy(text, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showCopied(btn);
+      } catch (e) {
+        alert('复制失败，请手动选择复制');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function showCopied(btn) {
+      const original = btn.innerText;
+      btn.innerText = '✅ 已复制';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.innerText = original;
+        btn.classList.remove('copied');
+      }, 1800);
+    }
+  </script>
+</body>
+</html>
