@@ -50,6 +50,8 @@ footer{text-align:center;color:#8a998f;font-size:13px;padding:18px}
 <tr><td><code>/api/cost-config</code></td><td>读订阅展示配置（公开，不含数据源 url）</td><td>KV <code>MEMO_DATA</code></td></tr>
 <tr><td><code>/api/cost-admin</code></td><td>读写订阅配置 + 数据源 url（<b>需管理码鉴权</b>）</td><td>KV <code>MEMO_DATA</code></td></tr>
 <tr><td><code>/api/vps</code> · <code>/phone-cost</code> · <code>/domains</code></td><td>云服 / 话费 / 域名数据代理（<b>先读 KV 里的 url，空则回退环境变量</b>）</td><td>外部</td></tr>
+<tr><td><code>/api/display-mode</code></td><td>读/写“显示模式”（<code>manage</code> 管理+展示 / <code>view</code> 仅展示）：GET 公开、POST 需管理码</td><td>KV <code>MEMO_DATA</code></td></tr>
+<tr><td><code>/admin</code></td><td>隐藏的“管理/展示分离”设置页（需管理码，大屏无任何入口链接指过来）</td><td>—</td></tr>
 <tr><td><code>/status/*</code> · <code>/assets/*</code></td><td>renewlet 订阅转发</td><td>外部</td></tr>
 </table>
 <p>要上传的内容：</p>
@@ -164,6 +166,17 @@ const viewMode = ref('grid');     // 'carousel'=轮播  'grid'=固定</pre>
 </table>
 <p>顶部 <code>📋固定 / 🔄轮播</code> 按钮可随时互切；<b>一旦切到轮播，代码会自动开始播放</b>（<code>toggleViewMode</code> 内强制 <code>isAutoPlay = true</code>），所以这两个初值只决定"刚打开"那一下的状态。</p>
 <div class="w">现成默认：<b>订阅可配置版</b> = 固定（<code>isAutoPlay=false, viewMode='grid'</code>），打开即三列平铺不转。要轮播布局，把 <code>viewMode</code> 改回 <code>'carousel'</code> 即可；改完运行 <code>node --check _worker.js</code> 确认无语法报错再上传。</div>
+
+<h3 style="margin:14px 0 6px;font-size:16px;color:#1b6a48">③ 管理与展示分离：隐藏的 <code>/admin</code> 页 + 显示模式（本版新增）</h3>
+<p>大屏上的管理入口（订阅区 <b>⚙️</b>、记账/人情“<b>👆 点击查看完整数据源</b>”、备忘录“<b>👆 点击管理</b>”、域名“<b>管理 →</b>”）默认都直接显示。若想让大屏<b>纯展示</b>、把这些管理按钮全收起来：</p>
+<ul>
+<li>用一个<b>隐藏地址</b> <code>https://域名/admin</code> 切两种模式——大屏没有任何链接指过去，<b>观众不知道它的存在</b>，只有你手敲才进得去。</li>
+<li>进 <code>/admin</code> <b>需管理密码 <code>SOCIAL_AUTH_CODE</code></b>（复用 <code>/api/auth/management</code>，与订阅设置同一把钥匙；<b>不是</b>大屏访问密码）。</li>
+<li>两种模式：<b>管理+展示</b>（现状，按钮都在）/ <b>仅展示</b>（隐藏上面所有管理入口）。<b>全局存一份</b>（KV <code>MEMO_DATA</code> 的 <code>display_mode</code>），切一次所有设备跟随。</li>
+</ul>
+<div class="w"><b>安全不降级</b>：仅展示只是“藏按钮”，真正的写接口（<code>/api/memo</code>、<code>/api/cost-admin</code>、<code>/api/display-mode</code> POST）本就要求管理码，没码一律 <code>401</code>。所以把大屏挂电视 / 给别人看也改不动数据。</div>
+<p><b>用哪个文件：</b>把 <code>_worker-带admin模式.js</code>（=“订阅可配置版” + 本功能）改名成 <code>_worker.js</code> 放进 <code>jiating-pages/</code> 上传；不需要这功能就仍用 <code>_worker-订阅可配置.js</code>。</p>
+<p><b>用法：</b>部署后进 <code>/admin</code> → 输管理密码 → 选“仅展示” → 保存 → 刷新大屏即隐藏；要再管理回 <code>/admin</code> 切回。</p>
 </section>
 
 <section>
@@ -199,7 +212,7 @@ const viewMode = ref('grid');     // 'carousel'=轮播  'grid'=固定</pre>
 </table>
 </section>
 
-<footer>本地留存 · 未上传 · 配套代码：jiating-pages/（_worker.js 订阅区运行时可配置，见 §7）</footer>
+<footer>本地留存 · 未上传 · 配套代码：jiating-pages/（_worker.js 订阅区运行时可配置，见 §7；/admin 与显示模式见 §7③）</footer>
 </main>
 </body>
 </html>
