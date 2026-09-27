@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flutter 安卓开发环境搭建教程（命令行版）</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2e3a;
+    --text: #e4e6eb;
+    --sub: #9aa0ac;
+    --accent: #3b82f6;
+    --accent2: #22c55e;
+    --code-bg: #0d1117;
+    --warn: #f59e0b;
+    --err: #ef4444;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #3b82f6, #22c55e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: var(--sub); margin-bottom: 32px; font-size: 14px; }
+  h2 {
+    font-size: 20px;
+    margin: 36px 0 14px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+  h3 { font-size: 16px; margin: 20px 0 10px; color: var(--accent2); }
+  p { margin-bottom: 12px; color: var(--text); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .env-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .env-table th, .env-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .env-table th { background: #20242f; color: var(--sub); font-weight: 600; }
+  .env-table tr:last-child td { border-bottom: none; }
+  .code-block {
+    position: relative;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: #161b22;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--sub);
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .copy-btn:hover { background: #2563eb; }
+  .copy-btn.copied { background: var(--accent2); }
+  pre {
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e6edf3;
+  }
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    background: #20242f;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #79c0ff;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  .note, .warn, .err {
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .note { background: rgba(59,130,246,0.12); border-left: 4px solid var(--accent); }
+  .warn { background: rgba(245,158,11,0.12); border-left: 4px solid var(--warn); }
+  .err { background: rgba(239,68,68,0.12); border-left: 4px solid var(--err); }
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .step-num {
+    display: inline-block;
+    width: 24px; height: 24px;
+    line-height: 24px;
+    text-align: center;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    margin-right: 8px;
+  }
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--sub);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Flutter 安卓开发环境搭建教程</h1>
+  <p class="subtitle">命令行版 · 不依赖 Android Studio 图形界面 · Windows 11 · Flutter 3.47.5</p>
+
+  <div class="toc">
+    <strong>目录</strong>
+    <ol>
+      <li><a href="#overview">环境总览与前置条件</a></li>
+      <li><a href="#git">安装 Git</a></li>
+      <li><a href="#flutter">安装 Flutter SDK</a></li>
+      <li><a href="#jdk">安装 JDK 17</a></li>
+      <li><a href="#cmdline">安装 Android 命令行工具</a></li>
+      <li><a href="#sdk">安装 Android SDK 组件与许可</a></li>
+      <li><a href="#verify">验证环境</a></li>
+      <li><a href="#project">创建并运行第一个 Flutter 项目</a></li>
+      <li><a href="#device">连接安卓设备或模拟器</a></li>
+      <li><a href="#build">打包 APK</a></li>
+      <li><a href="#faq">常见问题</a></li>
+    </ol>
+  </div>
+
+  <!-- ================= 1 ================= -->
+  <h2 id="overview"><span class="step-num">1</span>环境总览与前置条件</h2>
+  <div class="card">
+    <p>本教程完成后，你的环境将是：</p>
+    <table class="env-table">
+      <tr><th>组件</th><th>版本 / 路径</th></tr>
+      <tr><td>操作系统</td><td>Windows 11</td></tr>
+      <tr><td>Flutter SDK</td><td>3.47.5 stable，<code>C:\flutter</code></td></tr>
+      <tr><td>Dart</td><td>3.13.4（随 Flutter 自带）</td></tr>
+      <tr><td>Git</td><td>2.45+</td></tr>
+      <tr><td>JDK</td><td>Microsoft OpenJDK 17，<code>C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot</code></td></tr>
+      <tr><td>Android 命令行工具</td><td><code>C:\android\cmdline-tools\latest</code></td></tr>
+      <tr><td>Android SDK</td><td>Platform 36 + Build-tools 34.0.0，<code>C:\android</code></td></tr>
+      <tr><td>ANDROID_HOME</td><td><code>C:\android</code></td></tr>
+      <tr><td>JAVA_HOME</td><td><code>C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot</code></td></tr>
+    </table>
+    <p><strong>核心原则：全程使用 PowerShell，不打开 Android Studio。</strong></p>
+    <div class="note">
+      💡 所有命令都可以直接点击右上角「复制」按钮复制到 PowerShell 中执行。
+    </div>
+  </div>
+
+  <!-- ================= 2 ================= -->
+  <h2 id="git"><span class="step-num">2</span>安装 Git</h2>
+  <div class="card">
+    <p>Flutter 依赖 Git，先确认是否已安装：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>git --version</code></pre>
+    </div>
+    <p>如果显示版本号（如 <code>git version 2.45.1.windows.1</code>），跳过此步。</p>
+    <p>如果没有，去官网下载安装：</p>
+    <p><a href="https://git-scm.com/download/win" style="color:#3b82f6">https://git-scm.com/download/win</a></p>
+    <p>安装时保持默认选项即可，它会自动把 Git 加入 PATH。</p>
+  </div>
+
+  <!-- ================= 3 ================= -->
+  <h2 id="flutter"><span class="step-num">3</span>安装 Flutter SDK</h2>
+  <div class="card">
+    <h3>3.1 下载</h3>
+    <p>官方稳定版下载地址：</p>
+    <p><a href="https://docs.flutter.dev/get-started/install/windows" style="color:#3b82f6">https://docs.flutter.dev/get-started/install/windows</a></p>
+    <p>直接下载链接（3.47.5 stable）：</p>
+    <div class="code-block">
+      <div class="code-header"><span>下载地址</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.47.5-stable.zip</code></pre>
+    </div>
+
+    <h3>3.2 解压</h3>
+    <p>解压到 <code>C:\flutter</code>，确保 <code>C:\flutter\bin\flutter.bat</code> 存在。</p>
+    <div class="warn">
+      ⚠️ 路径不要有中文和空格，不要放在 <code>C:\Program Files\</code> 下。
+    </div>
+
+    <h3>3.3 加入 PATH</h3>
+    <p>在 PowerShell 中执行：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";C:\flutter\bin",
+  "User"
+)</code></pre>
+    </div>
+
+    <h3>3.4 验证</h3>
+    <p><strong>关掉 PowerShell，重新打开</strong>，执行：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter --version</code></pre>
+    </div>
+    <p>第一次运行会构建工具、下载依赖，需要等 1-3 分钟。成功后输出类似：</p>
+    <div class="code-block">
+      <div class="code-header"><span>输出示例</span></div>
+      <pre><code>Flutter 3.47.5 • channel stable
+Framework • revision 6a19cca564
+Engine • revision af7e796e16
+Tools • Dart 3.13.4 • DevTools 2.60.0</code></pre>
+    </div>
+  </div>
+
+  <!-- ================= 4 ================= -->
+  <h2 id="jdk"><span class="step-num">4</span>安装 JDK 17</h2>
+  <div class="card">
+    <p>Android 命令行工具需要 Java 环境。推荐 JDK 17。</p>
+
+    <h3>4.1 用 winget 安装</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>winget install Microsoft.OpenJDK.17</code></pre>
+    </div>
+    <p>等待下载（约 160 MB）和安装完成。</p>
+
+    <h3>4.2 找到安装路径</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>Get-ChildItem "C:\Program Files\Microsoft" -Directory | Where-Object Name -like "jdk*"</code></pre>
+    </div>
+    <p>输出类似 <code>C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot</code>。</p>
+
+    <h3>4.3 设置 JAVA_HOME</h3>
+    <p>把上面得到的路径代入（注意版本号要完全一致）：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot", "User")
+
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";%JAVA_HOME%\bin",
+  "User"
+)</code></pre>
+    </div>
+
+    <h3>4.4 验证</h3>
+    <p><strong>重开 PowerShell</strong>，执行：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>echo $env:JAVA_HOME
+java -version</code></pre>
+    </div>
+    <p>应输出 JDK 路径和 <code>openjdk version "17.0.20.1"</code>。</p>
+  </div>
+
+  <!-- ================= 5 ================= -->
+  <h2 id="cmdline"><span class="step-num">5</span>安装 Android 命令行工具</h2>
+  <div class="card">
+    <h3>5.1 下载</h3>
+    <p>打开页面，找到「仅限命令行工具」区域：</p>
+    <p><a href="https://developer.android.com/studio#command-line-tools-only" style="color:#3b82f6">https://developer.android.com/studio#command-line-tools-only</a></p>
+    <p>下载 Windows 版 zip（约 155 MB），文件名类似 <code>commandlinetools-win-15859902_latest.zip</code>。</p>
+
+    <h3>5.2 解压并整理目录</h3>
+    <p>解压到 <code>C:\android\cmdline-tools</code>，然后整理成如下结构：</p>
+    <div class="code-block">
+      <div class="code-header"><span>目标结构</span></div>
+      <pre><code>C:\android\
+  └── cmdline-tools\
+        └── latest\
+              ├── bin\
+              ├── lib\
+              ├── NOTICE.txt
+              └── source.properties</code></pre>
+    </div>
+    <p>在 <code>C:\android\cmdline-tools</code> 下执行：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>cd C:\android\cmdline-tools
+mkdir latest
+move bin latest
+move lib latest
+move NOTICE.txt latest
+move source.properties latest</code></pre>
+    </div>
+    <div class="err">
+      ❌ <code>latest</code> 这一层不能省，否则 sdkmanager 会报 <code>Could not determine SDK root</code>。
+    </div>
+
+    <h3>5.3 设置环境变量</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>[Environment]::SetEnvironmentVariable("ANDROID_HOME", "C:\android", "User")
+
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";C:\android\cmdline-tools\latest\bin;C:\android\platform-tools",
+  "User"
+)</code></pre>
+    </div>
+
+    <h3>5.4 验证</h3>
+    <p><strong>重开 PowerShell</strong>：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>sdkmanager --version</code></pre>
+    </div>
+    <p>能输出版本号（如 <code>22.0</code>）即成功。</p>
+  </div>
+
+  <!-- ================= 6 ================= -->
+  <h2 id="sdk"><span class="step-num">6</span>安装 Android SDK 组件与许可</h2>
+  <div class="card">
+    <h3>6.1 安装必要组件</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>sdkmanager "platform-tools" "platforms;android-36" "build-tools;34.0.0"</code></pre>
+    </div>
+    <p>中途问 <code>Accept? (y/N)</code> 时输入 <code>y</code> 回车。</p>
+    <div class="note">
+      💡 Flutter 3.47.5 要求 Android SDK Platform 36。Build-tools 用 34.0.0 即可，Flutter 提示里的 "BuildTools 28.0.3" 是固定文案，不用管。
+    </div>
+
+    <h3>6.2 接受所有许可</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>sdkmanager --licenses</code></pre>
+    </div>
+    <p>一路按 <code>y</code> 回车，直到出现 <code>All SDK package licenses accepted</code>。</p>
+  </div>
+
+  <!-- ================= 7 ================= -->
+  <h2 id="verify"><span class="step-num">7</span>验证环境</h2>
+  <div class="card">
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter doctor -v</code></pre>
+    </div>
+    <p>期望结果：</p>
+    <table class="env-table">
+      <tr><th>项目</th><th>状态</th></tr>
+      <tr><td>Flutter</td><td>✅</td></tr>
+      <tr><td>Windows Version</td><td>✅</td></tr>
+      <tr><td>Android toolchain</td><td>✅</td></tr>
+      <tr><td>Chrome / Edge</td><td>✅</td></tr>
+      <tr><td>Network resources</td><td>✅</td></tr>
+      <tr><td>Visual Studio</td><td>❌ 可忽略（不做 Windows 桌面应用）</td></tr>
+    </table>
+    <div class="note">
+      💡 只要 <strong>Android toolchain</strong> 是 ✅，安卓开发环境就通了。Visual Studio 那个 ✗ 与安卓无关。
+    </div>
+  </div>
+
+  <!-- ================= 8 ================= -->
+  <h2 id="project"><span class="step-num">8</span>创建并运行第一个 Flutter 项目</h2>
+  <div class="card">
+    <h3>8.1 创建项目</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>cd C:\Users\Administrator
+flutter create my_app
+cd my_app</code></pre>
+    </div>
+    <p>把 <code>my_app</code> 换成你想用的项目名（小写字母 + 下划线）。</p>
+
+    <h3>8.2 查看可用设备</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter devices</code></pre>
+    </div>
+
+    <h3>8.3 运行</h3>
+    <p>连接安卓手机后：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter run</code></pre>
+    </div>
+    <p>或者指定设备 ID：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter run -d &lt;设备ID&gt;</code></pre>
+    </div>
+  </div>
+
+  <!-- ================= 9 ================= -->
+  <h2 id="device"><span class="step-num">9</span>连接安卓设备或模拟器</h2>
+  <div class="card">
+    <h3>9.1 真机（推荐）</h3>
+    <ol style="padding-left:20px">
+      <li>手机「设置」→「关于手机」→ 连点「版本号」7 次，开启开发者模式</li>
+      <li>「设置」→「开发者选项」→ 打开「USB 调试」</li>
+      <li>数据线连接电脑，手机弹出授权提示时点「允许」</li>
+      <li>验证：</li>
+    </ol>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>adb devices</code></pre>
+    </div>
+    <p>应显示一行设备序列号 + <code>device</code>。</p>
+
+    <h3>9.2 模拟器（可选）</h3>
+    <p>安装系统镜像和模拟器：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>sdkmanager "emulator" "system-images;android-34;google_apis;x86_64"</code></pre>
+    </div>
+    <p>创建 AVD：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>avdmanager create avd -n pixel -k "system-images;android-34;google_apis;x86_64" -d pixel_6</code></pre>
+    </div>
+    <p>启动模拟器：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>emulator -avd pixel</code></pre>
+    </div>
+  </div>
+
+  <!-- ================= 10 ================= -->
+  <h2 id="build"><span class="step-num">10</span>打包 APK</h2>
+  <div class="card">
+    <h3>10.1 调试版 APK</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter build apk --debug</code></pre>
+    </div>
+    <p>输出路径：<code>build\app\outputs\flutter-apk\app-debug.apk</code></p>
+
+    <h3>10.2 发布版 APK</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter build apk --release</code></pre>
+    </div>
+    <p>输出路径：<code>build\app\outputs\flutter-apk\app-release.apk</code></p>
+
+    <h3>10.3 分架构打包（体积更小）</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>flutter build apk --split-per-abi</code></pre>
+    </div>
+    <p>会生成 arm64-v8a、armeabi-v7a、x86_64 三个 APK，按手机架构选用。</p>
+
+    <div class="warn">
+      ⚠️ 发布版 APK 需要签名。首次打包会自动用 debug 签名，正式发布需配置 <code>android/key.properties</code> 和 keystore。
+    </div>
+  </div>
+
+  <!-- ================= 11 ================= -->
+  <h2 id="faq"><span class="step-num">11</span>常见问题</h2>
+  <div class="card">
+    <h3>Q1: flutter 不是可识别的命令</h3>
+    <p>PATH 没生效。检查：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>$env:Path -split ';' | Select-String flutter
+Test-Path C:\flutter\bin\flutter.bat</code></pre>
+    </div>
+    <p>第一条应输出 <code>C:\flutter\bin</code>，第二条应输出 <code>True</code>。若 PATH 缺失，重新执行第 3.3 步并<strong>重开终端</strong>。</p>
+
+    <h3>Q2: sdkmanager 报 JAVA_HOME is not set</h3>
+    <p>JDK 没装或 JAVA_HOME 没设。回到第 4 步，确认：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>echo $env:JAVA_HOME
+java -version</code></pre>
+    </div>
+
+    <h3>Q3: sdkmanager 报 Could not determine SDK root</h3>
+    <p>目录结构不对。确保是 <code>C:\android\cmdline-tools\latest\bin\sdkmanager.bat</code>，<code>latest</code> 这层必须在。</p>
+
+    <h3>Q4: flutter doctor 提示 Android SDK 版本不够</h3>
+    <p>补装对应 Platform：</p>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+      <pre><code>sdkmanager "platforms;android-36"</code></pre>
+    </div>
+
+    <h3>Q5: 改了环境变量但没生效</h3>
+    <p>环境变量只对新开的终端生效。<strong>关掉 PowerShell，重新打开</strong>再试。</p>
+
+    <h3>Q6: Visual Studio 那个 ✗ 要不要管</h3>
+    <p>不用。它只影响 Windows 桌面应用开发，与安卓无关。</p>
+
+    <h3>Q7: 首次 flutter run 很慢</h3>
+    <p>正常。首次会下载 Gradle、依赖包，可能几分钟到十几分钟。之后会快很多。</p>
+  </div>
+
+  <footer>
+    Flutter 安卓开发环境搭建教程 · 命令行版<br>
+    适用 Flutter 3.47.5 stable · Windows 11
+  </footer>
+
+</div>
+
+<script>
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '复制';
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    // 降级方案
+    const range = document.createRange();
+    range.selectNode(pre);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    btn.textContent = '已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '复制';
+      btn.classList.remove('copied');
+    }, 1500);
+  });
+}
+</script>
+</body>
+</html>
