@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宝哥音乐 · 开发与构建教程</title>
+<style>
+  :root{
+    --bg:#0f1117; --card:#1a1d27; --border:#2a2e3a;
+    --text:#e4e6eb; --sub:#9aa0ac; --accent:#a855f7; --accent2:#ec489a;
+    --code-bg:#0d1117; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    line-height:1.75; padding:40px 20px;
+  }
+  .container{max-width:960px;margin:0 auto;}
+  h1{
+    font-size:30px;margin-bottom:8px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .subtitle{color:var(--sub);margin-bottom:32px;font-size:14px;}
+  h2{
+    font-size:22px;margin:40px 0 16px;padding-left:12px;
+    border-left:4px solid var(--accent);
+  }
+  h3{font-size:17px;margin:22px 0 10px;color:var(--accent2);}
+  p{margin-bottom:12px;}
+  .card{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:12px;padding:18px 20px;margin-bottom:16px;
+  }
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
+  th,td{padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;}
+  th{background:#20242f;color:var(--sub);font-weight:600;}
+  tr:last-child td{border-bottom:none;}
+  .code-block{
+    position:relative;background:var(--code-bg);
+    border:1px solid var(--border);border-radius:10px;margin:12px 0;overflow:hidden;
+  }
+  .code-header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 14px;background:#161b22;border-bottom:1px solid var(--border);
+    font-size:12px;color:var(--sub);
+  }
+  .copy-btn{
+    background:var(--accent);color:#fff;border:none;padding:4px 12px;
+    border-radius:6px;font-size:12px;cursor:pointer;transition:.2s;
+  }
+  .copy-btn:hover{background:#9333ea;}
+  .copy-btn.copied{background:var(--ok);}
+  pre{
+    padding:14px 16px;overflow-x:auto;
+    font-family:Consolas,"Courier New",monospace;font-size:13px;line-height:1.6;color:#e6edf3;
+  }
+  code{
+    font-family:Consolas,"Courier New",monospace;background:#20242f;
+    padding:2px 6px;border-radius:4px;font-size:13px;color:#79c0ff;
+  }
+  pre code{background:none;padding:0;color:inherit;}
+  .note,.warn,.err{
+    border-radius:10px;padding:12px 16px;margin:12px 0;font-size:14px;
+  }
+  .note{background:rgba(168,85,247,.12);border-left:4px solid var(--accent);}
+  .warn{background:rgba(245,158,11,.12);border-left:4px solid var(--warn);}
+  .err{background:rgba(239,68,68,.12);border-left:4px solid var(--err);}
+  .toc{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:12px;padding:16px 20px;margin-bottom:28px;
+  }
+  .toc ol{padding-left:20px;}
+  .toc li{margin:6px 0;}
+  .toc a{color:var(--accent);text-decoration:none;}
+  .toc a:hover{text-decoration:underline;}
+  .step-num{
+    display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;
+    background:var(--accent);color:#fff;border-radius:50%;font-size:13px;margin-right:8px;
+  }
+  footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);
+    color:var(--sub);font-size:13px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>宝哥音乐 · 开发与构建教程</h1>
+<p class="subtitle">Flutter 安卓本地/网络音乐播放器 · 命令行版 · 基于实际项目（C:\Users\Administrator\baoge_music）</p>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#p1">环境搭建（Flutter + Android SDK + JDK）</a></li>
+    <li><a href="#p2">项目结构与关键文件</a></li>
+    <li><a href="#p3">构建与安装</a></li>
+    <li><a href="#p4">功能模块说明</a></li>
+    <li><a href="#p5">常见问题</a></li>
+    <li><a href="#p6">后续扩展</a></li>
+  </ol>
+</div>
+
+<!-- ================= 第一部分 ================= -->
+<h2 id="p1">第一部分：环境搭建</h2>
+
+<div class="card">
+  <p>这套环境在 Windows 11 上验证通过。全程命令行，<strong>不装 Android Studio 图形界面</strong>。</p>
+  <table>
+    <tr><th>组件</th><th>版本 / 路径</th></tr>
+    <tr><td>Flutter SDK</td><td>3.47.5 stable，<code>C:\flutter</code></td></tr>
+    <tr><td>Git</td><td>2.45+</td></tr>
+    <tr><td>JDK</td><td>Microsoft OpenJDK 17，<code>C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot</code></td></tr>
+    <tr><td>Android 命令行工具</td><td><code>C:\android\cmdline-tools\latest</code></td></tr>
+    <tr><td>Android SDK</td><td>Platform 36 + Build-tools 34.0.0，<code>C:\android</code></td></tr>
+    <tr><td>ANDROID_HOME</td><td><code>C:\android</code></td></tr>
+    <tr><td>JAVA_HOME</td><td><code>C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot</code></td></tr>
+  </table>
+</div>
+
+<h3><span class="step-num">1</span>安装 Git</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>git --version</code></pre>
+</div>
+<p>没有输出版本号就去 <a href="https://git-scm.com/download/win" style="color:#a855f7">git-scm.com</a> 下载安装，默认选项即可。</p>
+
+<h3><span class="step-num">2</span>安装 Flutter SDK</h3>
+<p>下载稳定版 zip：</p>
+<div class="code-block">
+  <div class="code-header"><span>下载地址</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.47.5-stable.zip</code></pre>
+</div>
+<p>解压到 <code>C:\flutter</code>，确保 <code>C:\flutter\bin\flutter.bat</code> 存在。</p>
+<p>加入 PATH：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";C:\flutter\bin",
+  "User"
+)</code></pre>
+</div>
+<div class="warn">⚠️ 改 PATH 后必须<strong>关掉 PowerShell 重新打开</strong>，否则不生效。</div>
+<p>验证：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>flutter --version</code></pre>
+</div>
+<p>应输出 <code>Flutter 3.47.5 • channel stable</code>。第一次跑会构建工具、下载依赖，等几分钟。</p>
+
+<h3><span class="step-num">3</span>安装 JDK 17</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>winget install Microsoft.OpenJDK.17</code></pre>
+</div>
+<p>装完找路径：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>Get-ChildItem "C:\Program Files\Microsoft" -Directory | Where-Object Name -like "jdk*"</code></pre>
+</div>
+<p>设 JAVA_HOME（把路径换成实际输出）：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot", "User")
+
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";%JAVA_HOME%\bin",
+  "User"
+)</code></pre>
+</div>
+<p>重开 PowerShell，验证：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>echo $env:JAVA_HOME
+java -version</code></pre>
+</div>
+
+<h3><span class="step-num">4</span>安装 Android 命令行工具</h3>
+<p>下载 Windows 版 command line tools：</p>
+<p><a href="https://developer.android.com/studio#command-line-tools-only" style="color:#a855f7">https://developer.android.com/studio#command-line-tools-only</a></p>
+<p>解压到 <code>C:\android\cmdline-tools</code>，然后整理成：</p>
+<div class="code-block">
+  <div class="code-header"><span>目标结构</span></div>
+  <pre><code>C:\android\
+  └── cmdline-tools\
+        └── latest\
+              ├── bin\
+              ├── lib\
+              ├── NOTICE.txt
+              └── source.properties</code></pre>
+</div>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>cd C:\android\cmdline-tools
+mkdir latest
+move bin latest
+move lib latest
+move NOTICE.txt latest
+move source.properties latest</code></pre>
+</div>
+<div class="err">❌ <code>latest</code> 这层不能省，否则 sdkmanager 报 <code>Could not determine SDK root</code>。</div>
+
+<p>设环境变量：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>[Environment]::SetEnvironmentVariable("ANDROID_HOME", "C:\android", "User")
+
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";C:\android\cmdline-tools\latest\bin;C:\android\platform-tools",
+  "User"
+)</code></pre>
+</div>
+
+<p>重开 PowerShell，验证：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>sdkmanager --version</code></pre>
+</div>
+
+<h3><span class="step-num">5</span>安装 Android SDK 组件</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>sdkmanager "platform-tools" "platforms;android-36" "build-tools;34.0.0"</code></pre>
+</div>
+<p>问 <code>Accept? (y/N)</code> 输 <code>y</code>。</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>sdkmanager --licenses</code></pre>
+</div>
+<p>一路 <code>y</code>，直到 <code>All SDK package licenses accepted</code>。</p>
+
+<h3><span class="step-num">6</span>配置国内镜像（加速）</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>[Environment]::SetEnvironmentVariable("PUB_HOSTED_URL", "https://pub.flutter-io.cn", "User")
+[Environment]::SetEnvironmentVariable("FLUTTER_STORAGE_BASE_URL", "https://storage.flutter-io.cn", "User")</code></pre>
+</div>
+<p>重开 PowerShell，验证：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>echo $env:PUB_HOSTED_URL
+echo $env:FLUTTER_STORAGE_BASE_URL</code></pre>
+</div>
+
+<h3><span class="step-num">7</span>最终验证</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>flutter doctor -v</code></pre>
+</div>
+<p>期望：Flutter ✅、Android toolchain ✅、Chrome/Edge ✅、Network resources ✅。</p>
+<div class="note">💡 Visual Studio 那项是 ❌，<strong>不用管</strong>——它只影响 Windows 桌面开发，跟安卓无关。</div>
+
+<!-- ================= 第二部分 ================= -->
+<h2 id="p2">第二部分：项目结构与关键文件</h2>
+
+<div class="card">
+  <p>项目路径：<code>C:\Users\Administrator\baoge_music</code></p>
+  <table>
+    <tr><th>文件</th><th>作用</th></tr>
+    <tr><td><code>lib/main.dart</code></td><td>全部 UI 和业务逻辑（列表、播放、网络、收藏、主题、播放页）</td></tr>
+    <tr><td><code>android/app/src/main/kotlin/com/example/baoge_music/MainActivity.kt</code></td><td>原生方法通道：查询本地音频、创建/写入 MediaStore 文件</td></tr>
+    <tr><td><code>android/app/src/main/AndroidManifest.xml</code></td><td>权限声明、App 名称、图标</td></tr>
+    <tr><td><code>pubspec.yaml</code></td><td>依赖、资源、App 图标配置</td></tr>
+    <tr><td><code>assets/icon.png</code></td><td>App 图标 + 播放页默认封面</td></tr>
+  </table>
+</div>
+
+<h3>依赖清单（pubspec.yaml）</h3>
+<div class="code-block">
+  <div class="code-header"><span>dependencies</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>cupertino_icons: ^1.0.8
+media_kit: ^1.2.6
+media_kit_libs_android_audio: ^1.3.8
+permission_handler: ^13.0.2
+audio_metadata_reader: ^1.8.0
+path_provider: ^2.1.6
+shared_preferences: ^2.5.5
+http: ^1.6.0
+flutter_launcher_icons: ^0.14.4</code></pre>
+</div>
+
+<h3>权限（AndroidManifest.xml）</h3>
+<div class="code-block">
+  <div class="code-header"><span>关键权限</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>&lt;uses-permission android:name="android.permission.INTERNET" /&gt;
+&lt;uses-permission android:name="android.permission.READ_MEDIA_AUDIO" /&gt;
+&lt;uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" /&gt;
+&lt;uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" /&gt;</code></pre>
+</div>
+<div class="err">❌ <strong>缺 <code>INTERNET</code> 会导致所有联网功能失败</strong>（搜索、在线播放、下载）。</div>
+
+<!-- ================= 第三部分 ================= -->
+<h2 id="p3">第三部分：构建与安装</h2>
+
+<h3>改代码后，别急着 clean</h3>
+<div class="warn">⚠️ <code>flutter clean</code> 会清掉所有编译缓存（包括 libmpv 原生库），下次构建要重新下载，<strong>非常慢</strong>。日常改 Dart 代码，直接构建即可。</div>
+
+<h3>Debug 版（调试用）</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>cd C:\Users\Administrator\baoge_music
+flutter build apk --debug</code></pre>
+</div>
+<p>产物：<code>build\app\outputs\flutter-apk\app-debug.apk</code>（约 200 MB）</p>
+
+<h3>Release 版（正式用，推荐）</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>flutter build apk --release --split-per-abi</code></pre>
+</div>
+<p>产物：</p>
+<table>
+  <tr><th>文件</th><th>大小</th><th>用途</th></tr>
+  <tr><td><code>app-arm64-v8a-release.apk</code></td><td>约 24 MB</td><td>现代手机、车机</td></tr>
+  <tr><td><code>app-armeabi-v7a-release.apk</code></td><td>约 21 MB</td><td>老设备</td></tr>
+  <tr><td><code>app-x86_64-release.apk</code></td><td>约 26 MB</td><td>模拟器</td></tr>
+</table>
+
+<h3>安装到手机</h3>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>adb devices
+adb install -r build\app\outputs\flutter-apk\app-arm64-v8a-release.apk</code></pre>
+</div>
+<div class="note">💡 <code>-r</code> 是覆盖安装，<strong>保留数据</strong>（收藏、改名、设置）。<strong>别用 <code>adb uninstall</code></strong>，那会清数据。</div>
+
+<h3>手机连不上 adb？</h3>
+<ol style="padding-left:20px">
+  <li>手机开启开发者模式 + USB 调试</li>
+  <li>USB 模式改成「传输文件」</li>
+  <li>弹「允许 USB 调试」勾「始终允许」</li>
+  <li>换数据线、换 USB 口</li>
+</ol>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>adb kill-server
+adb start-server
+adb devices</code></pre>
+</div>
+<p>还不行就<strong>手动拷 apk 到手机</strong>，用文件管理器点开安装。</p>
+
+<h3>改 App 名称和图标</h3>
+<p><strong>名称</strong>：<code>AndroidManifest.xml</code> 里 <code>android:label="宝哥音乐"</code></p>
+<p><strong>图标</strong>：把 1024×1024 PNG 放到 <code>assets/icon.png</code>，然后：</p>
+<div class="code-block">
+  <div class="code-header"><span>PowerShell</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+  <pre><code>dart run flutter_launcher_icons</code></pre>
+</div>
+
+<!-- 第二段从这里接上 -->
+<!-- ================= 第四部分 ================= -->
+<h2 id="p4">第四部分：功能模块说明</h2>
+
+<h3>4.1 本地音乐扫描</h3>
+<div class="card">
+  <p><strong>流程</strong>：</p>
+  <ol style="padding-left:20px">
+    <li>App 申请 <code>READ_MEDIA_AUDIO</code> 权限</li>
+    <li>调 <code>MainActivity.kt</code> 的 <code>querySongs</code></li>
+    <li>Kotlin 查 MediaStore，返回 id、标题、歌手、时长、<strong>folder（文件夹）</strong>、content:// URI</li>
+    <li>Dart 侧按 folder 分组，本地 tab 先显示文件夹列表，点进看歌</li>
+  </ol>
+  <p><strong>关键点</strong>：</p>
+  <ul style="padding-left:20px">
+    <li>不用全盘权限，走 MediaStore，华为也认</li>
+    <li>播放用 <code>content://</code> URI，不是文件路径（避开分区存储限制）</li>
+    <li>id 用 <code>path</code>（即 URI），稳定，收藏/改名不会丢</li>
+  </ul>
+</div>
+
+<h3>4.2 网络搜索与播放</h3>
+<div class="card">
+  <p><strong>依赖</strong>：<code>https://yinyue.baoge456.de5.net</code>（Cloudflare Worker）</p>
+  <table>
+    <tr><th>功能</th><th>接口</th></tr>
+    <tr><td>搜索</td><td><code>/api/gd-music?types=search&amp;source=netease&amp;name=关键词&amp;count=30&amp;pages=1</code></td></tr>
+    <tr><td>取播放地址</td><td><code>/api/gd-music?types=url&amp;id=歌曲ID&amp;source=netease&amp;br=320</code></td></tr>
+  </table>
+  <div class="warn">⚠️ Worker 挂了，网络 tab 全废；<strong>本地功能不受影响</strong>。</div>
+</div>
+
+<h3>4.3 下载到本地</h3>
+<div class="card">
+  <p><strong>流程</strong>：</p>
+  <ol style="padding-left:20px">
+    <li>取播放 URL</li>
+    <li>调 Kotlin <code>createAudioFile</code>，用 MediaStore 创建条目，返回 <code>content://</code> URI</li>
+    <li>下载数据，调 <code>writeToUri</code> 写入</li>
+    <li>写完后设 <code>IS_PENDING=0</code>，系统收录</li>
+  </ol>
+  <div class="err">❌ 不要在 insert 后立刻 <code>IS_PENDING=0</code>，否则文件还没写就被系统删，报 <code>No item at content://...</code>。</div>
+  <p>下载完成后，切到「本地」重新扫描即可看到。</p>
+</div>
+
+<h3>4.4 收藏 / 隐藏 / 改名 / 改歌手</h3>
+<div class="card">
+  <table>
+    <tr><th>数据</th><th>存储 key</th><th>说明</th></tr>
+    <tr><td>收藏 id</td><td><code>favorites</code></td><td>本地用 path，在线用 id</td></tr>
+    <tr><td>在线收藏歌</td><td><code>favorite_songs</code></td><td>存 id/标题/歌手/songmid</td></tr>
+    <tr><td>隐藏 id</td><td><code>hidden</code></td><td>从本地列表隐藏（不删文件）</td></tr>
+    <tr><td>自定义标题</td><td><code>custom_titles</code></td><td>id → 新标题</td></tr>
+    <tr><td>自定义歌手</td><td><code>custom_artists</code></td><td>id → 新歌手</td></tr>
+  </table>
+  <p>全部存 <code>shared_preferences</code>。显示时优先用自定义值。</p>
+  <div class="warn">⚠️ <strong>清除 App 存储 / 卸载 App</strong>，以上全丢。重装用 <code>adb install -r</code> 覆盖，别卸载。</div>
+</div>
+
+<h3>4.5 主题系统</h3>
+<div class="card">
+  <p>5 套主题：暗夜紫、深海蓝、森林绿、暖日落、浅色。顶部调色盘按钮切换，存 <code>theme_index</code>。</p>
+</div>
+
+<h3>4.6 播放页</h3>
+<div class="card">
+  <p>点正在播的歌 / 点底部播放条 → 进播放页。</p>
+  <ul style="padding-left:20px">
+    <li>竖屏：上封面、中信息、下控制，居中</li>
+    <li>横屏：左封面、右信息+控制（适合车机）</li>
+    <li>控制行：<code>[⏮] [▶️] [⏭] [🔁]</code> 四键均分</li>
+  </ul>
+</div>
+
+<!-- ================= 第五部分 ================= -->
+<h2 id="p5">第五部分：常见问题</h2>
+
+<div class="card">
+  <h3>Q1：编译特别慢</h3>
+  <p>原因：Gradle 在走 Google 服务器。解法：</p>
+  <ul style="padding-left:20px">
+    <li>配 Flutter 国内镜像（见第一部分第 6 步）</li>
+    <li>改 <code>android/settings.gradle.kts</code> 和 <code>android/build.gradle.kts</code>，加阿里云镜像</li>
+    <li><strong>别频繁 <code>flutter clean</code></strong></li>
+  </ul>
+
+  <h3>Q2：网络搜索失败，报 Failed host lookup</h3>
+  <p>检查 <code>AndroidManifest.xml</code> 有没有：</p>
+  <div class="code-block">
+    <div class="code-header"><span>XML</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+    <pre><code>&lt;uses-permission android:name="android.permission.INTERNET" /&gt;</code></pre>
+  </div>
+  <p>缺了它，所有联网功能全废。</p>
+
+  <h3>Q3：扫描失败，Permission denied</h3>
+  <p>华为/荣耀上，<code>MANAGE_EXTERNAL_STORAGE</code> 拿不到。已改用 MediaStore 查询，<strong>不需要全盘权限</strong>。</p>
+
+  <h3>Q4：下载失败 No item at content://...</h3>
+  <p>Kotlin 侧 <code>createAudioFile</code> 不能在 insert 后立刻 <code>IS_PENDING=0</code>。要等 <code>writeToUri</code> 写完再设。</p>
+
+  <h3>Q5：下载失败 无法获取下载地址</h3>
+  <p>某些歌网易云取不到 URL（版权/VIP）。换热门歌试。若所有歌都取不到，检查 Worker。</p>
+
+  <h3>Q6：收藏/改名/改歌手，重开后丢了</h3>
+  <p>检查是否清过 App 存储、或卸载过。用 <code>adb install -r</code> 覆盖安装保数据。</p>
+
+  <h3>Q7：播放没声音，进度不动</h3>
+  <p>检查播放地址。本地用 <code>content://</code> URI，在线用 Worker 返回的 URL。</p>
+
+  <h3>Q8：搜索框老弹输入法</h3>
+  <p>已修：切 tab、扫描完成时主动 <code>unfocus</code>，搜索框 <code>autofocus: false</code>。</p>
+</div>
+
+<!-- ================= 第六部分 ================= -->
+<h2 id="p6">第六部分：后续扩展</h2>
+
+<div class="card">
+  <h3>6.1 网络多源备用</h3>
+  <p>当前网络功能只依赖一个 Worker。可在 <code>main.dart</code> 里存多个 API 地址，逐个重试：</p>
+  <div class="code-block">
+    <div class="code-header"><span>Dart</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+    <pre><code>final apis = [
+  'https://yinyue.baoge456.de5.net/api/gd-music',
+  'https://music-api.gdstudio.xyz/api.php',
+  'https://api.music.ftm.best/api.php',
+];</code></pre>
+  </div>
+
+  <h3>6.2 后台播放 + 通知栏</h3>
+  <p>用 <code>audio_service</code> 包，配合 media_kit，实现锁屏/通知栏控制。</p>
+
+  <h3>6.3 歌词（可选）</h3>
+  <p>本地：读同目录 <code>.lrc</code> 或内嵌歌词。在线：调 Worker 的 lyric 接口。<strong>车机上用处不大，优先级低。</strong></p>
+
+  <h3>6.4 车机适配</h3>
+  <p>车机横屏，播放页已用左图右控布局。可加大按钮、加物理按键映射。</p>
+
+  <h3>6.5 音效 / 均衡器</h3>
+  <p>libmpv 支持 <code>af=equalizer=...</code>，但 media_kit 没直接暴露。<strong>手机/车机自带音效一般够用，优先级低。</strong></p>
+</div>
+
+<footer>
+  宝哥音乐 · 开发与构建教程<br>
+  Flutter 3.47.5 · Windows 11 · 命令行版
+</footer>
+
+</div>
+
+<script>
+function copyCode(btn){
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent = '已复制';
+    btn.classList.add('copied');
+    setTimeout(()=>{
+      btn.textContent = '复制';
+      btn.classList.remove('copied');
+    },1500);
+  }).catch(()=>{
+    const range = document.createRange();
+    range.selectNode(pre);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    btn.textContent = '已复制';
+    btn.classList.add('copied');
+    setTimeout(()=>{
+      btn.textContent = '复制';
+      btn.classList.remove('copied');
+    },1500);
+  });
+}
+</script>
+</body>
+</html>
