@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # ============================================
-# 服务器全面检测脚本 v3.5
+# 服务器全面检测脚本 v3.6
 # 同时支持：宿主机Nginx + Docker Nginx（科技lion）
 # 修复：直接从配置文件名提取域名，避免 \r 和 server_name 提取问题
 # v3.5：手动服务(Python/Node/Uvicorn)端口改用 ss 按进程树实测（不再猜命令行参数）并统一补 域名/类型/根目录；
 #        映射与【7】清单补 Docker-nginx 站点来源（修“nginx 仅在容器时漏列”）；【9】协议前缀按 HTTPS/HTTP 动态显示；生成时间固定为北京时间
+# v3.6：【9】Docker-nginx 分支对齐宿主机分支（补 proxy_pass 识别、优先取 server_name、过滤 /var/www/letsencrypt 等 ACME 目录不当站点根误报、去尾空格）；
+#        Python/Node/Uvicorn 三段 pgrep 结果加父子去重（sh 外壳与其子进程只列一行）；报告同时存一份到家目录 服务器检测报告.txt（覆盖式仅一份、纯净无色彩）
 # 用法: curl -sL https://git.baoge.wang/baoge.sh | bash
 # ============================================
 
@@ -114,6 +116,21 @@ nginx_dconf() {
     docker exec nginx cat "/etc/nginx/conf.d/$1" 2>/dev/null
 }
 
+# 候选 PID 去重：若某 PID 的祖辈也在候选列表里则剔除，同一进程树只保留最上层
+# （处理 sh -c "...uvicorn..." 外壳与其子进程都被 pgrep -f 命中、导致同一服务重复列行）
+top_pids() {
+    local all=" $* " p a up out=""
+    for p in $*; do
+        up=""
+        a="$p"
+        while a=$(ps -o ppid= -p "$a" 2>/dev/null | tr -d ' ') && [ -n "$a" ] && [ "$a" != "0" ]; do
+            case "$all" in *" $a "*) up="$a"; break;; esac
+        done
+        [ -z "$up" ] && out="$out $p"
+    done
+    echo $out
+}
+
 # -------------------- 已部署项目清单 --------------------
 echo -e "\n${BLUE}【7】已部署项目清单${NC}"
 echo "----------------------------------------"
@@ -169,7 +186,7 @@ if command -v docker &> /dev/null; then
 fi
 
 # 2. Python http.server 静态文件服务（可多个实例）
-for pid in $(pgrep -f "python3? .*-m http\.server" 2>/dev/null); do
+for pid in $(top_pids $(pgrep -f "python3? .*-m http\.server" 2>/dev/null)); do
     # 真实监听端口：ss 按进程树反查（不再从命令行猜，避免多进程声称同一端口）
     PORT=$(listen_ports "$pid")
     # 站点根目录 = 进程工作目录
@@ -196,7 +213,7 @@ for pid in $(pgrep -f "python3? .*-m http\.server" 2>/dev/null); do
 done
 
 # 3. Node.js 服务（可多个实例）
-for pid in $(pgrep -f "node.*server\.js" 2>/dev/null); do
+for pid in $(top_pids $(pgrep -f "node.*server\.js" 2>/dev/null)); do
     # 真实监听端口：ss 按进程树反查（pm2 子进程才是监听者）
     PORT=$(listen_ports "$pid")
     SROOT=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
@@ -220,7 +237,7 @@ for pid in $(pgrep -f "node.*server\.js" 2>/dev/null); do
 done
 
 # 4. Uvicorn 服务（可多个实例）
-for pid in $(pgrep -f "uvicorn" 2>/dev/null); do
+for pid in $(top_pids $(pgrep -f "uvicorn" 2>/dev/null)); do
     PORT=$(listen_ports "$pid")
     SROOT=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
     DOMAINS=""
