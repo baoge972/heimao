@@ -328,7 +328,8 @@ if command -v nginx &> /dev/null && systemctl is-active --quiet nginx 2>/dev/nul
                 else
                     PROXY_STATUS="静态文件"
                 fi
-                DNS_ROOTS=$(grep -oP '^\s*(root|alias)\s+\K[^;]+' "$conf" 2>/dev/null | sort -u | tr '\n' ' ')
+                # 过滤 ACME/证书校验目录，避免把 /var/www/letsencrypt 当站点根误报；去尾空格
+                DNS_ROOTS=$(grep -oP '^\s*(root|alias)\s+\K[^;]+' "$conf" 2>/dev/null | sort -u | grep -Ev '/var/www/(letsencrypt|certbot)|\.well-known' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
                 echo "    $ICON ${SCHEME}://$DOMAIN ($PROXY_STATUS, $SSL_STATUS)"
                 [ -n "$DNS_ROOTS" ] && echo "      静态根目录: $DNS_ROOTS"
                 echo "      配置文件: $conf"
@@ -343,16 +344,23 @@ if command -v docker &> /dev/null && docker ps --format '{{.Names}}' 2>/dev/null
     echo "  [Docker容器] Nginx 状态: 运行中"
     echo "  配置文件:"
     for conf in $(docker exec nginx ls /etc/nginx/conf.d/ 2>/dev/null | grep '\.conf$' | grep -v default); do
-        # 直接从配置文件名提取域名（去掉 .conf 后缀）
-        DOMAIN=$(echo "$conf" | sed 's/\.conf$//')
+        # 优先取真实 server_name，取不到再回退文件名（修 map 这类 文件名≠域名）
+        DOMAIN=$(nginx_dconf "$conf" | grep -E "^[[:space:]]*server_name" | head -1 | tr -d '\r' | sed 's/.*server_name//; s/;//' | xargs)
+        if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "_" ]; then DOMAIN=$(echo "$conf" | sed 's/\.conf$//'); fi
         if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
             if nginx_dconf "$conf" | grep -q "listen 443"; then
                 SSL_STATUS="✅ HTTPS"; SCHEME="https"; ICON="✅"
             else
                 SSL_STATUS="❌ HTTP"; SCHEME="http"; ICON="⚠️"
             fi
-            DY_ROOTS=$(nginx_dconf "$conf" | grep -oP '^\s*(root|alias)\s+\K[^;]+' | sort -u | tr '\n' ' ')
-            echo "    $ICON ${SCHEME}://$DOMAIN ($SSL_STATUS)"
+            if nginx_dconf "$conf" | grep -q "proxy_pass"; then
+                PROXY_STATUS="反向代理"
+            else
+                PROXY_STATUS="静态文件"
+            fi
+            # 过滤 ACME/证书校验目录，避免把 /var/www/letsencrypt 当站点根误报；去尾空格
+            DY_ROOTS=$(nginx_dconf "$conf" | grep -oP '^\s*(root|alias)\s+\K[^;]+' | sort -u | grep -Ev '/var/www/(letsencrypt|certbot)|\.well-known' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+            echo "    $ICON ${SCHEME}://$DOMAIN ($PROXY_STATUS, $SSL_STATUS)"
             [ -n "$DY_ROOTS" ] && echo "      静态根目录: $DY_ROOTS"
             echo "      配置文件: /etc/nginx/conf.d/$conf"
         fi
