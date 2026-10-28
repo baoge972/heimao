@@ -82,6 +82,16 @@ nginx_conf_files() {
     done | sort -u
 }
 
+# 递归收集某 PID 及其所有子孙进程 PID（pm2 守护进程会 fork 子进程，真正监听 socket 的往往是子进程）
+pid_tree() {
+    local p="$1"
+    echo "$p"
+    local c
+    for c in $(pgrep -P "$p" 2>/dev/null); do
+        pid_tree "$c"
+    done
+}
+
 # -------------------- 已部署项目清单 --------------------
 echo -e "\n${BLUE}【7】已部署项目清单${NC}"
 echo "----------------------------------------"
@@ -156,15 +166,21 @@ done
 
 # 3. Node.js 服务（可多个实例）
 for pid in $(pgrep -f "node.*server\.js" 2>/dev/null); do
-    # 从 ss 反查该 PID 实际监听的端口
-    PORT=$(ss -tlnp 2>/dev/null | grep "pid=$pid," | awk '{print $4}' | sed 's/.*://' | sort -u | tr '\n' ' ')
+    # 从 ss 反查该进程及其子孙进程实际监听的所有端口（pm2 子进程才是监听者，单 PID 反查会落空）
+    TREE_PIDS=$(pid_tree "$pid" | sort -u)
+    PORT=""
+    for tp in $TREE_PIDS; do
+        tp_ports=$(ss -tlnp 2>/dev/null | grep "pid=$tp," | awk '{print $4}' | sed 's/.*://')
+        PORT="$PORT $tp_ports"
+    done
+    PORT=$(echo "$PORT" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -un | paste -sd' ')
     SROOT=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
     # 关联域名：按反查到的端口逐个查映射表
     DOMAINS=""
     for pr in $PORT; do
         [ -n "${PORT_DOMAIN[$pr]:-}" ] && DOMAINS="${PORT_DOMAIN[$pr]}" && break
     done
-    [ -z "$DOMAINS" ] && DOMAINS="未关联"
+    [ -z "$DOMAINS" ] && DOMAINS="未关联（Nginx 未反代该端口，常见于前端直连后端）"
 
     COUNT=$((COUNT+1))
     echo "  $COUNT. Node.js 后端服务"
