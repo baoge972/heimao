@@ -121,6 +121,10 @@ $tok  = ($line -replace '.*://[^:]*:([^@]+)@.*','$1')
 ssh -T git@github.com</code></pre></div>
 
 <h2>四、重新部署</h2>
+<div class="warn">
+<strong>部署前先做一步：提前在浏览器登录目标仓库账号。</strong>
+清完凭证后，Git 会弹窗走「浏览器授权」。浏览器授权默认用<strong>当前已登录的 GitHub 账号</strong>签发 token——若浏览器还挂着旧账号，弹窗会跳过选择、直接用旧身份，又会 403。所以务必<strong>先在浏览器把 github.com 登录成目标账号</strong>（推荐：先退出全部账号，再单独登正确的那个；或用专属/隐私窗口只管这一个账号），让目标账号成为浏览器当前会话，再回来跑部署，弹窗就会自动用对的账号授权，一步成型。
+</div>
 <div class="cmdbox"><div class="cmdbar"><span class="cmdlabel">PowerShell 复制运行</span><button class="copybtn">复制</button></div>
 <pre><code>hexo clean; hexo generate; hexo deploy</code></pre></div>
 <div class="ok">
@@ -143,7 +147,7 @@ ssh -T git@github.com</code></pre></div>
 <div class="cmdbox"><div class="cmdbar"><span class="cmdlabel">清凭证 + 重登录</span><button class="copybtn">复制</button></div>
 <pre><code>cmdkey /delete:git:https://github.com
 Remove-Item "$env:USERPROFILE\.git-credentials" -Force -ErrorAction SilentlyContinue
-hexo clean; hexo g; hexo d   <span class="cmt"># 弹窗出现时，用 baoge972 登录</span></code></pre></div>
+hexo clean; hexo g; hexo d   <span class="cmt"># 弹窗出现时，用新账号登录</span></code></pre></div>
 </div>
 
 <p style="color:#999;font-size:13px;margin-top:30px;">—— 完 ——</p>
