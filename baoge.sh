@@ -66,11 +66,50 @@ else
     echo "  Docker 未安装"
 fi
 
+# -------------------- Nginx 有效配置文件清单 --------------------
+# 优先用 nginx -T 拿到 nginx 实际加载的全部文件（含被 include 拆分的子文件），
+# 拿不到时回退到 conf.d / sites-enabled 通配。
+nginx_conf_files() {
+    local files=""
+    if command -v nginx &> /dev/null; then
+        files=$(nginx -T 2>/dev/null | grep -oP '(?<=^# configuration file ).*(?=:$)')
+    fi
+    if [ -z "$files" ]; then
+        files=$(printf '%s\n' /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*)
+    fi
+    for f in $files; do
+        [ -f "$f" ] && echo "$f"
+    done | sort -u
+}
+
 # -------------------- 已部署项目清单 --------------------
 echo -e "\n${BLUE}【7】已部署项目清单${NC}"
 echo "----------------------------------------"
 
 COUNT=0
+
+# ===== 构建 端口/目录 -> 域名 映射（用于把手动服务关联到 Nginx 域名） =====
+declare -A PORT_DOMAIN   # key: 端口号, value: 域名列表
+declare -A DIR_DOMAIN    # key: 绝对目录, value: 域名列表
+
+# 只在 nginx 实际加载的文件上构建映射（nginx_conf_files）
+for conf in $(nginx_conf_files); do
+    [ -f "$conf" ] || continue
+    SN=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//; s/;//' | xargs)
+    [ -z "$SN" ] && continue
+    [ "$SN" = "_" ] && continue
+
+    # 反代 -> 端口映射（仅回环地址，排除容器内网名如 http://kvideo:3000 导致的撞号误关联）
+    for p in $(grep -oP 'proxy_pass\s+https?://(127\.0\.0\.1|localhost|0\.0\.0\.0):\K\d+' "$conf" 2>/dev/null | sort -u); do
+        PORT_DOMAIN[$p]="${PORT_DOMAIN[$p]:-}${PORT_DOMAIN[$p]:+, }$SN"
+    done
+
+    # 静态 root/alias -> 目录映射
+    for d in $(grep -oP '^\s*(root|alias)\s+\K[^;]+' "$conf" 2>/dev/null | sort -u); do
+        abs=$(readlink -f "$d" 2>/dev/null)
+        [ -n "$abs" ] && DIR_DOMAIN[$abs]="${DIR_DOMAIN[$abs]:-}${DIR_DOMAIN[$abs]:+, }$SN"
+    done
+done
 
 # 1. Docker 项目
 if command -v docker &> /dev/null; then
@@ -86,26 +125,58 @@ if command -v docker &> /dev/null; then
     done
 fi
 
-# 2. Python HTTP 服务
-if ps aux | grep -v grep | grep -q "python3 -m http.server"; then
+# 2. Python http.server 静态文件服务（可多个实例）
+for pid in $(pgrep -f "python3? .*-m http\.server" 2>/dev/null); do
+    CMDLINE=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
+    # 端口：优先取 http.server 后的数字，其次默认 8000
+    PORT=$(echo "$CMDLINE" | grep -oP '(?<=http\.server )\d+' | head -1)
+    [ -z "$PORT" ] && PORT="8000"
+    # 监听地址（0.0.0.0 / 127.0.0.1 等）
+    BIND=$(echo "$CMDLINE" | grep -oP '(?<=http\.server )\S+' | grep -vP '^\d+$' | head -1)
+    [ -z "$BIND" ] && BIND="0.0.0.0"
+    # 站点根目录 = 进程工作目录
+    SROOT=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
+
+    # 关联域名：先按端口反查，再按目录反查
+    DOMAINS="${PORT_DOMAIN[$PORT]:-}"
+    [ -z "$DOMAINS" ] && [ -n "$SROOT" ] && DOMAINS="${DIR_DOMAIN[$SROOT]:-}"
+    [ -z "$DOMAINS" ] && DOMAINS="未关联（无 Nginx 配置指向该端口/目录）"
+
     COUNT=$((COUNT+1))
-    PORT=$(ps aux | grep -v grep | grep "python3 -m http.server" | head -1 | grep -oP '(?<=http.server )\d+' || echo "8080")
-    echo "  $COUNT. Python HTTP Server"
-    echo "     部署方式: 手动 (Python)"
-    echo "     端口: $PORT"
+    echo "  $COUNT. Python 静态文件服务 (http.server)"
+    echo "     域名: $DOMAINS"
+    echo "     部署方式: 手动 (Python http.server)"
+    echo "     类型: 静态文件"
+    echo "     端口: $PORT (监听 $BIND)"
+    echo "     站点根目录: ${SROOT:-未知}"
+    echo "     PID: $pid"
     echo "     状态: 运行中"
     echo ""
-fi
+done
 
-# 3. Node.js 服务
-if ps aux | grep -v grep | grep -q "node.*server.js"; then
+# 3. Node.js 服务（可多个实例）
+for pid in $(pgrep -f "node.*server\.js" 2>/dev/null); do
+    # 从 ss 反查该 PID 实际监听的端口
+    PORT=$(ss -tlnp 2>/dev/null | grep "pid=$pid," | awk '{print $4}' | sed 's/.*://' | sort -u | tr '\n' ' ')
+    SROOT=$(readlink -f "/proc/$pid/cwd" 2>/dev/null)
+    # 关联域名：按反查到的端口逐个查映射表
+    DOMAINS=""
+    for pr in $PORT; do
+        [ -n "${PORT_DOMAIN[$pr]:-}" ] && DOMAINS="${PORT_DOMAIN[$pr]}" && break
+    done
+    [ -z "$DOMAINS" ] && DOMAINS="未关联"
+
     COUNT=$((COUNT+1))
     echo "  $COUNT. Node.js 后端服务"
+    echo "     域名: $DOMAINS"
     echo "     部署方式: 手动 (Node.js)"
+    echo "     类型: 动态服务"
+    echo "     端口: ${PORT:-未从监听反查到，请查代码}"
+    echo "     工作目录: ${SROOT:-未知}"
+    echo "     PID: $pid"
     echo "     状态: 运行中"
-    echo "     提示: 端口未在进程参数中明确，请检查代码"
     echo ""
-fi
+done
 
 # 4. Uvicorn 服务
 if ps aux | grep -v grep | grep -q "uvicorn"; then
@@ -120,7 +191,7 @@ fi
 
 # 5. 宿主机 Nginx 配置的站点
 if command -v nginx &> /dev/null; then
-    for conf in /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
+    for conf in $(nginx_conf_files); do
         if [ -f "$conf" ]; then
             DOMAINS=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
             if [ -n "$DOMAINS" ] && [ "$DOMAINS" != "_" ]; then
@@ -130,8 +201,10 @@ if command -v nginx &> /dev/null; then
                 else
                     SSL="HTTP (无证书)"
                 fi
+                STATIC_ROOTS=$(grep -oP '^\s*(root|alias)\s+\K[^;]+' "$conf" 2>/dev/null | sort -u | tr '\n' ' ')
                 if grep -q "proxy_pass" "$conf" 2>/dev/null; then
                     TYPE="反向代理"
+                    [ -n "$STATIC_ROOTS" ] && TYPE="反向代理 + 静态目录"
                 else
                     TYPE="静态文件"
                 fi
@@ -139,6 +212,7 @@ if command -v nginx &> /dev/null; then
                 echo "     部署方式: 手动 (Nginx)"
                 echo "     类型: $TYPE"
                 echo "     协议: $SSL"
+                [ -n "$STATIC_ROOTS" ] && echo "     站点根目录: $STATIC_ROOTS"
                 echo "     配置文件: $conf"
                 echo ""
             fi
@@ -171,7 +245,7 @@ if command -v nginx &> /dev/null && systemctl is-active --quiet nginx 2>/dev/nul
     NGINX_FOUND=1
     echo "  [宿主机] Nginx 状态: 运行中"
     echo "  配置文件:"
-    for conf in /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/*; do
+    for conf in $(nginx_conf_files); do
         if [ -f "$conf" ]; then
             DOMAIN=$(grep -E "^\s*server_name\s+" "$conf" 2>/dev/null | head -1 | sed 's/.*server_name//' | sed 's/;//' | xargs)
             if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
@@ -185,7 +259,9 @@ if command -v nginx &> /dev/null && systemctl is-active --quiet nginx 2>/dev/nul
                 else
                     PROXY_STATUS="静态文件"
                 fi
+                DNS_ROOTS=$(grep -oP '^\s*(root|alias)\s+\K[^;]+' "$conf" 2>/dev/null | sort -u | tr '\n' ' ')
                 echo "    ✅ https://$DOMAIN ($PROXY_STATUS, $SSL_STATUS)"
+                [ -n "$DNS_ROOTS" ] && echo "      静态根目录: $DNS_ROOTS"
                 echo "      配置文件: $conf"
             fi
         fi
@@ -206,7 +282,9 @@ if command -v docker &> /dev/null && docker ps --format '{{.Names}}' 2>/dev/null
             else
                 SSL_STATUS="❌ HTTP"
             fi
+            DY_ROOTS=$(docker exec nginx grep -oP '^\s*(root|alias)\s+\K[^;]+' "/etc/nginx/conf.d/$conf" 2>/dev/null | sort -u | tr '\n' ' ')
             echo "    ✅ https://$DOMAIN ($SSL_STATUS)"
+            [ -n "$DY_ROOTS" ] && echo "      静态根目录: $DY_ROOTS"
             echo "      配置文件: /etc/nginx/conf.d/$conf"
         fi
     done
