@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>挪车电话码生成器</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://pan.653827.xyz/raw/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', Arial, sans-serif;
+      background: #f5f6fa;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .error { color: #e74c3c; font-size: 0.95em; margin-top: 4px; }
+    .main-content {
+      display: flex;
+      flex-direction: row;
+      gap: 2.5rem;
+      align-items: stretch;
+      justify-content: center;
+      margin-top: 2.5rem;
+      padding: 0 1rem;
+    }
+    .form-container {
+      flex: 1;
+      max-width: 420px;
+      background: #fff;
+      padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px #6366f11a;
+      border: 2.5px solid #16a34a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-preview-container {
+      flex: 1;
+      max-width: 420px;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #inputForm { width: 100%; max-width: 320px; }
+    #cardContent {
+      margin: 0 auto;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      background: #fff;
+      border: 2.5px solid #16a34a;
+      padding: 0;
+      width: 420px !important;
+      flex: 1;
+      min-height: 0;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.4rem 1.2rem 1.2rem 1.2rem;
+    }
+    .card-title {
+      font-size: 1.35em;
+      font-weight: 700;
+      color: #22223b;
+      margin-bottom: 0.35em;
+      letter-spacing: 1px;
+    }
+    .card-subtitle {
+      font-size: 1.05em;
+      color: #6366f1;
+      margin-bottom: 0.5em;
+    }
+    #qrcode {
+      margin: 0 auto 0.5em auto;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 200px;
+      height: 200px;
+      background: #fff;
+      border-radius: 8px;
+      border: 3px solid #000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 10px;
+      transition: all 0.3s;
+    }
+    .qr-placeholder {
+      margin: 0 auto 0.5em auto;
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(135deg, #f5f6fa 0%, #e0e7ff 100%);
+      border-radius: 8px;
+      border: 3px dashed #6366f1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .qr-placeholder p {
+      color: #6366f1;
+      font-size: 0.85em;
+      font-weight: 500;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0 8px;
+    }
+    .info-row {
+      margin-top: 0.3em;
+      font-size: 0.8em;
+      color: #6b7280;
+      letter-spacing: 0.5px;
+      font-weight: 400;
+      background: #f5f6fa;
+      border-radius: 6px;
+      border: 1px solid #e0e7ff;
+      padding: 0.12em 0.6em;
+      display: inline-block;
+    }
+    /* 顶部彩色横幅（装饰，沿用落地页风格） */
+    .banner { width: 100%; text-align: center; margin-bottom: 0.7em; }
+    .banner-badges { display: flex; justify-content: center; margin-bottom: 6px; }
+    .banner-badges span { color:#fff; font-size:13px; font-weight:700; padding:2px 5px; border-radius:4px; box-shadow:0 2px 0 rgba(0,0,0,0.2); }
+    .banner-badges span:nth-child(1){transform:rotate(-12deg);}
+    .banner-badges span:nth-child(2){transform:rotate(6deg);margin-left:-3px;}
+    .banner-badges span:nth-child(3){transform:rotate(-8deg);margin-left:-2px;}
+    .banner-badges span:nth-child(4){transform:rotate(10deg);margin-left:-3px;}
+    .banner-tiles { display:flex; justify-content:center; flex-wrap:wrap; gap:3px; }
+    .banner-tiles span { color:#fff; font-weight:700; font-size:22px; line-height:1; padding:0.18em 0.06em 0.24em; border-radius:6px; box-shadow:0 3px 0 rgba(0,0,0,0.22); }
+    .phone-display { margin: 0.4em auto 0.1em auto; width: 100%; text-align: center; font-size: 2.1em; font-weight: 800; color: #16a34a; letter-spacing: 1px; }
+    .call-hint { font-size: 0.82em; color: #6b7280; margin-bottom: 0.25em; }
+    .btn-primary, .btn-success {
+      border-radius: 8px !important;
+      font-size: 1em;
+      font-weight: 500;
+      box-shadow: 0 2px 8px #6366f11a;
+      width: 100%;
+      padding: 7px 0;
+      margin: 0;
+      display: block;
+      border: none;
+      text-align: center;
+    }
+    .btn-primary { background: #6366f1 !important; color: #fff !important; }
+    .btn-primary:hover { background: #4f46e5 !important; }
+    .btn-success { background: #10b981 !important; color: #fff !important; }
+    .btn-success:hover { background: #059669 !important; }
+    .style-option { cursor: pointer; position: relative; }
+    .style-option input[type="radio"] { display: none; }
+    .style-preview {
+      display: block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 2px solid #e0e7ff;
+      font-size: 0.9em;
+      transition: all 0.2s;
+      text-align: center;
+      pointer-events: none;
+    }
+    .style-option input:checked + .style-preview { outline: 3px solid #6366f1; outline-offset: 2px; }
+    .style-preview.classic { background: #000; color: #fff; }
+    .style-preview.blue { background: #1e3a8a; color: #fff; }
+    .style-preview.green { background: #166534; color: #fff; }
+    .style-preview.purple { background: #581c87; color: #fff; }
+    .style-preview.red { background: #991b1b; color: #fff; }
+    @media (max-width: 900px) {
+      .main-content { flex-direction: column; align-items: center; gap: 1.5rem; }
+      .form-container, .card-preview-container { max-width: 98vw; width: 100%; height: auto; overflow: visible; }
+      #cardContent { flex: none; }
+    }
+    @media (max-width: 500px) {
+      .form-container, #cardContent { width: 96vw !important; min-width: 0; max-width: 98vw; }
+      #cardContent { height: auto; min-height: 380px; }
+      .card-body { padding: 1.2rem 0.2rem 1.2rem 0.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-5 text-center" style="color:#22223b;font-weight:700;">挪车电话码生成器</h1>
+    <p class="text-center" style="color:#6b7280;font-size:0.95em;">二维码直接编码手机号（微信扫纯号码才能识别拨打），卡片同时印出号码，扫不动也能照着拨。无需网址、无需备案</p>
+    <div class="main-content">
+      <!-- 左侧表单 -->
+      <div class="form-container">
+        <form id="inputForm">
+          <div class="mb-3">
+            <label for="phoneNumber" class="form-label">手机号:</label>
+            <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" required placeholder="13888888888">
+            <div id="phoneNumberError" class="error"></div>
+          </div>
+          <div class="mb-3">
+            <label for="plateNumber" class="form-label">车牌号（选填，仅便于你自己区分）:</label>
+            <input type="text" class="form-control" id="plateNumber" name="plateNumber" placeholder="京A88888">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">二维码样式:</label>
+            <div class="d-flex gap-2 flex-wrap">
+              <label class="style-option"><input type="radio" name="qrStyle" value="classic" checked><span class="style-preview classic">经典黑</span></label>
+              <label class="style-option"><input type="radio" name="qrStyle" value="blue"><span class="style-preview blue">商务蓝</span></label>
+              <label class="style-option"><input type="radio" name="qrStyle" value="green"><span class="style-preview green">清新绿</span></label>
+              <label class="style-option"><input type="radio" name="qrStyle" value="purple"><span class="style-preview purple">优雅紫</span></label>
+              <label class="style-option"><input type="radio" name="qrStyle" value="red"><span class="style-preview red">中国红</span></label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">生成电话码</button>
+          <button type="button" class="btn btn-success mt-3" id="downloadButton" style="display:none;">下载图片</button>
+        </form>
+      </div>
+      <!-- 右侧卡片预览 -->
+      <div class="card-preview-container">
+        <div class="card" id="cardContent">
+          <div class="card-body" id="cardBody">
+            <div class="banner">
+              <div class="banner-badges"><span style="background:#f39c12;">温</span><span style="background:#16a085;">馨</span><span style="background:#e91e63;">提</span><span style="background:#3498db;">示</span></div>
+              <div class="banner-tiles">
+                <span style="background:#d93025;">临</span><span style="background:#1a73e8;">时</span><span style="background:#188038;">停</span><span style="background:#3949ab;">车</span><span style="background:#00897b;">请</span><span style="background:#8e24aa;">多</span><span style="background:#283593;">关</span><span style="background:#c62828;">照</span>
+              </div>
+            </div>
+            <div id="qrcode-placeholder" class="qr-placeholder">
+              <p>请填写手机号，生成电话码</p>
+            </div>
+            <div id="qrcode" style="display:none;"></div>
+            <div id="infoPlate" class="info-row" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 二维码配色方案（沿用主生成器）
+    const qrStyles = {
+      classic: { dark: '#000000', light: '#ffffff', border: '#000000', bg: '#ffffff', accent: '#22223b' },
+      blue:   { dark: '#1e3a8a', light: '#ffffff', border: '#1e3a8a', bg: '#f0f4ff', accent: '#4b5cc4' },
+      green:  { dark: '#166534', light: '#ffffff', border: '#166534', bg: '#f0fdf4', accent: '#10b981' },
+      purple: { dark: '#581c87', light: '#ffffff', border: '#581c87', bg: '#faf5ff', accent: '#8b5cf6' },
+      red:    { dark: '#991b1b', light: '#ffffff', border: '#991b1b', bg: '#fef2f2', accent: '#ef4444' }
+    };
+
+    // 核心：二维码编“📞 + 号码”，扫出来就是这行文字（带图标）
+    function buildQrContent(phoneNumber) {
+      return '📞 ' + phoneNumber;
+    }
+    // 手机号分组显示：11位手机→3-4-4，其余原样
+    function formatPhone(p) {
+      return /^1\d{10}$/.test(p) ? p.slice(0,3) + ' ' + p.slice(3,7) + ' ' + p.slice(7) : p;
+    }
+
+    function currentStyle() {
+      const el = document.querySelector('input[name="qrStyle"]:checked');
+      return el ? el.value : 'classic';
+    }
+
+    // 生成/重绘卡片（改样式即时生效，无需手动再点）
+    function renderCard() {
+      const phoneNumber = document.getElementById('phoneNumber').value.trim();
+      const plateNumber = document.getElementById('plateNumber').value.trim();
+      const colors = qrStyles[currentStyle()];
+      const cardContent = document.getElementById('cardContent');
+      cardContent.style.border = '2.5px solid #16a34a';
+      const placeholder = document.getElementById('qrcode-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+
+      cardContent.innerHTML = `
+        <div class="card-body" id="cardBody">
+          <div class="banner">
+            <div class="banner-badges"><span style="background:#f39c12;">温</span><span style="background:#16a085;">馨</span><span style="background:#e91e63;">提</span><span style="background:#3498db;">示</span></div>
+            <div class="banner-tiles">
+              <span style="background:#d93025;">临</span><span style="background:#1a73e8;">时</span><span style="background:#188038;">停</span><span style="background:#3949ab;">车</span><span style="background:#00897b;">请</span><span style="background:#8e24aa;">多</span><span style="background:#283593;">关</span><span style="background:#c62828;">照</span>
+            </div>
+          </div>
+          <div id="qrcode" style="border-color: ${colors.border}; background-color: ${colors.bg};"></div>
+          ${plateNumber ? `<div id="infoPlate" class="info-row" style="display: inline-block;">车牌号：${plateNumber}</div>` : ''}
+        </div>
+      `;
+
+      const qrDiv = document.getElementById('qrcode');
+      qrDiv.innerHTML = '';
+      drawQrToCanvas(qrDiv, buildQrContent(phoneNumber), colors.dark, colors.light, 200);
+      convertCardToImage();
+    }
+
+    // 手动把二维码画到 canvas（qrcode-generator 默认 ASCII，这里补 UTF-8 以支持 emoji/中文，并保留配色）
+    function drawQrToCanvas(container, text, dark, light, size) {
+      qrcode.stringToBytes = function(s) {
+        var bytes = [];
+        for (var i = 0; i < s.length; i += 1) {
+          var c = s.charCodeAt(i);
+          if (c < 128) bytes.push(c);
+          else if (c < 2048) bytes.push(192 | (c >> 6), 128 | (c & 63));
+          else if (c >= 0xD800 && c <= 0xDBFF && i + 1 < s.length) {
+            var c2 = s.charCodeAt(i += 1);
+            var cp = 0x10000 + ((c & 0x3FF) << 10) + (c2 & 0x3FF);
+            bytes.push(240 | (cp >> 18), 128 | ((cp >> 12) & 63), 128 | ((cp >> 6) & 63), 128 | (cp & 63));
+          } else bytes.push(224 | (c >> 12), 128 | ((c >> 6) & 63), 128 | (c & 63));
+        }
+        return bytes;
+      };
+      var qr = qrcode(0, 'H');
+      qr.addData(text);
+      qr.make();
+      var count = qr.getModuleCount();
+      var cell = Math.floor(size / count);
+      var real = cell * count;
+      var canvas = document.createElement('canvas');
+      canvas.width = real;
+      canvas.height = real;
+      canvas.style.width = real + 'px';
+      canvas.style.height = real + 'px';
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, real, real);
+      ctx.fillStyle = dark;
+      for (var r = 0; r < count; r += 1) {
+        for (var col = 0; col < count; col += 1) {
+          if (qr.isDark(r, col)) ctx.fillRect(col * cell, r * cell, cell, cell);
+        }
+      }
+      container.appendChild(canvas);
+    }
+
+    // 提交：校验手机号后生成
+    document.getElementById('inputForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const phoneNumber = document.getElementById('phoneNumber').value.trim();
+      const phoneNumberError = document.getElementById('phoneNumberError');
+      if (!/^1\d{10}$/.test(phoneNumber)) {
+        phoneNumberError.textContent = '请输入正确的11位手机号';
+        return;
+      }
+      phoneNumberError.textContent = '';
+      renderCard();
+      document.getElementById('downloadButton').style.display = 'block';
+    });
+
+    // 改样式即时重绘（前提是已填合法手机号）
+    document.querySelectorAll('input[name="qrStyle"]').forEach(r => {
+      r.addEventListener('change', () => {
+        if (/^1\d{10}$/.test(document.getElementById('phoneNumber').value.trim())) renderCard();
+      });
+    });
+
+    function convertCardToImage() {
+      const cardContent = document.getElementById('cardContent');
+      // 截图前临时剥离绿框/圆角/阴影，并让高度贴合内容（避免高个子留白）
+      const hide = document.createElement('style');
+      hide.id = 'hideCardDecor';
+      hide.textContent = '#cardContent{border:none!important;border-radius:0!important;box-shadow:none!important;width:420px!important;height:auto!important;min-height:0!important}';
+      document.head.appendChild(hide);
+      html2canvas(cardContent, { backgroundColor: '#ffffff', scale: 3 }).then(function (canvas) {
+        const st = document.getElementById('hideCardDecor');
+        if (st) st.remove();
+        const img = new Image();
+        img.src = canvas.toDataURL('image/png');
+        img.style.border = 'none';
+        img.style.width = 'auto';
+        img.style.height = 'auto';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        cardContent.style.border = 'none';
+        cardContent.innerHTML = '';
+        cardContent.appendChild(img);
+      });
+    }
+
+    // 下载：约 10cm @300dpi 打印尺寸
+    document.getElementById('downloadButton').onclick = function () {
+      const img = document.querySelector('#cardContent img');
+      if (!img) return;
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      const targetWidth = Math.min(Math.floor(img.naturalWidth * 0.9), 1200);
+      const targetHeight = Math.floor(img.naturalHeight * (targetWidth / img.naturalWidth));
+      tempCanvas.width = targetWidth;
+      tempCanvas.height = targetHeight;
+      tempCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      const a = document.createElement('a');
+      a.href = tempCanvas.toDataURL('image/png');
+      a.download = 'tel_qr_card.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>
