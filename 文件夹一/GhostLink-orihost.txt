@@ -1,0 +1,256 @@
+// 文件名：index.js
+const http = require('http');
+
+const PORT = 30185;
+const vault = {};
+
+// 🌟 设置你的生成密码
+const ADMIN_PASSWORD = "8888"; 
+
+// 🌟 经过修正的纯正 Base64 SVG 图标 (100% 兼容)
+const FAVICON_URL = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTExZDQ4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDIyczgtNCA4LTEwVjVsLTgtMy04IDN2N2MwIDYgOCAxMCA4IDEweiIvPjxwYXRoIGQ9Ik05IDEwaC4wMSIvPjxwYXRoIGQ9Ik0xNSAxMGguMDEiLz48cGF0aCBkPSJNMTIgMTRjLTEuNSAwLTIuNS0xLTIuNS0xczEgMi41IDIuNSAyLjUgMi41LTIuNSAyLjUtMi41LTEgMS0yLjUgMXoiLz48L3N2Zz4=";
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+// 反调试脚本
+const ANTI_DEBUG_SCRIPT = `
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.onkeydown = function(e) {
+    if (e.keyCode === 123) return false;
+    if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) return false;
+    if (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83)) return false;
+  };
+  let threshold = 160;
+  let check = function() {
+    if (window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold) {
+      document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:20vh;">检测到非法调试，页面已锁定。</h1>';
+      window.location.href = '/404';
+    }
+  };
+  window.addEventListener('resize', check);
+  setInterval(check, 1000);
+</script>
+`;
+
+// 1. 管理员登录页面
+const LOGIN_PAGE = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>系统登录</title>
+  <link rel="icon" type="image/svg+xml" href="${FAVICON_URL}">
+  <style>
+    body { background-color: #0a0a0a; color: #ededed; font-family: sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .container { width: 100%; max-width: 400px; background: #141414; border: 1px solid #262626; border-radius: 20px; padding: 2.5rem 1.5rem; text-align: center; }
+    .login-input { width: 100%; padding: 1rem; background: #0a0a0a; border: 1px solid #262626; border-radius: 10px; color: white; font-size: 1.2rem; text-align: center; letter-spacing: 5px; margin-bottom: 1rem; outline: none; }
+    .login-input:focus { border-color: #e11d48; }
+    .login-btn { width: 100%; padding: 1rem; background: #e11d48; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .login-btn:hover { background: #be123c; }
+    .error-msg { color: #e11d48; font-size: 0.85rem; margin-top: 1rem; display: none; }
+  </style>
+</head>
+<body>
+  ${ANTI_DEBUG_SCRIPT}
+  <div class="container">
+    <h1 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">GhostLink 鉴权</h1>
+    <p style="font-size: 0.85rem; color: #878787; margin-bottom: 2rem;">请输访问密码</p>
+    <input type="password" id="pwdInput" class="login-input" placeholder="••••" onkeypress="if(event.key === 'Enter') login()">
+    <button class="login-btn" onclick="login()">进入系统</button>
+    <div id="loginError" class="error-msg">密码错误，拒绝访问</div>
+  </div>
+  <script>
+    function login() {
+      const pwd = document.getElementById('pwdInput').value;
+      fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          window.location.href = '/dashboard?token=' + data.token;
+        } else {
+          document.getElementById('loginError').style.display = 'block';
+        }
+      }).catch(() => {
+        document.getElementById('loginError').style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>
+`;
+
+// 2. 仪表盘页面
+const DASHBOARD_PAGE = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>GhostLink - 控制台</title><link rel="icon" type="image/svg+xml" href="${FAVICON_URL}"><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');:root{--bg:#0a0a0a;--panel:#141414;--border:#262626;--text:#ededed;--text-muted:#878787;--primary:#e11d48;--primary-hover:#be123c;--success:#22c55e}*{margin:0;padding:0;box-sizing:border-box}body{background-color:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(circle at 50% 0%,rgba(225,29,72,.1),transparent 50%);padding:1.5rem}.container{width:100%;max-width:600px;background:var(--panel);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 40px -10px rgba(0,0,0,.8);overflow:hidden}.header{padding:1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.2)}.header-icon{width:32px;height:32px;background:rgba(225,29,72,.15);color:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center}.header h1{font-size:1.1rem;font-weight:600;letter-spacing:.5px}.header p{font-size:.75rem;color:var(--text-muted);margin-top:2px}.content{padding:2rem 1.5rem}textarea{width:100%;height:200px;padding:1rem;background:#0a0a0a;border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.95rem;line-height:1.6;resize:none;outline:none;transition:border-color .2s}textarea:focus{border-color:var(--primary)}textarea::placeholder{color:#444}.options{display:flex;gap:12px;margin-top:1rem}select{flex:1;padding:.8rem;background:#0a0a0a;border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;cursor:pointer}select:focus{border-color:var(--primary)}button{width:100%;padding:1rem;margin-top:1.5rem;background:var(--primary);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s}button:hover{background:var(--primary-hover)}button:disabled{opacity:.5;cursor:not-allowed}.result-panel{display:none;text-align:center;margin-top:1.5rem}.success-icon{font-size:3rem;margin-bottom:1rem}.result-title{font-size:1.25rem;font-weight:600;margin-bottom:.5rem}.result-desc{font-size:.9rem;color:var(--text-muted);margin-bottom:1.5rem}.link-box{display:flex;align-items:center;justify-content:space-between;background:#0a0a0a;border:1px dashed var(--border);padding:1rem;border-radius:10px;margin-bottom:1.5rem;word-break:break-all;font-family:'JetBrains Mono',monospace;color:var(--success);font-size:.9rem;gap:10px}.copy-btn{background:#262626;color:white;border:none;padding:.6rem 1rem;margin:0;width:auto;flex-shrink:0;font-size:.85rem;border-radius:8px}.copy-btn:hover{background:#404040}.copy-btn.copied{background:var(--success);color:#000}</style></head><body>${ANTI_DEBUG_SCRIPT}<div class="container"><div class="header"><div class="header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div><div><h1>GhostLink</h1><p>系统控制台</p></div></div><div class="content"><div id="create-panel"><textarea id="secretInput" placeholder="在此输入你的私密信息、密码或 API Key..."></textarea><div class="options"><select id="expireSelect"><option value="1">查看 1 次后立即销毁</option><option value="2">查看 2 次后销毁</option><option value="3">查看 3 次后销毁</option></select><select id="timeSelect"><option value="1">1 小时内有效</option><option value="24" selected>24 小时内有效</option><option value="72">3 天内有效</option></select></div><button onclick="createLink()" id="createBtn">生成绝密链接</button></div><div id="result-panel" class="result-panel"><div class="success-icon">🔒</div><div class="result-title">链接已生成</div><div class="result-desc">请立即复制并发送给接收者。对方点开查看后，数据将彻底蒸发。</div><div class="link-box"><span id="generatedLink" style="flex:1;text-align:left;">...</span><button class="copy-btn" id="copyLinkBtn" onclick="copyLink()">📋 复制</button></div></div></div></div><script>async function createLink(){const e=document.getElementById("secretInput").value.trim();if(!e)return alert("请输入要加密的内容");const t=document.getElementById("createBtn");t.disabled=!0,t.textContent="正在加密...";const n=parseInt(document.getElementById("expireSelect").value),o=parseInt(document.getElementById("timeSelect").value);try{const s=await fetch("/api/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:e,maxViews:n,expireHours:o})}),c=await s.json();if(c.success){document.getElementById("create-panel").style.display="none",document.getElementById("result-panel").style.display="block";const a=window.location.origin+"/"+c.id;document.getElementById("generatedLink").textContent=a}else alert("生成失败："+c.error),t.disabled=!1,t.textContent="生成绝密链接"}catch(e){alert("网络异常"),t.disabled=!1,t.textContent="生成绝密链接"}}function copyLink(){const e=document.getElementById("generatedLink").textContent;if(!e||"..."===e)return;const t=document.getElementById("copyLinkBtn");navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(e).then(()=>{t.textContent="✅ 已复制",t.classList.add("copied"),setTimeout(()=>{t.textContent="📋 复制",t.classList.remove("copied")},2e3)}).catch(()=>fallbackCopy(e,t)):fallbackCopy(e,t)}function fallbackCopy(e,t){const n=document.createElement("textarea");n.value=e,n.style.position="fixed",n.style.top="-9999px",document.body.appendChild(n),n.focus(),n.select();try{document.execCommand("copy"),t.textContent="✅ 已复制",t.classList.add("copied"),setTimeout(()=>{t.textContent="📋 复制",t.classList.remove("copied")},2e3)}catch(e){prompt("请手动复制：",e)}document.body.removeChild(n)}</script></body></html>`;
+
+// 3. 阅后即焚展示页
+const VIEW_PAGE = (content, remainingViews) => `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GhostLink - 绝密信息</title>
+  <link rel="icon" type="image/svg+xml" href="${FAVICON_URL}">
+  <style>
+    body { background: #0a0a0a; color: #ededed; font-family: sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .container { width: 100%; max-width: 600px; background: #141414; border: 1px solid #262626; border-radius: 20px; overflow: hidden; }
+    .header { padding: 1.5rem; border-bottom: 1px solid #262626; background: rgba(0,0,0,0.2); }
+    .header h1 { font-size: 1.1rem; font-weight: 600; }
+    .header p { font-size: 0.75rem; color: #878787; margin-top: 2px; }
+    .content { padding: 2rem 1.5rem; }
+    .warning-box { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.85rem; text-align: center; font-weight: 500; }
+    .secret-content { background: #0a0a0a; border: 1px solid #262626; padding: 1.5rem; border-radius: 10px; font-family: monospace; font-size: 1.1rem; white-space: pre-wrap; word-break: break-all; color: #fff; user-select: all; }
+    .action-btn { width: 100%; padding: 1rem; margin-top: 1.5rem; background: #e11d48; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  ${ANTI_DEBUG_SCRIPT}
+  <div class="container">
+    <div class="header">
+      <h1>GhostLink</h1>
+      <p>你有一条阅后即焚的消息</p>
+    </div>
+    <div class="content">
+      <div class="warning-box">
+        ${remainingViews > 0 ? '⚠️ 注意：此信息还可被查看 <b>' + remainingViews + '</b> 次，关闭页面或刷新后立即永久销毁！' : '⚠️ 这是最后一次查看，请立即复制保存！你一旦关闭或刷新，数据将彻底蒸发！'}
+      </div>
+      <div class="secret-content">${content}</div>
+      <button class="action-btn" onclick="destroyPage()">我已经看到了，立刻销毁</button>
+    </div>
+  </div>
+  <script>
+    function destroyPage() {
+      document.body.innerHTML = '<div style="text-align:center;padding:2rem;color:#878787;font-family:sans-serif;"><div style="font-size:4rem;margin-bottom:1rem;">💨</div><h2 style="color:#e11d48;margin-bottom:0.5rem;">信息已灰飞烟灭</h2><p>该网页的数据已被彻底抹除，请勿刷新。</p></div>';
+      window.history.replaceState(null, '', '/404');
+    }
+  </script>
+</body>
+</html>
+`;
+
+// 4. 死胡同 404 页面
+const NOT_FOUND_PAGE = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>404 Not Found</title><link rel="icon" type="image/svg+xml" href="${FAVICON_URL}"></head><body style="background:#0a0a0a;color:#333;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;margin:0;"><h1 style="font-size:5rem;margin:0;">404</h1></body></html>`;
+
+// 记录登录的 token
+const adminTokens = new Set();
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname;
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // 1. 登录验证 API
+  if (req.method === 'POST' && pathname === '/api/login') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { password } = JSON.parse(body);
+        if (password === ADMIN_PASSWORD) {
+          const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          adminTokens.add(token);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, token }));
+        } else {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false }));
+        }
+      } catch (err) {
+        res.writeHead(400); res.end('Bad Request');
+      }
+    });
+    return;
+  }
+
+  // 2. 仪表盘页面
+  if (req.method === 'GET' && pathname === '/dashboard') {
+    const token = parsedUrl.searchParams.get('token');
+    if (token && adminTokens.has(token)) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(DASHBOARD_PAGE);
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(NOT_FOUND_PAGE);
+    }
+    return;
+  }
+
+  // 3. 生成 API
+  if (req.method === 'POST' && pathname === '/api/create') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { content, maxViews, expireHours } = JSON.parse(body);
+        const id = generateId();
+        vault[id] = { content, viewsLeft: maxViews || 1, expireAt: Date.now() + (expireHours || 24) * 3600 * 1000 };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, id }));
+      } catch (err) {
+        res.writeHead(400); res.end('Bad Request');
+      }
+    });
+    return;
+  }
+
+  // 4. 根路径
+  if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(LOGIN_PAGE);
+    return;
+  }
+
+  // 5. 阅后即焚访问路径
+  if (req.method === 'GET' && pathname.length >= 2 && !pathname.startsWith('/api/') && pathname !== '/dashboard' && pathname !== '/404') {
+    const id = pathname.substring(1); 
+    const item = vault[id];
+
+    if (!item) {
+      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(NOT_FOUND_PAGE);
+      return;
+    }
+
+    if (Date.now() > item.expireAt) {
+      delete vault[id];
+      res.writeHead(410, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(NOT_FOUND_PAGE);
+      return;
+    }
+
+    item.viewsLeft -= 1;
+    if (item.viewsLeft <= 0) {
+      delete vault[id]; 
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(VIEW_PAGE(item.content, Math.max(0, item.viewsLeft)));
+    return;
+  }
+
+  // 6. 兜底 404
+  res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(NOT_FOUND_PAGE);
+});
+
+setInterval(() => {
+  const now = Date.now();
+  for (const id in vault) {
+    if (now > vault[id].expireAt) {
+      delete vault[id];
+    }
+  }
+}, 10 * 60 * 1000);
+
+server.listen(PORT, () => {
+  console.log('GhostLink 安全运行在端口 ' + PORT);
+  console.log('后台密码: ' + ADMIN_PASSWORD);
+  console.log('访问主页: http://你的IP:' + PORT + '/');
+});
