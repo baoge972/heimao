@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GhostLink 部署教程 · 双版本指南</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#ededed;line-height:1.6;padding:2rem 1rem;min-height:100vh}
+  .container{max-width:1000px;margin:0 auto}
+
+  /* 头部 */
+  .header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid #262626}
+  .header h1{font-size:2.4rem;font-weight:600;background:linear-gradient(to right,#e11d48,#f43f5e,#fb7185);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem}
+  .header p{color:#878787;font-size:1rem;max-width:700px;margin:0 auto}
+  .badge{display:inline-block;background:#1c1c1c;border:1px solid #e11d48;color:#e11d48;font-size:.75rem;font-weight:600;padding:.2rem .8rem;border-radius:999px;letter-spacing:.5px;margin-bottom:1rem}
+
+  /* 版本导航 */
+  .version-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:2.5rem}
+  .version-card{background:#141414;border:1px solid #262626;border-radius:16px;padding:1.5rem;text-decoration:none;color:inherit;transition:all .2s}
+  .version-card:hover{border-color:#e11d48;transform:translateY(-3px)}
+  .version-card .icon{font-size:2rem;margin-bottom:.6rem}
+  .version-card h2{font-size:1.2rem;font-weight:600;margin-bottom:.3rem}
+  .version-card p{color:#878787;font-size:.85rem}
+  .version-card .tag{display:inline-block;margin-top:.8rem;background:rgba(225,29,72,.15);color:#e11d48;padding:.15rem .7rem;border-radius:999px;font-size:.7rem;font-weight:500}
+
+  /* 章节 */
+  .section{margin-bottom:2.5rem;scroll-margin-top:2rem}
+  .section-title{display:flex;align-items:center;gap:10px;margin-bottom:1.2rem;padding-bottom:.7rem;border-bottom:1px solid #262626}
+  .section-title .num{display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:#e11d48;color:#fff;font-weight:700;border-radius:10px;font-size:.9rem;flex-shrink:0}
+  .section-title h2{font-size:1.4rem;font-weight:600}
+  .section-title .plat{margin-left:auto;font-size:.7rem;font-weight:500;padding:.15rem .7rem;border-radius:999px;background:#1c1c1c;color:#878787}
+
+  /* 步骤 */
+  .step{background:#141414;border:1px solid #262626;border-radius:14px;padding:1.3rem;margin-bottom:1rem}
+  .step-head{display:flex;align-items:center;gap:10px;margin-bottom:.6rem}
+  .step-num{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:#262626;color:#ededed;font-weight:600;border-radius:7px;font-size:.8rem;flex-shrink:0}
+  .step-head h3{font-size:1rem;font-weight:500}
+  .step-body{color:#a3a3a3;font-size:.9rem;padding-left:36px}
+  .step-body ul{list-style:none;padding:0;margin:.3rem 0}
+  .step-body ul li{padding:.25rem 0 .25rem 1.4rem;position:relative}
+  .step-body ul li::before{content:"→";position:absolute;left:0;color:#e11d48;font-weight:600}
+  .step-body code{background:#1c1c1c;padding:.1rem .45rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem;color:#fb7185;border:1px solid #2a2a2a}
+  .note{background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.8rem 0;color:#d4d4d4;font-size:.85rem}
+  .note strong{color:#f59e0b}
+
+  /* 代码按钮区 */
+  .code-action{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#0d0d0d;border:1px dashed #333;border-radius:12px;padding:1.2rem;margin:1rem 0}
+  .code-action .info{flex:1;min-width:200px}
+  .code-action .info strong{display:block;color:#ededed;font-size:.95rem;margin-bottom:.2rem}
+  .code-action .info span{color:#878787;font-size:.8rem}
+  .code-action .btn-copy{display:inline-flex;align-items:center;gap:6px;background:#e11d48;color:#fff;border:none;padding:.7rem 1.4rem;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;white-space:nowrap}
+  .code-action .btn-copy:hover{background:#be123c}
+  .code-action .btn-copy:active{transform:scale(.97)}
+  .code-action .btn-copy.copied{background:#22c55e;color:#0a0a0a}
+  .code-action .btn-copy svg{width:16px;height:16px}
+  .code-placeholder{font-size:.75rem;color:#555;margin-top:.5rem;font-family:'JetBrains Mono',monospace}
+  .code-placeholder a{color:#fb7185;text-decoration:none}
+  .code-placeholder a:hover{text-decoration:underline}
+
+  /* 页脚 */
+  .footer{text-align:center;padding-top:2rem;border-top:1px solid #262626;color:#555;font-size:.8rem;margin-top:2rem}
+
+  /* 响应式 */
+  @media(max-width:700px){
+    .header h1{font-size:1.8rem}
+    .version-grid{grid-template-columns:1fr}
+    .step-body{padding-left:0}
+    .code-action{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ========== 头部 ========== -->
+  <div class="header">
+    <div class="badge">📖 双版本部署指南</div>
+    <h1>GhostLink 阅后即焚</h1>
+    <p>Cloudflare Workers &amp; 虚拟机 / VPS · 代码不内嵌，点击按钮直接复制 · 预留链接位置，方便替换</p>
+  </div>
+
+  <!-- ========== 版本导航 ========== -->
+  <div class="version-grid">
+    <a href="#cf" class="version-card">
+      <div class="icon">☁️</div>
+      <h2>Cloudflare Workers 版</h2>
+      <p>零服务器、零续期、数据存 KV、自带 HTTPS。适合不想管服务器的人。</p>
+      <span class="tag">推荐 · 零运维</span>
+    </a>
+    <a href="#vps" class="version-card">
+      <div class="icon">🖥️</div>
+      <h2>虚拟机 / VPS 版</h2>
+      <p>Node.js 原生服务 + cloudflared 隧道，无需公网 IP 即可绑域名。适合已有服务器的人。</p>
+      <span class="tag">灵活 · 自主可控</span>
+    </a>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- ===================== 版本一：Cloudflare ===================== -->
+  <!-- ============================================================= -->
+  <div id="cf" class="section">
+    <div class="section-title">
+      <span class="num">1</span>
+      <h2>Cloudflare Workers 部署</h2>
+      <span class="plat">☁️ Serverless</span>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">1</span><h3>前置准备</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>一个 Cloudflare 账号（免费即可）</li>
+          <li>无需服务器、无需安装软件，全程浏览器操作</li>
+          <li>免费额度：每天 10 万次请求 + KV 读写，个人使用完全够用</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">2</span><h3>创建 Worker</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>登录 Cloudflare Dashboard，左侧进入 <strong>Workers &amp; Pages</strong></li>
+          <li>点击 <strong>Create</strong> → <strong>Create Worker</strong>，命名如 <code>ghostlink</code></li>
+          <li>点击 <strong>Deploy</strong> 部署默认模板，再点 <strong>Edit code</strong> 进入编辑器</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">3</span><h3>创建 KV 并绑定</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>Worker 管理页 → <strong>Settings</strong> → <strong>Variables</strong></li>
+          <li>找到 <strong>KV Namespace Bindings</strong> → <strong>Add binding</strong></li>
+          <li>Variable name 填：<code>GHOST_KV</code>（必须全大写，一字不差）</li>
+          <li>KV namespace 选 <strong>Create new</strong>，命名如 <code>ghostlink-db</code>，创建后选中它</li>
+          <li>点 <strong>Save</strong></li>
+        </ul>
+        <div class="note"><strong>为什么必须叫 GHOST_KV？</strong> 代码用 <code>env.GHOST_KV</code> 读写存储，绑定名不一致会直接报错。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">4</span><h3>设置后台密码</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>同一页 <strong>Environment Variables</strong> → <strong>Add variable</strong></li>
+          <li>Variable name 填：<code>ADMIN_PASSWORD</code></li>
+          <li>Value 填你的密码（如 <code>my_secret_2024</code>）</li>
+          <li>点 <strong>Save and Deploy</strong></li>
+        </ul>
+        <div class="note">密码放在环境变量里，即使代码泄露也拿不到密码。代码留了兜底 <code>|| "8888"</code>，不设也能跑，但不建议。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">5</span><h3>粘贴 Worker 代码并部署</h3></div>
+      <div class="step-body">
+        <p>回到 <strong>Edit code</strong>，删掉默认代码，点击下方按钮复制完整代码后粘贴，点 <strong>Deploy</strong>。</p>
+
+        <!-- ▼▼▼ 代码按钮区（CF 版） ▼▼▼ -->
+        <div class="code-action">
+          <div class="info">
+            <strong>worker.js</strong>
+            <span>Cloudflare Workers 完整代码 · 约 200 行</span>
+          </div>
+          <button class="btn-copy" id="btn-cf" onclick="copyCode('cf')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            📋 复制代码
+          </button>
+        </div>
+        <!--
+          ⚠️ 预留位置：请将下方 URL 替换为你的 worker.js 代码的可访问链接。
+          支持：GitHub Gist raw 链接、对象存储直链、你自己的服务器地址。
+          例如：https://gist.githubusercontent.com/你的用户名/xxxx/raw/worker.js
+          复制按钮会从该链接拉取代码并写入剪贴板。
+        -->
+        <div class="code-placeholder">
+          代码链接占位：<a href="#" id="link-cf" data-url="https://git.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9%E4%B8%80/GhostLink-CF.txt" target="_blank" rel="noopener">https://example.com/ghostlink/worker.js</a>
+          （← 把这里换成你的真实代码链接）
+        </div>
+        <!-- ▲▲▲ 代码按钮区结束 ▲▲▲ -->
+
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">6</span><h3>访问与验证</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>部署完成后，Cloudflare 提供 <code>*.workers.dev</code> 域名，直接打开</li>
+          <li>输入 <code>ADMIN_PASSWORD</code> 里设置的密码登录</li>
+          <li>写测试内容 → 选查看次数和有效期 → 生成链接</li>
+          <li>用无痕窗口打开链接能看到内容；刷新后显示 404 即成功</li>
+        </ul>
+        <div class="note">绑定自定义域名：Worker → Settings → Domains &amp; Routes → Add Custom Domain，按提示加 DNS 记录，HTTPS 自动配置。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">7</span><h3>常见问题</h3></div>
+      <div class="step-body">
+        <ul>
+          <li><strong>报 env.GHOST_KV 未定义</strong>：KV 绑定变量名没写成 <code>GHOST_KV</code>，回 Settings 检查</li>
+          <li><strong>密码一直错误</strong>：环境变量名必须是 <code>ADMIN_PASSWORD</code>，改完要点 <strong>Save and Deploy</strong></li>
+          <li><strong>生成的链接打开 404</strong>：链接已过期或被查看过，KV 已自动删除，属正常阅后即焚行为</li>
+          <li><strong>想改密码</strong>：改环境变量值 → Save and Deploy，无需动代码</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- ======================= 版本二：VPS ========================= -->
+  <!-- ============================================================= -->
+  <div id="vps" class="section">
+    <div class="section-title">
+      <span class="num">2</span>
+      <h2>虚拟机 / VPS 部署</h2>
+      <span class="plat">🖥️ Node.js + cloudflared</span>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">1</span><h3>前置准备</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>一台能跑 Node.js 的服务器（VPS、虚拟机、甚至家宽设备均可）</li>
+          <li>Node.js 16 或以上（<code>node -v</code> 检查）</li>
+          <li>一个 Cloudflare 账号 + 一个域名（用于创建 Tunnel）</li>
+          <li>服务器能访问外网（下载 cloudflared 二进制需要）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">2</span><h3>创建 Cloudflare Tunnel 并获取 Token</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>登录 Cloudflare Dashboard → <strong>Zero Trust</strong> → <strong>Networks</strong> → <strong>Tunnels</strong></li>
+          <li>点击 <strong>Create a tunnel</strong>，选择 <strong>Cloudflared</strong>，命名如 <code>ghostlink</code></li>
+          <li>在安装页复制那串 <code>eyJ...</code> 开头的 <strong>Token</strong>（后面填进代码）</li>
+          <li>在 <strong>Public Hostname</strong> 里绑定你的域名，Service 指向 <code>http://localhost:30185</code></li>
+        </ul>
+        <div class="note">Token 和域名属于私密信息，不要截图外传。代码里预留了位置，部署时填进去即可。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">3</span><h3>上传并配置代码</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>在服务器上创建目录，如 <code>mkdir -p /opt/ghostlink && cd /opt/ghostlink</code></li>
+          <li>点击下方按钮复制 <code>index.js</code>，保存到该目录</li>
+          <li>打开文件，把顶部的 <code>ARGO_DOMAIN</code> 和 <code>ARGO_AUTH</code> 填成你自己的域名和 Token</li>
+          <li>把 <code>ADMIN_PASSWORD</code> 改成你的密码</li>
+        </ul>
+
+        <!-- ▼▼▼ 代码按钮区（VPS 版） ▼▼▼ -->
+        <div class="code-action">
+          <div class="info">
+            <strong>index.js</strong>
+            <span>Node.js 原生服务 + 自动下载 cloudflared · 约 300 行</span>
+          </div>
+          <button class="btn-copy" id="btn-vps" onclick="copyCode('vps')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            📋 复制代码
+          </button>
+        </div>
+        <!--
+          ⚠️ 预留位置：请将下方 URL 替换为你的 index.js 代码的可访问链接。
+          例如：https://gist.githubusercontent.com/你的用户名/xxxx/raw/index.js
+          复制按钮会从该链接拉取代码并写入剪贴板。
+        -->
+        <div class="code-placeholder">
+          代码链接占位：<a href="#" id="link-vps" data-url="https://git.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9%E4%B8%80/GhostLink-orihost.txt" target="_blank" rel="noopener">https://example.com/ghostlink/index.js</a>
+          （← 把这里换成你的真实代码链接）
+        </div>
+        <!-- ▲▲▲ 代码按钮区结束 ▲▲▲ -->
+
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">4</span><h3>启动服务</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>直接启动：<code>node index.js</code></li>
+          <li>后台守护（推荐）：<code>npm i -g pm2 && pm2 start index.js --name ghostlink && pm2 save</code></li>
+          <li>日志中看到 <code>[系统] ✅ 本地服务已启动</code> 和 <code>[Cloudflare] Registered tunnel connection</code> 即成功</li>
+        </ul>
+        <div class="note">首次启动会自动下载 cloudflared 到 <code>./tmp/cloudflared_bin</code>，需要服务器能访问 GitHub。若下载失败，可手动下载后放到该路径并 <code>chmod +x</code>。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">5</span><h3>访问与验证</h3></div>
+      <div class="step-body">
+        <ul>
+          <li>浏览器打开你绑定的域名（如 <code>https://ghost.yourdomain.com</code>）</li>
+          <li>输入 <code>ADMIN_PASSWORD</code> 里设置的密码登录</li>
+          <li>生成一条测试链接，用无痕窗口打开并刷新，验证阅后即焚</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="step-num">6</span><h3>常见问题</h3></div>
+      <div class="step-body">
+        <ul>
+          <li><strong>日志报 Cannot find module 'xxx'</strong>：这套代码零依赖，只需 Node 自带模块；若报错请确认 Node 版本 ≥ 16</li>
+          <li><strong>cloudflared 下载失败</strong>：服务器访问 GitHub 受限。可手动下载 <code>cloudflared-linux-amd64</code> 放到 <code>./tmp/cloudflared_bin</code> 并 <code>chmod 775</code></li>
+          <li><strong>隧道连上但域名 502</strong>：检查 Public Hostname 的 Service 是否指向 <code>http://localhost:30185</code>，且本地服务已启动</li>
+          <li><strong>重启后数据丢失</strong>：VPS 版把内容存在进程内存（<code>vault</code> 对象）里，重启即清空；需要持久化可改用 Redis 或 SQLite</li>
+          <li><strong>想换端口</strong>：改代码顶部 <code>PORT</code>，同时改 Tunnel 的 Service 地址</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">GhostLink · 双版本部署教程 · 代码通过按钮从预留链接拉取并复制</div>
+</div>
+
+<script>
+/* ============================================
+   复制逻辑说明：
+   1. 每个按钮对应的 <a id="link-xxx" data-url="..."> 里存放代码的真实 URL
+   2. 点击按钮 → fetch(data-url) → 拿到文本 → 写入剪贴板
+   3. 失败时回退到手动复制提示，并展示预留链接供用户自行打开
+   ============================================ */
+async function copyCode(type) {
+  const btn = document.getElementById('btn-' + type);
+  const linkEl = document.getElementById('link-' + type);
+  const url = linkEl ? (linkEl.dataset.url || linkEl.href) : '';
+  const originalHTML = btn.innerHTML;
+
+  if (!url || url.includes('example.com')) {
+    // 未配置真实链接时的友好提示
+    alert('⚠️ 尚未配置代码链接。\n\n请把教程 HTML 里 id="link-' + type + '" 的 data-url 改成你的真实代码地址（如 GitHub Gist raw 链接）。');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 正在获取...';
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // 非 HTTPS 环境回退
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    btn.classList.add('copied');
+    btn.innerHTML = '✅ 已复制到剪贴板';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
+    }, 2200);
+  } catch (err) {
+    console.error(err);
+    btn.innerHTML = '❌ 获取失败';
+    btn.disabled = false;
+    setTimeout(() => { btn.innerHTML = originalHTML; }, 2500);
+    // 失败时打开预留链接，让用户手动复制
+    if (confirm('自动获取代码失败（' + err.message + '）。\n\n是否打开代码链接手动复制？')) {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+}
+</script>
+</body>
+</html>
