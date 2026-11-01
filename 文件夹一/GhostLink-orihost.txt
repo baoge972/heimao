@@ -59,7 +59,7 @@ const LOGIN_PAGE = `
   <div class="container">
     <h1 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">GhostLink 鉴权</h1>
     <p style="font-size: 0.85rem; color: #878787; margin-bottom: 2rem;">请输访问密码</p>
-    <input type="password" id="pwdInput" class="login-input" placeholder="••••" onkeypress="if(event.key === 'Enter') login()">
+    <input type="password" id="pwdInput" class="login-input" placeholder="请输入访问密码" onkeypress="if(event.key === 'Enter') login()">
     <button class="login-btn" onclick="login()">进入系统</button>
     <div id="loginError" class="error-msg">密码错误，拒绝访问</div>
   </div>
