@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenVPN 阿里云排错与部署教程</title>
+    <title>OpenVPN 阿里云排错与部署教程 (可复制版)</title>
     <style>
         :root {
             --bg-color: #f8f9fa;
@@ -18,6 +18,9 @@
             --success-bg: #d4edda;
             --success-border: #28a745;
             --success-text: #155724;
+            --btn-bg: #3b3b3b;
+            --btn-text: #ffffff;
+            --btn-hover: #555555;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -33,6 +36,8 @@
                 --success-bg: #0f2417;
                 --success-border: #28a745;
                 --success-text: #75b798;
+                --btn-bg: #333333;
+                --btn-hover: #4a4a4a;
             }
         }
 
@@ -46,7 +51,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
         }
 
@@ -74,19 +79,27 @@
         }
 
         code {
-            font-family: "Courier New", Courier, monospace;
+            font-family: "Consolas", "Courier New", monospace;
             background-color: rgba(128, 128, 128, 0.15);
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.9em;
         }
 
-        pre {
+        /* 代码块容器相对定位，为了放置复制按钮 */
+        .code-container {
+            position: relative;
             background-color: var(--code-bg);
-            color: var(--code-text);
-            padding: 15px;
             border-radius: 6px;
+            margin: 15px 0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        pre {
+            margin: 0;
+            padding: 40px 15px 15px 15px; /* 顶部留出空间给按钮 */
             overflow-x: auto;
+            color: var(--code-text);
             font-size: 0.9em;
         }
 
@@ -94,6 +107,30 @@
             background-color: transparent;
             padding: 0;
             color: inherit;
+            font-family: "Consolas", "Courier New", monospace;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-family: inherit;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .copy-btn.copied {
+            background-color: #28a745;
         }
 
         .alert {
@@ -138,27 +175,47 @@
     <div class="card">
         <h2>🚨 典型故障：TLS Error 超时</h2>
         <p>如果你在客户端日志中看到以下报错：</p>
-        <pre><code>TLS Error: TLS key negotiation failed to occur within 60 seconds (check your network connectivity)
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>TLS Error: TLS key negotiation failed to occur within 60 seconds (check your network connectivity)
 TLS Error: TLS handshake failed</code></pre>
+        </div>
         <p>这通常意味着 <strong>客户端无法与服务器的 1194 端口建立有效通信</strong>。请依次排查以下三个核心环节。</p>
     </div>
 
     <h2>第一步：排查服务端监听地址</h2>
     <div class="card">
         <p>登录到服务器，检查 OpenVPN 是否在监听正确的 IP。执行以下命令：</p>
-        <pre><code>sudo ss -ulnp | grep 1194</code></pre>
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>sudo ss -ulnp | grep 1194</code></pre>
+        </div>
         
         <p><strong>错误情况（阿里云常见）：</strong></p>
-        <pre><code>UNCONN 0 0 <span style="color:#f48771;">172.19.60.189:1194</span> 0.0.0.0:* users:(("openvpn",...))</code></pre>
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>UNCONN 0 0 172.19.60.189:1194 0.0.0.0:* users:(("openvpn",...))</code></pre>
+        </div>
         <p>此时 OpenVPN 只绑定了内网 IP，公网流量无法进入。</p>
 
         <p><strong>正确情况：</strong></p>
-        <pre><code>UNCONN 0 0 <span style="color:#89d185;">0.0.0.0:1194</span> 0.0.0.0:* users:(("openvpn",...))</code></pre>
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>UNCONN 0 0 0.0.0.0:1194 0.0.0.0:* users:(("openvpn",...))</code></pre>
+        </div>
 
         <div class="alert alert-warning">
             <strong>修复方法：</strong>修改配置文件，注释掉 <code>local</code> 指令。<br>
-            执行：<code>nano /etc/openvpn/server/server.conf</code><br>
-            找到 <code>local 172.19.x.x</code>，在行首加 <code>#</code> 号注释，保存后执行 <code>systemctl restart openvpn-server@server</code>。
+            执行下方命令打开文件：<br>
+            <div class="code-container">
+                <button class="copy-btn">复制</button>
+                <pre><code>nano /etc/openvpn/server/server.conf</code></pre>
+            </div>
+            找到 <code>local 172.19.x.x</code>，在行首加 <code>#</code> 号注释，保存后执行重启命令：<br>
+            <div class="code-container">
+                <button class="copy-btn">复制</button>
+                <pre><code>systemctl restart openvpn-server@server</code></pre>
+            </div>
         </div>
     </div>
 
@@ -172,16 +229,29 @@ TLS Error: TLS handshake failed</code></pre>
 
         <ol>
             <li>修改服务端配置文件：
-                <pre><code>nano /etc/openvpn/server/server.conf</code></pre>
+                <div class="code-container">
+                    <button class="copy-btn">复制</button>
+                    <pre><code>nano /etc/openvpn/server/server.conf</code></pre>
+                </div>
             </li>
             <li>在文件顶部添加一行，<strong>写死你的公网 IP</strong>（去掉之前的注释）：
-                <pre><code>local 8.217.131.234  # 替换为你自己的公网IP</code></pre>
+                <div class="code-container">
+                    <button class="copy-btn">复制</button>
+                    <pre><code>local 8.217.131.234</code></pre>
+                </div>
+                <em>*注意：请将 8.217.131.234 替换为你自己的公网IP</em>
             </li>
             <li>保存并重启服务：
-                <pre><code>systemctl restart openvpn-server@server</code></pre>
+                <div class="code-container">
+                    <button class="copy-btn">复制</button>
+                    <pre><code>systemctl restart openvpn-server@server</code></pre>
+                </div>
             </li>
             <li>再次确认监听状态（此时应显示公网IP）：
-                <pre><code>sudo ss -ulnp | grep 1194</code></pre>
+                <div class="code-container">
+                    <button class="copy-btn">复制</button>
+                    <pre><code>sudo ss -ulnp | grep 1194</code></pre>
+                </div>
             </li>
         </ol>
     </div>
@@ -191,21 +261,30 @@ TLS Error: TLS handshake failed</code></pre>
         <p>确保服务器允许数据包转发，并配置 NAT 伪装，否则客户端连上也无法上网。</p>
         
         <p><strong>1. 开启内核转发</strong></p>
-        <pre><code>echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 sysctl -p</code></pre>
+        </div>
 
         <p><strong>2. 配置 iptables NAT 伪装</strong></p>
         <p>假设你的主网卡名称为 <code>eth0</code>（可通过 <code>ip addr</code> 查看），执行：</p>
-        <pre><code>iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE</code></pre>
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE</code></pre>
+        </div>
 
         <p><strong>3. 放行 UDP 端口</strong></p>
-        <p>确保服务器内部防火墙（如 firewalld/ufw/iptables）没有拦截 UDP 1194 端口。临时清空 iptables 规则测试（不推荐生产使用）：</p>
-        <pre><code>iptables -I INPUT -p udp --dport 1194 -j ACCEPT</code></pre>
+        <p>确保服务器内部防火墙没有拦截 UDP 1194 端口。放行命令：</p>
+        <div class="code-container">
+            <button class="copy-btn">复制</button>
+            <pre><code>iptables -I INPUT -p udp --dport 1194 -j ACCEPT</code></pre>
+        </div>
     </div>
 
     <h2>第四步：云服务商安全组</h2>
     <div class="card">
-        <p>最后，不要忘记在阿里云/腾讯云等云平台的<strong>控制台 -> 安全组</strong>中，添加一条入方向规则：</p>
+        <p>最后，不要忘记在阿里云等云平台的<strong>控制台 -> 安全组</strong>中，添加一条入方向规则：</p>
         <ul>
             <li><strong>协议类型：</strong>UDP</li>
             <li><strong>端口范围：</strong>1194</li>
@@ -218,6 +297,33 @@ sysctl -p</code></pre>
     </div>
 
 </div>
+
+<script>
+    // 为所有复制按钮添加点击事件
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            // 获取按钮所在容器下的 pre 标签中的文本内容
+            const codeText = button.nextElementSibling.innerText;
+            
+            // 使用 Clipboard API 复制
+            navigator.clipboard.writeText(codeText).then(() => {
+                // 更改按钮文字提示复制成功
+                const originalText = button.innerText;
+                button.innerText = '已复制!';
+                button.classList.add('copied');
+                
+                // 2秒后恢复按钮原始状态
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+                button.innerText = '复制失败';
+            });
+        });
+    });
+</script>
 
 </body>
 </html>
