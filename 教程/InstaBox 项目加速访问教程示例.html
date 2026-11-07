@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaBox 青龙面板极速访问教程</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --text-color: #c9d1d9;
+            --header-color: #58a6ff;
+            --code-bg: #010409;
+            --border-color: #30363d;
+            --btn-bg: #21262d;
+            --btn-hover: #30363d;
+            --btn-text: #c9d1d9;
+            --success-color: #2ea043;
+            --warning-color: #d29922;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            padding: 35px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        h1, h2, h3 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        h1 { margin-top: 0; font-size: 1.8em; text-align: center; }
+        h2 { font-size: 1.3em; }
+        p, ul, ol { margin-bottom: 15px; }
+        li { margin-bottom: 10px; }
+        .highlight { color: #79c0ff; font-weight: bold; }
+        .code-container {
+            position: relative;
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+        pre {
+            margin: 0;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+            color: #e6edf3;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            background-color: rgba(110,118,129,0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 90%;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background-color: var(--btn-hover); }
+        .copy-btn.copied {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .note {
+            background-color: rgba(88, 166, 255, 0.1);
+            border-left: 4px solid var(--header-color);
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+        .warning {
+            background-color: rgba(210, 153, 34, 0.1);
+            border-left: 4px solid var(--warning-color);
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #e3b341;
+            font-size: 0.95em;
+        }
+        .inline-code-container {
+            display: inline-block;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 InstaBox 青龙面板极速访问教程</h1>
+    
+    <div class="note">
+        本教程采用 <strong>“Cloudflare Worker 路由 + CNAME 优选 IP”</strong> 的方案，无需点亮小黄云，即可实现隐藏源站与加速访问。
+    </div>
+
+    <h2>准备工作</h2>
+    <ul>
+        <li>一个已经部署好并发布的 <strong>青龙面板</strong>（拿到其原始的 <code>https://xxx.instabox.tech</code> 地址）。</li>
+        <li>一个托管在 Cloudflare 的 <strong>自定义域名</strong>（例如 <code>ql.你的域名.com</code>）。</li>
+    </ul>
+
+    <h2>第一步：配置 Worker 代码</h2>
+    <ol>
+        <li>进入 Cloudflare 控制台，打开你的 Worker 编辑器。</li>
+        <li>将以下代码完整复制并覆盖进去。</li>
+        <li><strong>务必修改代码中的 <code>你的青龙真实域名</code></strong>（不要带 <code>https://</code>，也不要有末尾斜杠）。</li>
+    </ol>
+
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+        <pre><code>addEventListener("fetch", event => {
+  event.respondWith(handleRequest(event.request));
+});
+
+async function handleRequest(request) {
+  let url = new URL(request.url);
+  
+  // 【修改这里】填入你 InstaBox 分配的青龙真实域名（不要带 https://）
+  url.hostname = "你的青龙真实域名.instabox.tech"; 
+
+  let newRequest = new Request(url, {
+    method: request.method,
+    headers: request.headers,
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
+    redirect: 'manual'
+  });
+
+  return fetch(newRequest);
+}</code></pre>
+    </div>
+    <p>点击右上角 <strong>“保存并部署”</strong>。</p>
+
+    <h2>第二步：添加自定义域和路由</h2>
+    <ol>
+        <li>在 Worker 页面，点击 <strong>“设置”</strong> -> <strong>“触发器”</strong>。</li>
+        <li>找到 <strong>“自定义域”</strong>，点击 <strong>“添加自定义域”</strong>，填入你要加速的域名（如 <code>ql.你的域名.com</code>）。</li>
+        <li>在同一页面找到 <strong>“路由”</strong>，点击 <strong>“添加路由”</strong>：
+            <ul>
+                <li><strong>路由</strong> 填：<code>你的自定义域名/*</code>（比如 <code>ql.你的域名.com/*</code>）</li>
+                <li><strong>区域</strong> 选择你的主域名</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>第三步：配置 DNS 解析（关键）</h2>
+    <p>去你的 DNS 解析后台（支持 CNAME 优选 IP 的那个后台），添加解析：</p>
+    <ul>
+        <li><strong>记录类型</strong>：<code>CNAME</code></li>
+        <li><strong>主机记录/名称</strong>：<code>ql</code>（或者你定的前缀）</li>
+        <li><strong>记录值/目标</strong>：<code>cf.090227.xyz</code>（或你正在用的优选 IP 域名）</li>
+        <li><strong>代理状态</strong>：保持 <strong>“仅 DNS”</strong>（不要点亮小黄云）。</li>
+    </ul>
+
+    <div class="warning">
+        <strong>⚠️ 提醒：</strong> 这里的目标只填优选域名（如 <code>cf.090227.xyz</code>），<strong>千万千万不要在这里填你 InstaBox 的青龙地址</strong>！青龙地址只写在第一步的 Worker 代码里。
+    </div>
+
+    <h2>第四步：访问测试</h2>
+    <p>在浏览器输入 <code>https://你的自定义域名</code> 访问。只要能正常加载青龙面板并登录，代表配置成功。</p>
+
+</div>
+
+<script>
+    function copyCode(btn) {
+        const codeElement = btn.parentElement.querySelector('code');
+        const textToCopy = codeElement.innerText;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '已复制!';
+            btn.classList.add('copied');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败: ', err);
+            alert('复制失败，请手动选中复制。');
+        });
+    }
+</script>
+
+</body>
+</html>
