@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN 优化器</title>
+    <style>
+        :root {
+            --bg: #f4f5f7;
+            --panel: #ffffff;
+            --text: #303133;
+            --border: #dcdfe6;
+            --primary: #409eff;
+            --success: #67c23a;
+            --warning: #e6a23c;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1e1e1e;
+                --panel: #2d2d2d;
+                --text: #e0e0e0;
+                --border: #444444;
+                --primary: #3a8ee6;
+                --success: #529b2e;
+                --warning: #b88230;
+            }
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 900px; 
+            height: 85vh;     
+            background: var(--panel);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+        
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+        .toolbar-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-right: auto; 
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-blue { background: var(--primary); }
+        .btn-green { background: var(--success); }
+        .btn-gray { background: #909399; }
+        input[type="file"] { display: none; }
+
+        .content {
+            display: flex;
+            flex-direction: row; 
+            flex: 1;
+            gap: 10px;
+            padding: 10px;
+            min-height: 0; 
+        }
+
+        .box {
+            display: flex;
+            flex-direction: column;
+            flex: 1; 
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .box-header {
+            font-size: 12px;
+            padding: 6px 10px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            resize: none;
+            background: var(--panel);
+            color: var(--text);
+            border: none;
+            outline: none;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        #status {
+            font-size: 12px;
+            color: var(--success);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .btn-mini {
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-orange { background: var(--warning); }
+
+        @media (max-width: 600px) {
+            .content { flex-direction: column; }
+            .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="toolbar">
+            <div class="toolbar-title">OpenVPN 优化器</div>
+            <span id="status">操作成功</span>
+            
+            <label class="btn btn-gray">
+                📂 导入
+                <input type="file" accept=".ovpn,.txt" onchange="importFile(event)">
+            </label>
+            <button class="btn btn-blue" onclick="convert()">⚡ 转换</button>
+            <button class="btn btn-green" onclick="exportFile()">💾 导出</button>
+        </div>
+
+        <div class="content">
+            <div class="box">
+                <div class="box-header">
+                    <span>📄 原生配置输入</span>
+                    <button class="btn-mini btn-orange" onclick="pasteText()">📋 粘贴</button>
+                </div>
+                <textarea id="inText" placeholder="在此粘贴原生配置，或拖拽文件..."></textarea>
+            </div>
+            
+            <div class="box">
+                <div class="box-header">
+                    <span>✨ 转换后配置输出</span>
+                    <button class="btn-mini btn-green" onclick="copyText()">📄 复制</button>
+                </div>
+                <textarea id="outText" readonly placeholder="点击“⚡ 转换”生成优化版配置..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const patch = `
+# ===== Windows 防踩坑补丁 =====
+disable-dco
+sndbuf 0
+rcvbuf 0
+tun-mtu 1400
+mssfix 1360
+ping 10
+ping-restart 120
+ping-timer-rem
+replay-window 256 30
+mute-replay-warnings
+`;
+
+        function importFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('inText').value = e.target.result;
+                showMsg('已导入');
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        async function pasteText() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    document.getElementById('inText').value = text;
+                    showMsg('已粘贴');
+                }
+            } catch (err) {
+                showMsg('请手动 Ctrl+V', true);
+            }
+        }
+
+        function copyText() {
+            const text = document.getElementById('outText').value;
+            if (!text) return showMsg('无内容', true);
+            navigator.clipboard.writeText(text).then(() => {
+                showMsg('已复制');
+            }).catch(() => {
+                showMsg('复制失败', true);
+            });
+        }
+
+        function convert() {
+            let raw = document.getElementById('inText').value.trim();
+            if (!raw) return showMsg('请输入内容', true);
+
+            let clean = raw
+                .replace(/disable-dco/g, '')
+                .replace(/sndbuf\s+\d+/g, '')
+                .replace(/rcvbuf\s+\d+/g, '')
+                .replace(/tun-mtu\s+\d+/g, '')
+                .replace(/mssfix\s+\d+/g, '')
+                .replace(/ping-restart\s+\d+/g, '')
+                .replace(/replay-window\s+\d+\s+\d+/g, '')
+                .replace(/mute-replay-warnings/g, '')
+                .replace(/=====\s*Windows\s*防踩坑补丁\s*=====/g, '');
+
+            let index = clean.search(/<cert>/i);
+            if (index === -1) index = clean.length;
+
+            let result = clean.slice(0, index) + "\n" + patch + "\n" + clean.slice(index);
+            
+            document.getElementById('outText').value = result.replace(/\n{3,}/g, '\n\n');
+            showMsg('转换成功');
+        }
+
+        function exportFile() {
+            const content = document.getElementById('outText').value;
+            if (!content) return showMsg('无内容', true);
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'optimized.ovpn';
+            a.click();
+            URL.revokeObjectURL(url);
+            showMsg('已导出');
+        }
+
+        function showMsg(text, isErr = false) {
+            const el = document.getElementById('status');
+            el.innerText = text;
+            el.style.color = isErr ? '#f56c6c' : 'var(--success)';
+            el.style.opacity = '1';
+            setTimeout(() => el.style.opacity = '0', 2000);
+        }
+    </script>
+</body>
+</html>
