@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaBox 终极保活教程</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --text-color: #c9d1d9;
+            --header-color: #58a6ff;
+            --code-bg: #010409;
+            --border-color: #30363d;
+            --btn-bg: #21262d;
+            --btn-hover: #30363d;
+            --btn-text: #c9d1d9;
+            --success-color: #2ea043;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        h1, h2, h3 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        h1 { margin-top: 0; font-size: 1.8em; }
+        h2 { font-size: 1.4em; }
+        p, ul { margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+        .warning {
+            background-color: rgba(210, 153, 34, 0.15);
+            border-left: 4px solid #d29922;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #e3b341;
+        }
+        .code-container {
+            position: relative;
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+        pre {
+            margin: 0;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+            color: #e6edf3;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            background-color: rgba(110,118,129,0.4);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 85%;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: var(--btn-hover);
+        }
+        .copy-btn.copied {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .highlight { color: #79c0ff; }
+        a { color: var(--header-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛡️ InstaBox 终极保活教程</h1>
+    <p>本教程适用于已拥有一台外部常开设备（如 RackNerd VPS、NAS、软路由等）的用户。通过外部脚本，不仅解决 <strong>30 分钟闲置暂停</strong>，还能破解 <strong>8 小时强制暂停</strong>，实现无限接近 24 小时在线。</p>
+
+    <div class="warning">
+        <strong>⚠️ 注意事项：</strong> InstaBox 为免费沙盒平台，官方随时可能调整风控策略（如限制端口、缩短强制停机时间等）。请勿在机器上跑高负载任务或存放重要数据，仅作学习测试之用。
+    </div>
+
+    <h2>第一步：获取 API 密钥</h2>
+    <ol>
+        <li>登录 InstaBox 控制台，进入 <strong>API Keys</strong> 页面。</li>
+        <li>点击 <strong>Create API Key</strong>。</li>
+        <li><strong>Key Name</strong> 随便填（如 <code>keepalive</code>）。</li>
+        <li><strong>Expires</strong> 留空（永不过期）。</li>
+        <li><strong>Permissions</strong> 选择 <strong>Restricted</strong>，并在下方勾选 <strong>Machines 的 Write</strong> 权限。</li>
+        <li>点击 Create，复制生成的 <code>ibk_</code> 开头的密钥。<strong>注意：密钥只显示一次。</strong></li>
+    </ol>
+
+    <h2>第二步：在外部 VPS 上安装保活脚本</h2>
+    <p>SSH 连接到你的常开设备（如你的 RackNerd VPS），复制下方命令并执行：</p>
+    <p><em>注意：将命令中的 <code>ibk_xxx</code> 替换为你刚复制的真实密钥，<code>key=</code> 和密钥之间不要有空格。</em></p>
+
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>ibk_kyj3k4ffo4cvj7isbje2bqqn5frdxzv56c63aqq3hjwmbke46duq <(curl -Ls https://raw.githubusercontent.com/pingmike2/instabox-keepalive/main/keepalive.sh)</code></pre>
+    </div>
+
+    <p>如果执行成功，终端会显示以下关键信息：</p>
+    <ul>
+        <li><code>续租 ok v1/keepalive</code> （表示成功连接 API）</li>
+        <li><code>systemd 服务 instabox-keepalive 已装</code> （表示后台服务已运行）</li>
+    </ul>
+    <p><strong>说明：</strong>脚本默认会自动发现并保活该账号下的<strong>所有机器</strong>。以后新开的机器也会自动纳入保活范围。</p>
+
+    <h2>第三步：日常查看状态与日志</h2>
+    <p>在 VPS 上执行以下命令，查看当前机器的保活状态：</p>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>sh /root/instabox-keepalive/keepalive.sh --status</code></pre>
+    </div>
+    <p>如果看到 <code>state=running</code> 和 <code>autoSuspendedAt=</code>（为空），说明一切正常。</p>
+
+    <p>如果需要实时监控日志，看它有没有在定时续租，执行：</p>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>journalctl -u instabox-keepalive -f</code></pre>
+    </div>
+    <p><em>（按 <code>Ctrl + C</code> 退出日志查看）</em></p>
+
+    <h2>附：卸载与手动操作</h2>
+    <p>如果不想用了，或者需要卸载脚本：</p>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>sh /root/instabox-keepalive/keepalive.sh uninstall</code></pre>
+    </div>
+    
+    <p>如果需要手动立刻续租一次（不依赖自动任务）：</p>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>sh /root/instabox-keepalive/keepalive.sh --once</code></pre>
+    </div>
+
+    <h2>备用方案：纯网页保活（防 30 分钟闲置）</h2>
+    <p>如果由于网络原因脚本失效，且你只需要防闲置，可以在你的 VPS 上添加定时任务去访问你 InstaBox 的网页地址：</p>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><code>*/10 * * * * curl -sS -m 10 "https://你的端口-你的机器ID.instabox.tech" > /dev/null</code></pre>
+    </div>
+
+</div>
+
+<script>
+    function copyCode(btn) {
+        // 获取按钮同级的 pre > code 元素
+        const codeElement = btn.parentElement.querySelector('code');
+        const textToCopy = codeElement.innerText;
+
+        // 使用现代的 Clipboard API
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // 复制成功的 UI 反馈
+            const originalText = btn.innerText;
+            btn.innerText = '已复制!';
+            btn.classList.add('copied');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败: ', err);
+            alert('复制失败，请手动选中复制。');
+        });
+    }
+</script>
+
+</body>
+</html>
