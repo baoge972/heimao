@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN 配置修改指南</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #24292f;
+            --border: #d0d7de;
+            --code-bg: #f6f8fa;
+            --link: #0969da;
+            --primary: #cf222e;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d1117;
+                --text: #c9d1d9;
+                --border: #30363d;
+                --code-bg: #161b22;
+                --link: #58a6ff;
+                --primary: #ff7b72;
+            }
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        h1, h2, h3 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        h1 { font-size: 24px; border-bottom: none; }
+        h2 { font-size: 20px; }
+        h3 { font-size: 16px; }
+        p { margin-bottom: 15px; }
+        .warn {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        /* 代码块容器 */
+        .code-block {
+            position: relative;
+            background-color: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        pre {
+            margin: 0;
+            padding: 16px;
+            overflow: auto;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13.5px;
+            line-height: 1.45;
+        }
+        code {
+            font-family: inherit;
+        }
+        /* 复制按钮 */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: var(--border);
+        }
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th { background-color: var(--code-bg); }
+    </style>
+</head>
+<body>
+
+    <h1>OpenVPN 配置修改指南</h1>
+    <p>本文档专门记录 TCP/UDP 模式下，<strong>服务端</strong>与<strong>客户端</strong>的配置文件如何修改与切换。</p>
+
+    <h2>一、客户端配置修改（.ovpn 文件）</h2>
+    <p>使用记事本打开你的 <code>.ovpn</code> 文件，修改以下内容：</p>
+
+    <h3>1. Windows 防踩坑核心补丁（必加）</h3>
+    <p>此段代码解决 Windows 系统下的端口耗尽、网卡假死和握手失败问题。直接添加在文件顶部：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code># ===== Windows 防踩坑核心补丁 =====
+disable-dco
+sndbuf 393216
+rcvbuf 393216
+tun-mtu 1400
+mssfix 1360
+ping 10
+ping-restart 120
+ping-timer-rem
+replay-window 256 30
+mute-replay-warnings</code></pre>
+    </div>
+
+    <h3>2. 服务器地址与协议设置</h3>
+    <p>根据服务器端修改的协议，修改客户端连接参数：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code># 如果服务器端是 TCP 8443，请修改为：
+proto tcp
+remote 8.217.131.234 8443
+
+# 如果服务器端是 UDP 1194，请修改为：
+proto udp
+remote 8.217.131.234 1194</code></pre>
+    </div>
+
+    <hr>
+
+    <h2>二、服务器端配置修改</h2>
+    <p>通过 SSH 登录服务器，配置文件路径通常为：<code>/etc/openvpn/server/server.conf</code>。</p>
+    <p>终端执行：<code>nano /etc/openvpn/server/server.conf</code></p>
+
+    <h3>1. 修改为 TCP 模式</h3>
+    <p>找到 <code>proto</code> 和 <code>port</code> 行进行修改。注意：<span class="warn">TCP 模式必须注释掉 explicit-exit-notify，否则服务无法启动报错！</span></p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code>proto tcp
+# 注意：如果 443 端口被 Nginx 占用，请改用 8443
+port 8443
+
+# 必须注释掉下面这行！
+# explicit-exit-notify 1</code></pre>
+    </div>
+
+    <h3>2. 修改回 UDP 模式</h3>
+    <p>修改协议和端口，并取消注释 <code>explicit-exit-notify</code>：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code>proto udp
+port 1194
+
+# UDP 模式必须取消注释这行
+explicit-exit-notify 1</code></pre>
+    </div>
+
+    <h3>3. 重启服务使其生效</h3>
+    <p>每次修改完 <code>server.conf</code> 后，必须在服务器执行以下命令：</p>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code>systemctl restart openvpn-server@server</code></pre>
+    </div>
+
+    <hr>
+
+    <h2>三、修改后的必做检查</h2>
+    
+    <h3>1. 查服务是否正常启动</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code>systemctl status openvpn-server@server</code></pre>
+    </div>
+    <p>如果看到 <code>Active: active (running)</code> 说明成功。如果是 <code>failed</code>，请看下一步。</p>
+
+    <h3>2. 查报错日志</h3>
+    <div class="code-block">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre><code>journalctl -u openvpn-server@server -n 20 --no-pager</code></pre>
+    </div>
+    <p>常见报错处理：</p>
+    <table>
+        <tr>
+            <th>报错信息</th>
+            <th>原因及解决</th>
+        </tr>
+        <tr>
+            <td><code>Address already in use</code></td>
+            <td>端口被占用。执行 <code>sudo ss -tlnp | grep 端口号</code> 查占用进程，换个端口（如 8443）。</td>
+        </tr>
+        <tr>
+            <td><code>--explicit-exit-notify can only be used with --proto udp</code></td>
+            <td>TCP 模式下忘了注释掉 <code>explicit-exit-notify 1</code>。</td>
+        </tr>
+    </table>
+
+    <h3>3. 阿里云安全组放行</h3>
+    <p>修改端口后，必须去阿里云控制台的安全组放行对应端口：</p>
+    <ul>
+        <li>如果使用 TCP 8443，放行 <strong>TCP 8443</strong>。</li>
+        <li>如果使用 UDP 1194，放行 <strong>UDP 1194</strong>。</li>
+    </ul>
+
+    <script>
+        // 一键复制功能
+        function copyText(btn) {
+            const pre = btn.nextElementSibling;
+            const text = pre.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = '已复制!';
+                btn.style.color = '#2ea043'; // 绿色反馈
+                btn.style.borderColor = '#2ea043';
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 2000);
+            }).catch(err => {
+                alert('复制失败，请手动选中复制。');
+            });
+        }
+    </script>
+</body>
+</html>
