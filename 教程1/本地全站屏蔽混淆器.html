@@ -1,89 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>本地终极混淆工具</title>
-    <style>
-        body { background: #0f172a; color: #fff; font-family: system-ui; padding: 20px; margin: 0; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        .container { display: flex; gap: 20px; flex: 1; min-height: 0; }
-        .panel { flex: 1; display: flex; flex-direction: column; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #94a3b8; }
-        textarea { flex: 1; width: 100%; background: #0f172a; border: 1px solid #475569; color: #10b981; border-radius: 6px; padding: 10px; font-family: monospace; resize: none; outline: none; box-sizing: border-box; font-size: 13px;}
-        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
-        button:hover { background: #2563eb; }
-        .btn-primary { width: 100%; padding: 15px; font-size: 16px; margin-top: 15px; }
-        .btn-ghost { background: #334155; }
-        .btn-ghost:hover { background: #475569; }
-        .btn-download { background: #10b981; }
-        .btn-download:hover { background: #059669; }
-        #fileInput { display: none; }
-    </style>
-</head>
-<body>
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2>🛡️ 本地全站屏蔽混淆器</h2>
-    </div>
-
-    <div class="container">
-        <div class="panel">
-            <div class="panel-header">
-                <span>1. 导入原网页</span>
-                <button class="btn-ghost" onclick="document.getElementById('fileInput').click()">📂 导入 HTML</button>
-                <input type="file" id="fileInput" accept=".html,.htm" onchange="importFile(event)">
-            </div>
-            <textarea id="inputHTML" placeholder="在此粘贴完整的 HTML 源码..."></textarea>
-            <button class="btn-primary" onclick="processHTML()" id="startBtn">🚀 开始处理</button>
-        </div>
-
-        <div class="panel">
-            <div class="panel-header">
-                <span>2. 导出结果</span>
-                <button class="btn-ghost" onclick="copyResult()">📋 复制</button>
-            </div>
-            <textarea id="outputHTML" readonly placeholder="生成的乱码文件..."></textarea>
-            <button class="btn-download btn-primary" onclick="downloadHTML()">💾 下载安全版 HTML</button>
-        </div>
-    </div>
-
-    <script>
-        function importFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('inputHTML').value = e.target.result;
-            };
-            reader.readAsText(file);
-            event.target.value = ''; 
-        }
-
-        function processHTML() {
-            let rawHtml = document.getElementById('inputHTML').value;
-            if (!rawHtml) return alert('请先导入或粘贴 HTML！');
-
-            const btn = document.getElementById('startBtn');
-            btn.disabled = true;
-            btn.textContent = '正在转码...';
-
-            setTimeout(() => {
-                try {
-                    // 1. 提取 Title 和 Logo
-                    const titleMatch = rawHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-                    const originalTitle = titleMatch ? titleMatch[0] : '<title>Protected</title>';
-                    const iconMatches = rawHtml.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*>/gi) || [];
-                    const iconTags = iconMatches.join('\n');
-
-                    // 2. 基础转码（Base64，最稳，绝对不白屏）
-                    const base64Html = btoa(unescape(encodeURIComponent(rawHtml)));
-
-                    // 3. 组装外网代码
-                    const finalHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  ${originalTitle}
-  ${iconTags}
+  <title>本地终极混淆工具</title>
+  
 </head>
 <body>
   <script>
@@ -103,43 +24,11 @@
         },false);
 
         // === 渲染 ===
-        var _0x = "${base64Html}";
+        var _0x = "PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9InpoLUNOIj4KPGhlYWQ+CiAgICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgICA8dGl0bGU+5pys5Zyw57uI5p6B5re35reG5bel5YW3PC90aXRsZT4KICAgIDxzdHlsZT4KICAgICAgICBib2R5IHsgYmFja2dyb3VuZDogIzBmMTcyYTsgY29sb3I6ICNmZmY7IGZvbnQtZmFtaWx5OiBzeXN0ZW0tdWk7IHBhZGRpbmc6IDIwcHg7IG1hcmdpbjogMDsgZGlzcGxheTogZmxleDsgZmxleC1kaXJlY3Rpb246IGNvbHVtbjsgaGVpZ2h0OiAxMDB2aDsgYm94LXNpemluZzogYm9yZGVyLWJveDsgfQogICAgICAgIC5jb250YWluZXIgeyBkaXNwbGF5OiBmbGV4OyBnYXA6IDIwcHg7IGZsZXg6IDE7IG1pbi1oZWlnaHQ6IDA7IH0KICAgICAgICAucGFuZWwgeyBmbGV4OiAxOyBkaXNwbGF5OiBmbGV4OyBmbGV4LWRpcmVjdGlvbjogY29sdW1uOyBiYWNrZ3JvdW5kOiAjMWUyOTNiOyBib3JkZXI6IDFweCBzb2xpZCAjMzM0MTU1OyBib3JkZXItcmFkaXVzOiA4cHg7IHBhZGRpbmc6IDE1cHg7IH0KICAgICAgICAucGFuZWwtaGVhZGVyIHsgZGlzcGxheTogZmxleDsganVzdGlmeS1jb250ZW50OiBzcGFjZS1iZXR3ZWVuOyBhbGlnbi1pdGVtczogY2VudGVyOyBtYXJnaW4tYm90dG9tOiAxMHB4OyBjb2xvcjogIzk0YTNiODsgfQogICAgICAgIHRleHRhcmVhIHsgZmxleDogMTsgd2lkdGg6IDEwMCU7IGJhY2tncm91bmQ6ICMwZjE3MmE7IGJvcmRlcjogMXB4IHNvbGlkICM0NzU1Njk7IGNvbG9yOiAjMTBiOTgxOyBib3JkZXItcmFkaXVzOiA2cHg7IHBhZGRpbmc6IDEwcHg7IGZvbnQtZmFtaWx5OiBtb25vc3BhY2U7IHJlc2l6ZTogbm9uZTsgb3V0bGluZTogbm9uZTsgYm94LXNpemluZzogYm9yZGVyLWJveDsgZm9udC1zaXplOiAxM3B4O30KICAgICAgICBidXR0b24geyBiYWNrZ3JvdW5kOiAjM2I4MmY2OyBjb2xvcjogd2hpdGU7IGJvcmRlcjogbm9uZTsgcGFkZGluZzogMTBweCAxNXB4OyBib3JkZXItcmFkaXVzOiA2cHg7IGZvbnQtd2VpZ2h0OiBib2xkOyBjdXJzb3I6IHBvaW50ZXI7IGZvbnQtc2l6ZTogMTRweDsgfQogICAgICAgIGJ1dHRvbjpob3ZlciB7IGJhY2tncm91bmQ6ICMyNTYzZWI7IH0KICAgICAgICAuYnRuLXByaW1hcnkgeyB3aWR0aDogMTAwJTsgcGFkZGluZzogMTVweDsgZm9udC1zaXplOiAxNnB4OyBtYXJnaW4tdG9wOiAxNXB4OyB9CiAgICAgICAgLmJ0bi1naG9zdCB7IGJhY2tncm91bmQ6ICMzMzQxNTU7IH0KICAgICAgICAuYnRuLWdob3N0OmhvdmVyIHsgYmFja2dyb3VuZDogIzQ3NTU2OTsgfQogICAgICAgIC5idG4tZG93bmxvYWQgeyBiYWNrZ3JvdW5kOiAjMTBiOTgxOyB9CiAgICAgICAgLmJ0bi1kb3dubG9hZDpob3ZlciB7IGJhY2tncm91bmQ6ICMwNTk2Njk7IH0KICAgICAgICAjZmlsZUlucHV0IHsgZGlzcGxheTogbm9uZTsgfQogICAgPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KICAgIDxkaXYgc3R5bGU9InRleHQtYWxpZ246IGNlbnRlcjsgbWFyZ2luLWJvdHRvbTogMjBweDsiPgogICAgICAgIDxoMj7wn5uh77iPIOacrOWcsOWFqOermeWxj+iUvea3t+a3huWZqDwvaDI+CiAgICA8L2Rpdj4KCiAgICA8ZGl2IGNsYXNzPSJjb250YWluZXIiPgogICAgICAgIDxkaXYgY2xhc3M9InBhbmVsIj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0icGFuZWwtaGVhZGVyIj4KICAgICAgICAgICAgICAgIDxzcGFuPjEuIOWvvOWFpeWOn+e9kemhtTwvc3Bhbj4KICAgICAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0bi1naG9zdCIgb25jbGljaz0iZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ZpbGVJbnB1dCcpLmNsaWNrKCkiPvCfk4Ig5a+85YWlIEhUTUw8L2J1dHRvbj4KICAgICAgICAgICAgICAgIDxpbnB1dCB0eXBlPSJmaWxlIiBpZD0iZmlsZUlucHV0IiBhY2NlcHQ9Ii5odG1sLC5odG0iIG9uY2hhbmdlPSJpbXBvcnRGaWxlKGV2ZW50KSI+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8dGV4dGFyZWEgaWQ9ImlucHV0SFRNTCIgcGxhY2Vob2xkZXI9IuWcqOatpOeymOi0tOWujOaVtOeahCBIVE1MIOa6kOeggS4uLiI+PC90ZXh0YXJlYT4KICAgICAgICAgICAgPGJ1dHRvbiBjbGFzcz0iYnRuLXByaW1hcnkiIG9uY2xpY2s9InByb2Nlc3NIVE1MKCkiIGlkPSJzdGFydEJ0biI+8J+agCDlvIDlp4vlpITnkIY8L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KCiAgICAgICAgPGRpdiBjbGFzcz0icGFuZWwiPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJwYW5lbC1oZWFkZXIiPgogICAgICAgICAgICAgICAgPHNwYW4+Mi4g5a+85Ye657uT5p6cPC9zcGFuPgogICAgICAgICAgICAgICAgPGJ1dHRvbiBjbGFzcz0iYnRuLWdob3N0IiBvbmNsaWNrPSJjb3B5UmVzdWx0KCkiPvCfk4sg5aSN5Yi2PC9idXR0b24+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8dGV4dGFyZWEgaWQ9Im91dHB1dEhUTUwiIHJlYWRvbmx5IHBsYWNlaG9sZGVyPSLnlJ/miJDnmoTkubHnoIHmlofku7YuLi4iPjwvdGV4dGFyZWE+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0bi1kb3dubG9hZCBidG4tcHJpbWFyeSIgb25jbGljaz0iZG93bmxvYWRIVE1MKCkiPvCfkr4g5LiL6L295a6J5YWo54mIIEhUTUw8L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgIDwvZGl2PgoKICAgIDxzY3JpcHQ+CiAgICAgICAgZnVuY3Rpb24gaW1wb3J0RmlsZShldmVudCkgewogICAgICAgICAgICBjb25zdCBmaWxlID0gZXZlbnQudGFyZ2V0LmZpbGVzWzBdOwogICAgICAgICAgICBpZiAoIWZpbGUpIHJldHVybjsKICAgICAgICAgICAgY29uc3QgcmVhZGVyID0gbmV3IEZpbGVSZWFkZXIoKTsKICAgICAgICAgICAgcmVhZGVyLm9ubG9hZCA9IGZ1bmN0aW9uKGUpIHsKICAgICAgICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpbnB1dEhUTUwnKS52YWx1ZSA9IGUudGFyZ2V0LnJlc3VsdDsKICAgICAgICAgICAgfTsKICAgICAgICAgICAgcmVhZGVyLnJlYWRBc1RleHQoZmlsZSk7CiAgICAgICAgICAgIGV2ZW50LnRhcmdldC52YWx1ZSA9ICcnOyAKICAgICAgICB9CgogICAgICAgIGZ1bmN0aW9uIHByb2Nlc3NIVE1MKCkgewogICAgICAgICAgICBsZXQgcmF3SHRtbCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdpbnB1dEhUTUwnKS52YWx1ZTsKICAgICAgICAgICAgaWYgKCFyYXdIdG1sKSByZXR1cm4gYWxlcnQoJ+ivt+WFiOWvvOWFpeaIlueymOi0tCBIVE1M77yBJyk7CgogICAgICAgICAgICBjb25zdCBidG4gPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnc3RhcnRCdG4nKTsKICAgICAgICAgICAgYnRuLmRpc2FibGVkID0gdHJ1ZTsKICAgICAgICAgICAgYnRuLnRleHRDb250ZW50ID0gJ+ato+WcqOi9rOeggS4uLic7CgogICAgICAgICAgICBzZXRUaW1lb3V0KCgpID0+IHsKICAgICAgICAgICAgICAgIHRyeSB7CiAgICAgICAgICAgICAgICAgICAgLy8gMS4g5o+Q5Y+WIFRpdGxlIOWSjCBMb2dvCiAgICAgICAgICAgICAgICAgICAgY29uc3QgdGl0bGVNYXRjaCA9IHJhd0h0bWwubWF0Y2goLzx0aXRsZVtePl0qPihbXHNcU10qPyk8XC90aXRsZT4vaSk7CiAgICAgICAgICAgICAgICAgICAgY29uc3Qgb3JpZ2luYWxUaXRsZSA9IHRpdGxlTWF0Y2ggPyB0aXRsZU1hdGNoWzBdIDogJzx0aXRsZT5Qcm90ZWN0ZWQ8L3RpdGxlPic7CiAgICAgICAgICAgICAgICAgICAgY29uc3QgaWNvbk1hdGNoZXMgPSByYXdIdG1sLm1hdGNoKC88bGlua1tePl0qcmVsPVsiJ10oPzpzaG9ydGN1dCApP2ljb25bIiddW14+XSo+L2dpKSB8fCBbXTsKICAgICAgICAgICAgICAgICAgICBjb25zdCBpY29uVGFncyA9IGljb25NYXRjaGVzLmpvaW4oJ1xuJyk7CgogICAgICAgICAgICAgICAgICAgIC8vIDIuIOWfuuehgOi9rOegge+8iEJhc2U2NO+8jOacgOeos++8jOe7neWvueS4jeeZveWxj++8iQogICAgICAgICAgICAgICAgICAgIGNvbnN0IGJhc2U2NEh0bWwgPSBidG9hKHVuZXNjYXBlKGVuY29kZVVSSUNvbXBvbmVudChyYXdIdG1sKSkpOwoKICAgICAgICAgICAgICAgICAgICAvLyAzLiDnu4Too4XlpJbnvZHku6PnoIEKICAgICAgICAgICAgICAgICAgICBjb25zdCBmaW5hbEh0bWwgPSBgPCFET0NUWVBFIGh0bWw+CjxodG1sPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogICR7b3JpZ2luYWxUaXRsZX0KICAke2ljb25UYWdzfQo8L2hlYWQ+Cjxib2R5PgogIDxzY3JpcHQ+CiAgICAoZnVuY3Rpb24oKXsKICAgICAgdHJ5IHsKICAgICAgICAvLyA9PT0g55yf5q2j55qE5bGP6JS977yI5Yig5o6J5LqG5omA5pyJ6Kej6ZSB5ZCO6Zeo77yJID09PQogICAgICAgIGRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2tleWRvd24nLGZ1bmN0aW9uKGUpewogICAgICAgICAgdmFyIGs9ZS5rZXl8fCcnLGtjPWUua2V5Q29kZXx8MDsKICAgICAgICAgIGlmKGs9PT0nRjEyJ3x8a2M9PT0xMjMpe2UucHJldmVudERlZmF1bHQoKTtyZXR1cm4gZmFsc2U7fQogICAgICAgICAgaWYoKGUuY3RybEtleXx8ZS5tZXRhS2V5KSYmIWUuc2hpZnRLZXkmJihrPT09J3UnfHxrPT09J1UnfHxrYz09PTg1KSl7ZS5wcmV2ZW50RGVmYXVsdCgpO3JldHVybiBmYWxzZTt9CiAgICAgICAgICBpZigoZS5jdHJsS2V5fHxlLm1ldGFLZXkpJiZlLnNoaWZ0S2V5KXt2YXIga2s9KGt8fCcnKS50b0xvd2VyQ2FzZSgpO2lmKGtrPT09J2knfHxraz09PSdqJ3x8a2s9PT0nYycpe2UucHJldmVudERlZmF1bHQoKTtyZXR1cm4gZmFsc2U7fX0KICAgICAgICAgIGlmKChlLmN0cmxLZXl8fGUubWV0YUtleSkmJihrPT09J3MnfHxrPT09J1MnKSl7ZS5wcmV2ZW50RGVmYXVsdCgpO3JldHVybiBmYWxzZTt9CiAgICAgICAgfSx0cnVlKTsKICAgICAgICAKICAgICAgICBkb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKCdjb250ZXh0bWVudScsZnVuY3Rpb24oZSl7CiAgICAgICAgICBlLnByZXZlbnREZWZhdWx0KCk7cmV0dXJuIGZhbHNlOwogICAgICAgIH0sZmFsc2UpOwoKICAgICAgICAvLyA9PT0g5riy5p+TID09PQogICAgICAgIHZhciBfMHggPSAiJHtiYXNlNjRIdG1sfSI7CiAgICAgICAgZG9jdW1lbnQud3JpdGUoZGVjb2RlVVJJQ29tcG9uZW50KGVzY2FwZShhdG9iKF8weCkpKSk7CiAgICAgICAgZG9jdW1lbnQuY2xvc2UoKTsKICAgICAgfSBjYXRjaChlKSB7fQogICAgfSkoKTsKICA8XC9zY3JpcHQ+CjwvYm9keT4KPC9odG1sPmA7CgogICAgICAgICAgICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdvdXRwdXRIVE1MJykudmFsdWUgPSBmaW5hbEh0bWw7CiAgICAgICAgICAgICAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgICAgICAgICAgICAgICBhbGVydCgn5aSE55CG5aSx6LSlOiAnICsgZXJyLm1lc3NhZ2UpOwogICAgICAgICAgICAgICAgfSBmaW5hbGx5IHsKICAgICAgICAgICAgICAgICAgICBidG4uZGlzYWJsZWQgPSBmYWxzZTsKICAgICAgICAgICAgICAgICAgICBidG4udGV4dENvbnRlbnQgPSAn8J+agCDlvIDlp4vlpITnkIYnOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LCA1MCk7CiAgICAgICAgfQoKICAgICAgICBmdW5jdGlvbiBjb3B5UmVzdWx0KCkgewogICAgICAgICAgICBjb25zdCBvdXQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnb3V0cHV0SFRNTCcpOwogICAgICAgICAgICBpZiAoIW91dC52YWx1ZSkgcmV0dXJuIGFsZXJ0KCfmsqHmnInlj6/lpI3liLbnmoTlhoXlrrknKTsKICAgICAgICAgICAgb3V0LnNlbGVjdCgpOwogICAgICAgICAgICBkb2N1bWVudC5leGVjQ29tbWFuZCgnY29weScpOwogICAgICAgICAgICBhbGVydCgn4pyFIOS7o+eggeW3suWkjeWIticpOwogICAgICAgIH0KCiAgICAgICAgZnVuY3Rpb24gZG93bmxvYWRIVE1MKCkgewogICAgICAgICAgICBjb25zdCBjb2RlID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ291dHB1dEhUTUwnKS52YWx1ZTsKICAgICAgICAgICAgaWYgKCFjb2RlKSByZXR1cm4gYWxlcnQoJ+ivt+WFiOeUn+aIkO+8gScpOwogICAgICAgICAgICBjb25zdCBibG9iID0gbmV3IEJsb2IoW2NvZGVdLCB7IHR5cGU6ICd0ZXh0L2h0bWw7Y2hhcnNldD11dGYtOCcgfSk7CiAgICAgICAgICAgIGNvbnN0IGEgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdhJyk7CiAgICAgICAgICAgIGEuaHJlZiA9IFVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7CiAgICAgICAgICAgIGEuZG93bmxvYWQgPSAnaW5kZXguaHRtbCc7CiAgICAgICAgICAgIGEuY2xpY2soKTsKICAgICAgICAgICAgVVJMLnJldm9rZU9iamVjdFVSTChhLmhyZWYpOwogICAgICAgIH0KICAgIDwvc2NyaXB0Pgo8L2JvZHk+CjwvaHRtbD4=";
         document.write(decodeURIComponent(escape(atob(_0x))));
         document.close();
       } catch(e) {}
     })();
-  <\/script>
-</body>
-</html>`;
-
-                    document.getElementById('outputHTML').value = finalHtml;
-                } catch (err) {
-                    alert('处理失败: ' + err.message);
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = '🚀 开始处理';
-                }
-            }, 50);
-        }
-
-        function copyResult() {
-            const out = document.getElementById('outputHTML');
-            if (!out.value) return alert('没有可复制的内容');
-            out.select();
-            document.execCommand('copy');
-            alert('✅ 代码已复制');
-        }
-
-        function downloadHTML() {
-            const code = document.getElementById('outputHTML').value;
-            if (!code) return alert('请先生成！');
-            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'index.html';
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
-    </script>
+  </script>
 </body>
 </html>
