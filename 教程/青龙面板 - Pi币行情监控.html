@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青龙面板 - Pi币及全球行情监控教程</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --text-color: #c9d1d9;
+            --header-color: #58a6ff;
+            --code-bg: #010409;
+            --border-color: #30363d;
+            --btn-bg: #21262d;
+            --btn-hover: #30363d;
+            --btn-text: #c9d1d9;
+            --success-color: #2ea043;
+            --warning-color: #d29922;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            padding: 35px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        h1, h2, h3 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        h1 { margin-top: 0; font-size: 1.8em; text-align: center; }
+        h2 { font-size: 1.3em; }
+        p, ul, ol { margin-bottom: 15px; }
+        li { margin-bottom: 10px; }
+        .highlight { color: #79c0ff; font-weight: bold; }
+        .code-container {
+            position: relative;
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+        pre {
+            margin: 0;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13px;
+            color: #e6edf3;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            background-color: rgba(110,118,129,0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 90%;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background-color: var(--btn-hover); }
+        .copy-btn.copied {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .note {
+            background-color: rgba(88, 166, 255, 0.1);
+            border-left: 4px solid var(--header-color);
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 青龙面板：Pi币与全球行情早报</h1>
+    
+    <div class="note">
+        本教程将指导你在青龙面板中创建一个 Python 脚本，每天定时抓取 Pi 币、比特币、以太坊以及实时汇率和黄金价格，并排版推送到 Telegram。
+    </div>
+
+    <h2>第一步：安装 Python 依赖</h2>
+    <ol>
+        <li>进入青龙面板左侧菜单的 <strong>“依赖管理”</strong>。</li>
+        <li>点击 <strong>“创建依赖”</strong>。</li>
+        <li><strong>依赖类型</strong>：选择 <code>python3</code>。</li>
+        <li><strong>自动拆分</strong>：选择 <code>否</code>。</li>
+        <li><strong>名称</strong>：填入 <code>requests</code>。</li>
+        <li>点击确定并等待安装完成。</li>
+    </ol>
+
+    <h2>第二步：新建脚本文件</h2>
+    <ol>
+        <li>进入 <strong>“脚本管理”</strong>。</li>
+        <li>在右侧空白处右键，选择 <strong>“新建文件”</strong>。</li>
+        <li>文件名填入：<code>market_daily.py</code>（注意必须是 .py 后缀）。</li>
+        <li>双击打开该文件，将下方代码完整复制并粘贴进去，点击 <strong>“保存”</strong>。</li>
+    </ol>
+
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+        <pre><code>import requests
+import sys
+from datetime import datetime
+
+# ================= 配置区 =================
+CRYPTO_IDS = "pi-network,bitcoin,ethereum"
+# =========================================
+
+def get_crypto_prices():
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={CRYPTO_IDS}&vs_currencies=usd,cny&include_24hr_change=true"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        return None
+
+def get_gold_price():
+    # 获取 COMEX 黄金期货价格 (美元/盎司)
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        data = response.json()
+        return data['chart']['result'][0]['meta']['regularMarketPrice']
+    except Exception:
+        return None
+
+def get_exchange_rate():
+    # 获取实时美元兑人民币汇率
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/CNY=X?interval=1d"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        data = response.json()
+        return data['chart']['result'][0]['meta']['regularMarketPrice']
+    except Exception:
+        return 7.25 # 兜底汇率
+
+def main():
+    time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    crypto_data = get_crypto_prices()
+    gold_usd = get_gold_price()
+    usd_cny = get_exchange_rate()
+    
+    msg_lines = [
+        f"☀️ **每日行情早报** ☀️",
+        f"⏰ {time_now}",
+        f"💱 美元/人民币: **{usd_cny:.4f}**",
+        "━━━━━━━━━━━━━━"
+    ]
+
+    # 1. 加密货币区
+    if crypto_data:
+        if "pi-network" in crypto_data:
+            pi = crypto_data["pi-network"]
+            pi_change = pi.get('usd_24h_change', 0)
+            pi_icon = "📈" if pi_change >= 0 else "📉"
+            msg_lines.append(f"🪙 **Pi Network**  {pi_icon} {pi_change:+.2f}%")
+            msg_lines.append(f"  💵 ${pi['usd']:.4f}  |  🇨🇳 ￥{pi['cny']:.4f}\n")
+        
+        if "bitcoin" in crypto_data:
+            btc = crypto_data["bitcoin"]
+            btc_change = btc.get('usd_24h_change', 0)
+            btc_icon = "📈" if btc_change >= 0 else "📉"
+            msg_lines.append(f"🟠 **比特币 (BTC)**  {btc_icon} {btc_change:+.2f}%")
+            msg_lines.append(f"  💵 ${btc['usd']:,.2f}  |  🇨🇳 ￥{btc['cny']:,.2f}\n")
+            
+        if "ethereum" in crypto_data:
+            eth = crypto_data["ethereum"]
+            eth_change = eth.get('usd_24h_change', 0)
+            eth_icon = "📈" if eth_change >= 0 else "📉"
+            msg_lines.append(f"🔷 **以太坊 (ETH)**  {eth_icon} {eth_change:+.2f}%")
+            msg_lines.append(f"  💵 ${eth['usd']:,.2f}  |  🇨🇳 ￥{eth['cny']:,.2f}\n")
+    else:
+        msg_lines.append("❌ 加密货币数据获取失败\n")
+
+    msg_lines.append("━━━━━━━━━━━━━━")
+
+    # 2. 黄金区
+    if gold_usd:
+        gold_cny_gram = (gold_usd * usd_cny) / 31.1035
+        msg_lines.append(f"🥇 **黄金 (国际现货)**")
+        msg_lines.append(f"  💵 ${gold_usd:,.2f} / 盎司")
+        msg_lines.append(f"  🇨🇳 约 ￥{gold_cny_gram:.2f} / 克")
+    else:
+        msg_lines.append("❌ 黄金数据获取失败")
+
+    # 3. 组装成最终消息并推送
+    final_msg = "\n".join(msg_lines)
+    print(f"## 开始推送\n{final_msg}\n## 推送结束")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+    </div>
+
+    <h2>第三步：创建定时任务</h2>
+    <ol>
+        <li>进入左侧菜单的 <strong>“定时任务”</strong>。</li>
+        <li>点击 <strong>“创建任务”</strong>。</li>
+        <li><strong>名称</strong>：填入 <code>每日行情早报</code>。</li>
+        <li><strong>命令/脚本</strong>：填入 <code>task market_daily.py</code> （注意这里的文件名必须与第二步建的文件名一致）。</li>
+        <li><strong>定时规则</strong>：填入 <code>0 7 * * *</code> （代表每天早上 7:00 执行）。</li>
+        <li>点击确定保存。</li>
+    </ol>
+
+    <div class="note">
+        <strong>💡 提示：</strong> 青龙面板默认只有“定时自动触发”才会推送 Telegram 消息。如果你现在点击“手动运行”，只能看到日志，手机不会响。如果想验证排版，请等第二天早上 7 点，或者在定时规则里临时改成 1 分钟后触发。
+    </div>
+
+</div>
+
+<script>
+    function copyCode(btn) {
+        const codeElement = btn.parentElement.querySelector('code');
+        const textToCopy = codeElement.innerText;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '已复制!';
+            btn.classList.add('copied');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败: ', err);
+            alert('复制失败，请手动选中复制。');
+        });
+    }
+</script>
+
+</body>
+</html>
