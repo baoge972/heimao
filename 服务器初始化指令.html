@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务器初始化指令</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f7;
+            color: #333;
+            line-height: 1.6;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 1.2em;
+            margin-top: 30px;
+            color: #1d1d1f;
+            border-left: 4px solid #0071e3;
+            padding-left: 10px;
+        }
+        .code-box {
+            position: relative;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        pre {
+            margin: 0;
+            padding: 20px;
+            overflow-x: auto;
+            color: #d4d4d4;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #3a3a3c;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: #505052;
+        }
+        .copy-btn.copied {
+            background-color: #34c759;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>一键系统体检</h2>
+    <div class="code-box">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre>echo "== 系统 =="; cat /etc/os-release | grep "PRETTY_NAME"; echo "== CPU =="; lscpu | grep "Model name" | head -1; echo "核心: $(nproc)"; echo "== 内存 =="; free -h; echo "== 硬盘 =="; df -h /</pre>
+    </div>
+
+    <h2>科技lion 一键安装</h2>
+    <div class="code-box">
+        <button class="copy-btn" onclick="copyText(this)">复制</button>
+        <pre>bash <(curl -sL kejilion.sh)</pre>
+    </div>
+</div>
+
+<script>
+    function copyText(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        const textToCopy = pre.innerText;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '已复制!';
+            btn.classList.add('copied');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败: ', err);
+            alert('复制失败，请手动选中复制。');
+        });
+    }
+</script>
+
+</body>
+</html>
