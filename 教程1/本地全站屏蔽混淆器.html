@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>本地终极混淆工具</title>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: system-ui; padding: 20px; margin: 0; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .container { display: flex; gap: 20px; flex: 1; min-height: 0; }
+        .panel { flex: 1; display: flex; flex-direction: column; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #94a3b8; }
+        textarea { flex: 1; width: 100%; background: #0f172a; border: 1px solid #475569; color: #10b981; border-radius: 6px; padding: 10px; font-family: monospace; resize: none; outline: none; box-sizing: border-box; font-size: 13px;}
+        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        button:hover { background: #2563eb; }
+        .btn-primary { width: 100%; padding: 15px; font-size: 16px; margin-top: 15px; }
+        .btn-ghost { background: #334155; }
+        .btn-ghost:hover { background: #475569; }
+        .btn-download { background: #10b981; }
+        .btn-download:hover { background: #059669; }
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2>🛡️ 本地全站屏蔽混淆器</h2>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">
+                <span>1. 导入原网页</span>
+                <button class="btn-ghost" onclick="document.getElementById('fileInput').click()">📂 导入 HTML</button>
+                <input type="file" id="fileInput" accept=".html,.htm" onchange="importFile(event)">
+            </div>
+            <textarea id="inputHTML" placeholder="在此粘贴完整的 HTML 源码..."></textarea>
+            <button class="btn-primary" onclick="processHTML()" id="startBtn">🚀 开始处理</button>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span>2. 导出结果</span>
+                <button class="btn-ghost" onclick="copyResult()">📋 复制</button>
+            </div>
+            <textarea id="outputHTML" readonly placeholder="生成的乱码文件..."></textarea>
+            <button class="btn-download btn-primary" onclick="downloadHTML()">💾 下载安全版 HTML</button>
+        </div>
+    </div>
+
+    <script>
+        function importFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('inputHTML').value = e.target.result;
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        function processHTML() {
+            let rawHtml = document.getElementById('inputHTML').value;
+            if (!rawHtml) return alert('请先导入或粘贴 HTML！');
+
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = '正在转码...';
+
+            setTimeout(() => {
+                try {
+                    // 1. 提取 Title 和 Logo
+                    const titleMatch = rawHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+                    const originalTitle = titleMatch ? titleMatch[0] : '<title>Protected</title>';
+                    const iconMatches = rawHtml.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*>/gi) || [];
+                    const iconTags = iconMatches.join('\n');
+
+                    // 2. 基础转码（Base64，最稳，绝对不白屏）
+                    const base64Html = btoa(unescape(encodeURIComponent(rawHtml)));
+
+                    // 3. 组装外网代码
+                    const finalHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${originalTitle}
+  ${iconTags}
+</head>
+<body>
+  <script>
+    (function(){
+      try {
+        // === 真正的屏蔽（删掉了所有解锁后门） ===
+        document.addEventListener('keydown',function(e){
+          var k=e.key||'',kc=e.keyCode||0;
+          if(k==='F12'||kc===123){e.preventDefault();return false;}
+          if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(k==='u'||k==='U'||kc===85)){e.preventDefault();return false;}
+          if((e.ctrlKey||e.metaKey)&&e.shiftKey){var kk=(k||'').toLowerCase();if(kk==='i'||kk==='j'||kk==='c'){e.preventDefault();return false;}}
+          if((e.ctrlKey||e.metaKey)&&(k==='s'||k==='S')){e.preventDefault();return false;}
+        },true);
+        
+        document.addEventListener('contextmenu',function(e){
+          e.preventDefault();return false;
+        },false);
+
+        // === 渲染 ===
+        var _0x = "${base64Html}";
+        document.write(decodeURIComponent(escape(atob(_0x))));
+        document.close();
+      } catch(e) {}
+    })();
+  <\/script>
+</body>
+</html>`;
+
+                    document.getElementById('outputHTML').value = finalHtml;
+                } catch (err) {
+                    alert('处理失败: ' + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '🚀 开始处理';
+                }
+            }, 50);
+        }
+
+        function copyResult() {
+            const out = document.getElementById('outputHTML');
+            if (!out.value) return alert('没有可复制的内容');
+            out.select();
+            document.execCommand('copy');
+            alert('✅ 代码已复制');
+        }
+
+        function downloadHTML() {
+            const code = document.getElementById('outputHTML').value;
+            if (!code) return alert('请先生成！');
+            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+    </script>
+</body>
+</html>
