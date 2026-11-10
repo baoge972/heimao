@@ -1,0 +1,782 @@
+/* Pi 节点记账 · 新人纯净版 (无历史数据) */
+const SALT = 'piledger.v1';
+const VER = 'v1.0-new';
+
+// 这里已经为你清空了所有历史数据，新人一进来就是空账本
+const SEED = {
+  income: [],
+  expenses: [],
+  params:{elecDaily:1.7355, netDaily:0.3458333333333333},
+  meta:{version:1,imported:'2026-11-10',source:'new'}
+};
+
+async function sha256hex(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function json(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'}
+  });
+}
+function getCookie(req, name) {
+  const h = req.headers.get('Cookie') || '';
+  for (const part of h.split(';')) {
+    const i = part.indexOf('=');
+    if (i > -1 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return '';
+}
+async function getAuthHash(env) {
+  const v = await env.DATA.get('auth');
+  if (!v) return null;
+  let o;
+  try { o = JSON.parse(v); } catch (e) { return null; }
+  if (!o || typeof o !== 'object') return null;
+  if (typeof o.hash === 'string' && o.hash) return {hash: o.hash, set: o.set};
+  if (typeof o.pw === 'string' && o.pw) return {pw: o.pw, set: o.set};
+  return null;
+}
+async function authHashOf(stored) {
+  if (stored.hash) return stored.hash;
+  return await sha256hex(SALT + ':' + stored.pw);
+}
+async function isAuthed(req, env) {
+  const stored = await getAuthHash(env);
+  if (!stored) return false;
+  const c = getCookie(req, 'pl_auth');
+  if (!c) return false;
+  return c === await authHashOf(stored);
+}
+function authCookie(hash) {
+  return 'pl_auth=' + hash + '; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000';
+}
+function clearCookie() {
+  return 'pl_auth=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0';
+}
+async function getLedger(env) {
+  let raw = await env.DATA.get('ledger');
+  if (!raw) {
+    await env.DATA.put('ledger', JSON.stringify(SEED));
+    return JSON.parse(JSON.stringify(SEED));
+  }
+  let o;
+  try { o = JSON.parse(raw); } catch (e) {
+    throw new Error('账本数据损坏：KV 里的 ledger 值不是合法 JSON');
+  }
+  if (!o || !Array.isArray(o.income) || !Array.isArray(o.expenses)) {
+    throw new Error('账本数据结构不对：缺少收益/费用列表');
+  }
+  let dirty = false;
+  if (!o.params || typeof o.params.elecDaily !== 'number' || typeof o.params.netDaily !== 'number') {
+    o.params = o.params || {};
+    if (typeof o.params.elecDaily !== 'number') o.params.elecDaily = 1.7355;
+    if (typeof o.params.netDaily !== 'number') o.params.netDaily = 0.3458333333333333;
+    dirty = true;
+  }
+  const n0 = o.expenses.length;
+  o.expenses = o.expenses.filter(r => r.type !== '电费' && r.type !== '网费');
+  if (o.expenses.length !== n0) dirty = true;
+  if (dirty) await env.DATA.put('ledger', JSON.stringify(o));
+  return o;
+}
+async function readBody(req) {
+  try { return await req.json(); } catch (e) { return null; }
+}
+function validateLedger(b) {
+  if (!b || !Array.isArray(b.income) || !Array.isArray(b.expenses)) return '数据格式不对';
+  for (const r of b.income) {
+    if (!r || typeof r.start !== 'string' || typeof r.end !== 'string') return '收益记录缺少起止日期';
+    if (typeof r.coins !== 'number' || !isFinite(r.coins) || r.coins < 0) return '收益金额非法';
+    if (typeof r.days !== 'number' || !isFinite(r.days) || r.days < 0) return '收益天数非法';
+  }
+  for (const r of b.expenses) {
+    if (!r || typeof r.start !== 'string') return '费用记录缺少日期';
+    if (typeof r.type !== 'string') return '费用记录缺少类型';
+    if (typeof r.amount !== 'number' || !isFinite(r.amount) || r.amount < 0) return '费用金额非法';
+    if (r.days != null && (typeof r.days !== 'number' || r.days < 0)) return '费用天数非法';
+  }
+  return null;
+}
+
+async function handle(request, env) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  if (path === '/api/ping') return json({ok: true, ver: VER, time: new Date().toISOString()});
+  if (path === '/api/state') {
+    const stored = await getAuthHash(env);
+    return json({initialized: !!stored, authed: await isAuthed(request, env), ver: VER});
+  }
+  if (path === '/api/setup' && request.method === 'POST') {
+    const stored = await getAuthHash(env);
+    if (stored) return json({ok: false, error: '口令已设置，请直接登录'}, 403);
+    const b = await readBody(request);
+    const pw = b && b.password ? String(b.password).trim() : '';
+    if (pw.length < 4) return json({ok: false, error: '口令至少 4 位'}, 400);
+    const hash = await sha256hex(SALT + ':' + pw);
+    await env.DATA.put('auth', JSON.stringify({hash: hash, set: new Date().toISOString()}));
+    const after = await getAuthHash(env);
+    if (!after || (await authHashOf(after)) !== hash) return json({ok: false, error: '口令已被并发设置'}, 409);
+    return new Response(JSON.stringify({ok: true}), {headers: {'Content-Type': 'application/json', 'Set-Cookie': authCookie(hash)}});
+  }
+  if (path === '/api/login' && request.method === 'POST') {
+    const stored = await getAuthHash(env);
+    if (!stored) return json({ok: false, error: '尚未设置口令'}, 400);
+    const b = await readBody(request);
+    const pw = b && b.password ? String(b.password) : '';
+    const hash = await sha256hex(SALT + ':' + pw);
+    if (hash !== await authHashOf(stored)) {
+      await new Promise(r => setTimeout(r, 800));
+      return json({ok: false, error: '口令错误'}, 401);
+    }
+    return new Response(JSON.stringify({ok: true}), {headers: {'Content-Type': 'application/json', 'Set-Cookie': authCookie(hash)}});
+  }
+  if (path === '/api/logout' && request.method === 'POST') {
+    return new Response(JSON.stringify({ok: true}), {headers: {'Content-Type': 'application/json', 'Set-Cookie': clearCookie()}});
+  }
+  if (path === '/api/password' && request.method === 'POST') {
+    if (!(await isAuthed(request, env))) return json({ok: false, error: '未登录'}, 401);
+    const b = await readBody(request);
+    const oldPw = b && b.old ? String(b.old) : '';
+    const newPw = b && b.new ? String(b.new).trim() : '';
+    const stored = await getAuthHash(env);
+    if (!stored) return json({ok: false, error: '尚未设置口令'}, 400);
+    const oldHash = await sha256hex(SALT + ':' + oldPw);
+    if (oldHash !== await authHashOf(stored)) return json({ok: false, error: '原口令错误'}, 401);
+    if (newPw.length < 4) return json({ok: false, error: '新口令至少 4 位'}, 400);
+    const newHash = await sha256hex(SALT + ':' + newPw);
+    await env.DATA.put('auth', JSON.stringify({hash: newHash, set: new Date().toISOString()}));
+    return new Response(JSON.stringify({ok: true}), {headers: {'Content-Type': 'application/json', 'Set-Cookie': authCookie(newHash)}});
+  }
+  if (path === '/api/data') {
+    if (!(await isAuthed(request, env))) return json({ok: false, error: '未登录'}, 401);
+    if (request.method === 'GET') return json({ok: true, data: await getLedger(env)});
+    if (request.method === 'POST') {
+      const b = await readBody(request);
+      const err = validateLedger(b);
+      if (err) return json({ok: false, error: err}, 400);
+      if (JSON.stringify(b).length > 500000) return json({ok: false, error: '数据太大'}, 400);
+      var prm = (b.params && typeof b.params.elecDaily === 'number' && typeof b.params.netDaily === 'number')
+        ? {elecDaily: +b.params.elecDaily, netDaily: +b.params.netDaily}
+        : {elecDaily: 1.7355, netDaily: 0.3458333333333333};
+      await env.DATA.put('ledger', JSON.stringify({income: b.income, expenses: b.expenses, params: prm, meta: b.meta || {version: 1}}));
+      return json({ok: true});
+    }
+  }
+  if (path === '/' || path === '/index.html') {
+    return new Response(HTML, {headers: {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'}});
+  }
+  return new Response('Not Found', {status: 404});
+}
+
+export default {
+  async fetch(request, env) {
+    try { return await handle(request, env); } 
+    catch (e) { return json({ok: false, error: '后端出错：' + (e && e.message ? e.message : String(e))}, 500); }
+  }
+};
+
+const HTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f6ef7">
+<title>Pi 节点记账</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#eef1f8;--bg2:#f8fafd;--card:#fff;--ink:#1c2333;--dim:#7a8499;--line:#e5e9f2;--acc:#4f6ef7;--acc2:#2ecc9a;--warn:#e8705f;--gold:#d99120;--shadow:0 6px 24px rgba(28,35,51,.06);--shadow-lg:0 14px 44px rgba(28,35,51,.10)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:linear-gradient(180deg,var(--bg),var(--bg2)) fixed;color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-size:15px;line-height:1.5}
+#app{max-width:1000px;margin:0 auto;padding:16px 16px calc(60px + env(safe-area-inset-bottom))}
+.gate{max-width:380px;margin:12vh auto 0;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px 28px;box-shadow:var(--shadow-lg);text-align:center}
+.gate .logo{width:56px;height:56px;margin:0 auto 14px;border-radius:16px;background:linear-gradient(135deg,var(--acc),#7d9bff);color:#fff;font-size:28px;line-height:56px;font-weight:700}
+.gate h1{font-size:20px;margin-bottom:6px}
+.gate p{color:var(--dim);font-size:13px;margin-bottom:18px}
+.gate input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;margin-bottom:12px;background:#fbfcfe;transition:border .15s}
+.gate input:focus{outline:none;border-color:var(--acc);background:#fff}
+.top{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);flex-wrap:wrap;margin-bottom:12px}
+.top h1{font-size:18px}
+.top .sub{color:var(--dim);font-size:12px}
+.top .grow{flex:1}
+.savehint{font-size:12px;color:var(--dim)}
+.savehint.err{color:var(--warn)}
+.btn{border:none;border-radius:12px;padding:10px 18px;font-size:14px;cursor:pointer;background:linear-gradient(135deg,var(--acc),#6d87ff);color:#fff;font-family:inherit;box-shadow:0 3px 10px rgba(79,110,247,.25);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translateY(1px);box-shadow:0 1px 4px rgba(79,110,247,.2)}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:active{background:#f4f6fb}
+.btn.sm{padding:6px 12px;font-size:12.5px;border-radius:9px}
+.btn.warn{background:linear-gradient(135deg,#ef8a7b,var(--warn));box-shadow:0 3px 10px rgba(232,112,95,.25)}
+.tabs{display:flex;gap:4px;background:#e9edf6;border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px}
+.tabs button{flex:1;border:none;background:none;padding:10px 6px;border-radius:10px;font-size:14px;cursor:pointer;color:var(--dim);font-family:inherit;transition:all .15s}
+.tabs button.on{background:var(--card);color:var(--acc);font-weight:600;box-shadow:0 2px 8px rgba(28,35,51,.08)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h3{font-size:13.5px;color:var(--dim);font-weight:600;margin-bottom:12px;letter-spacing:.5px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--acc),#8aa2ff)}
+.kpi.hl{background:linear-gradient(135deg,var(--acc),#6d87ff);border-color:transparent}
+.kpi.hl::before{display:none}
+.kpi.hl .k{color:rgba(255,255,255,.85)}
+.kpi.hl .v{color:#fff}
+.kpi .k{font-size:12px;color:var(--dim)}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px;word-break:break-all;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.kpi .u{font-size:11px;color:var(--dim);margin-left:2px}
+.kpi.hl .u{color:rgba(255,255,255,.85)}
+.kpi.gd .v{color:var(--gold)}
+.kpi.gd::before{background:linear-gradient(90deg,var(--gold),#f2c063)}
+.frow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.frow label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--dim);flex:1;min-width:140px}
+.frow input,.frow select{padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:16px;font-family:inherit;background:#fbfcfe;color:var(--ink);min-height:44px}
+.frow input:focus,.frow select:focus{outline:none;border-color:var(--acc);background:#fff}
+.frow input:disabled{background:#eef1f6;color:#8c96a8;cursor:not-allowed}
+.fhint{font-size:12px;color:var(--dim);margin:4px 0 12px}
+.edittag{display:inline-block;background:#fff7e6;color:#b8860b;border:1px solid #f0d890;border-radius:8px;padding:3px 10px;font-size:12px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--dim);font-weight:600;text-align:left;padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td .op{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
+.tbadge{display:inline-block;border-radius:6px;padding:1px 7px;font-size:11.5px;background:#eef1fa;color:var(--acc)}
+.tbadge.hw{background:#fdeeea;color:var(--warn)}
+.tbadge.el{background:#eaf7f1;color:#1fa87a}
+.tbadge.nt{background:#eef1fa;color:#5b7cfa}
+.tbadge.mt{background:#f3eefa;color:#8e6cf0}
+.tbadge.ot{background:#f0f1f3;color:#7a8499}
+.note{color:var(--dim);font-size:12px;display:block;margin-top:2px}
+.chart{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bar{fill:var(--acc)}
+.axis{stroke:var(--line)}
+.axlabel{font-size:10px;fill:var(--dim)}
+.empty{color:var(--dim);text-align:center;padding:30px 0}
+.mask{position:fixed;inset:0;background:rgba(20,25,40,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;backdrop-filter:blur(3px)}
+.mask .card{margin:0;max-width:340px;width:100%}
+footer{color:var(--dim);font-size:12px;text-align:center;padding:14px 0 4px}
+@media(max-width:720px){
+  #app{padding:12px 12px calc(56px + env(safe-area-inset-bottom))}
+  .gate{margin-top:8vh;padding:26px 20px}
+  .top{padding:10px 12px;border-radius:14px}
+  .top h1{font-size:16px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi{padding:13px}
+  .kpi .v{font-size:19px}
+  .kpi.hero{grid-column:1 / -1}
+  .kpi.hero .v{font-size:26px}
+  .card{padding:14px;border-radius:14px}
+  .frow label{min-width:100%}
+  table{font-size:12.5px}
+  td,th{padding:7px 6px}
+  .tabs button{padding:11px 4px;font-size:13.5px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+window.__pv='${VER}';
+window.addEventListener('error',function(e){
+  try{
+    var d=document.getElementById('errbar');
+    if(!d){d=document.createElement('div');d.id='errbar';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#e8705f;color:#fff;font:12px/1.7 monospace;padding:6px 10px;white-space:pre-wrap';(document.body||document.documentElement).appendChild(d)}
+    d.textContent='页面脚本出错（版本 '+window.__pv+'）：'+(e.message||'未知错误')+(e.lineno?'（第 '+e.lineno+' 行）':'');
+  }catch(_){}
+},true);
+</script>
+<script>
+(function(){
+'use strict';
+var PV=window.__pv||'?';
+var S = {state:null, data:null, tab:'dash', editingIncome:null, editingExpense:null};
+
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fmt(n,d){if(!isFinite(n))return '-';var p=(d==null?2:d);return (+n).toLocaleString('zh-CN',{minimumFractionDigits:p,maximumFractionDigits:p})}
+function fmtDays(n){var v=+n;if(!isFinite(v))return '-';return v.toLocaleString('zh-CN')}
+function daysInclusive(a,b){
+  if(!a||!b)return null;
+  var t1=Date.parse(a),t2=Date.parse(b);
+  if(isNaN(t1)||isNaN(t2))return null;
+  return Math.round((t2-t1)/86400000)+1;
+}
+function today(){var d=new Date();return d.toISOString().slice(0,10)}
+function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+function api(path, body, method){
+  var opt={method:method|| (body?'POST':'GET'),headers:{'Content-Type':'application/json'}};
+  if(body)opt.body=JSON.stringify(body);
+  return fetch(path,opt).then(function(r){
+    return r.json().catch(function(){return {ok:false,error:'后端返回了非 JSON 响应'}});
+  }).catch(function(err){
+    return {ok:false,network:true,error:'网络请求失败：'+(err&&err.message?err.message:String(err))};
+  });
+}
+
+function calc(){
+  var inc=S.data.income, exp=S.data.expenses;
+  var p=S.data.params||{elecDaily:1.7355,netDaily:0.3458333333333333};
+  var totalCoins=0,totalDays=0;
+  inc.forEach(function(r){totalCoins+=+r.coins||0;totalDays+=+r.days||0});
+  var byType={},totalCost=0;
+  exp.forEach(function(r){
+    var t=r.type||'其他';byType[t]=(byType[t]||0)+(+r.amount||0);totalCost+=+r.amount||0;
+  });
+  var elec=(+p.elecDaily||0)*totalDays, net=(+p.netDaily||0)*totalDays;
+  byType['电费']=elec; byType['网费']=net; totalCost+=elec+net;
+  var opCost=(byType['电费']||0)+(byType['网费']||0)+(byType['云服']||0);
+  var years={};
+  inc.forEach(function(r){
+    var y=r.start.slice(0,4);
+    if(!years[y])years[y]={coins:0,days:0,n:0};
+    years[y].coins+=+r.coins||0;years[y].days+=+r.days||0;years[y].n++;
+  });
+  return {
+    totalCoins:totalCoins,totalDays:totalDays,totalCost:totalCost,byType:byType,
+    elecDaily:p.elecDaily, netDaily:p.netDaily, runDays:totalDays,
+    dailyAvg:totalDays?totalCoins/totalDays:0,
+    fullUnit:totalCoins?totalCost/totalCoins:0,
+    opUnit:totalCoins?opCost/totalCoins:0,
+    years:years,
+    periodAvg:inc.map(function(r){return {label:r.start.slice(2,7),v:(+r.days? (+r.coins||0)/r.days:0)}})
+  };
+}
+
+function render(){
+  var app=$('app');
+  if(!S.state){app.innerHTML='<div class="gate"><h1>Pi 节点记账</h1><p>加载中…</p></div>';return;}
+  if(!S.state.initialized){renderSetup();return;}
+  if(!S.state.authed){renderLogin();return;}
+  if(!S.data){app.innerHTML='<div class="gate"><h1>Pi 节点记账</h1><p>加载中…</p></div>';return;}
+  renderMain();
+}
+
+function renderSetup(){
+  $('app').innerHTML='<div class="gate">'
+    +'<div class="logo">π</div><h1>Pi 节点记账</h1>'
+    +'<p>首次使用，先设一个口令（至少 4 位）。<br>这是你账本的钥匙，请记牢。</p>'
+    +'<input id="pw1" type="password" placeholder="设置口令">'
+    +'<input id="pw2" type="password" placeholder="再输一遍确认">'
+    +'<div id="gerr" style="color:var(--warn);font-size:13px;min-height:18px;margin-bottom:8px"></div>'
+    +'<button class="btn" id="gobtn" style="width:100%">设好口令，进入</button></div>';
+  $('gobtn').onclick=function(){
+    var p1=$('pw1').value,p2=$('pw2').value,e=$('gerr');
+    if(p1.length<4){e.textContent='口令至少 4 位';return;}
+    if(p1!==p2){e.textContent='两次输入不一致';return;}
+    api('/api/setup',{password:p1}).then(function(r){
+      if(r.ok){S.state.authed=true;loadData();}else{e.textContent=r.error||'设置失败';}
+    });
+  };
+}
+
+function renderLogin(){
+  $('app').innerHTML='<div class="gate">'
+    +'<div class="logo">π</div><h1>Pi 节点记账</h1>'
+    +'<p>输入口令打开账本</p>'
+    +'<input id="pw" type="password" placeholder="口令">'
+    +'<div id="gerr" style="color:var(--warn);font-size:13px;min-height:18px;margin-bottom:8px"></div>'
+    +'<button class="btn" id="gobtn" style="width:100%">进入</button></div>';
+  $('pw').focus();
+  $('pw').onkeydown=function(ev){if(ev.key==='Enter')$('gobtn').click();};
+  $('gobtn').onclick=function(){
+    api('/api/login',{password:$('pw').value}).then(function(r){
+      if(r.ok){S.state.authed=true;loadData();}else{$('gerr').textContent=r.error||'口令错误';}
+    });
+  };
+}
+
+function loadData(){
+  api('/api/data').then(function(r){
+    if(r.network){showGate('账本加载失败（版本 '+PV+'）',r.error||'网络异常');return;}
+    if(!r.ok){
+      if(r.error && r.error.indexOf('账本')>-1){showGate('账本读取失败（版本 '+PV+'）',r.error);return;}
+      S.state.authed=false;render();return;
+    }
+    S.data=r.data;
+    S.tab='dash';
+    renderMain();
+  });
+}
+
+function renderMain(){
+  var c=calc();
+  var tabs=[['dash','看板'],['income','记收益'],['expense','记费用'],['detail','明细']];
+  var h='<div class="top"><h1>Pi 节点记账</h1>'
+    +'<span class="sub">新账本</span><span class="grow"></span>'
+    +'<span class="savehint" id="savehint"></span>'
+    +'<button class="btn ghost sm" id="btnPw">改口令</button>'
+    +'<button class="btn ghost sm" id="btnOut">退出</button></div>'
+    +'<div class="tabs">'+tabs.map(function(t){return '<button data-tab="'+t[0]+'" class="'+(S.tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div>';
+  if(S.tab==='dash')h+=viewDash(c);
+  else if(S.tab==='income')h+=viewIncomeForm();
+  else if(S.tab==='expense')h+=viewExpenseForm();
+  else h+=viewDetail();
+  h+='<footer>数据存在你自己的 Cloudflare 账号 · 版本 '+PV+' · 建议定期点「导 Excel」留一份</footer>';
+  $('app').innerHTML=h;
+  tabs.forEach(function(t){
+    var b=document.querySelector('[data-tab="'+t[0]+'"]');
+    if(b)b.onclick=function(){S.tab=t[0];renderMain();};
+  });
+  $('btnOut').onclick=function(){api('/api/logout',{}).then(function(){location.reload();});};
+  $('btnPw').onclick=showPwBox;
+  bindForms();
+}
+
+function viewDash(c){
+  var order=['主机','云服','维护','电费','网费','其他'];
+  var costRows=order.filter(function(t){return c.byType[t]}).map(function(t){
+    var mark=(t==='电费'||t==='网费')?'<span class="note" style="display:inline">（折算）</span>':'';
+    return '<tr><td>'+esc(t)+mark+'</td><td style="text-align:right">'+fmt(c.byType[t])+' 元</td></tr>';
+  }).join('');
+  if(!costRows)costRows='<tr><td colspan="2" class="empty">暂无数据</td></tr>';
+  
+  var leftCard = '<div class="card"><h3>费用构成</h3><table>'+costRows
+    +'<tr><td><b>合计</b></td><td style="text-align:right"><b>'+fmt(c.totalCost)+' 元</b></td></tr></table></div>';
+
+  var rightCard = '<div class="card"><h3>口径说明</h3>'
+    +'<table style="margin-bottom:12px">'
+    +'<tr><td style="white-space:nowrap;vertical-align:top;padding-top:4px">全成本</td><td style="padding-top:4px">全部投入（含主机、安装维护）÷ 总币数</td></tr>'
+    +'<tr><td style="white-space:nowrap;vertical-align:top;padding-top:4px">仅运营</td><td style="padding-top:4px">电费+网费+云服 ÷ 总币数（电费网费为折算值）</td></tr>'
+    +'</table>'
+    +'<div style="border-top:1px solid var(--line);padding-top:12px">'
+    +'<p class="fhint" style="margin:0 0 8px">电费/网费按「单价 × 核算 '+fmtDays(c.runDays)+' 天」折算：</p>'
+    +'<div class="frow" style="margin-bottom:12px">'
+    +'<label>电费单价（元/天）<input id="pElec" type="number" step="0.0001" min="0" value="'+c.elecDaily+'"></label>'
+    +'<label>网费单价（元/天）<input id="pNet" type="number" step="0.0001" min="0" value="'+c.netDaily+'"></label>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'
+    +'<button class="btn sm" id="pSave" style="flex:1;min-width:100px">保存系数</button>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button class="btn ghost sm" id="btnXls" style="padding:6px 12px">导 Excel</button>'
+    +'<button class="btn ghost sm" id="btnDoc" style="padding:6px 12px">导 Word</button>'
+    +'</div>'
+    +'</div>'
+    +'</div></div>';
+
+  return '<div class="grid">'
+    +kpi('累计收益',fmt(c.totalCoins)+'<span class="u"> 个 π</span>','hl hero')
+    +kpi('运行核算',fmtDays(c.totalDays)+'<span class="u"> 天</span>','')
+    +kpi('日均收益',fmt(c.dailyAvg,3)+'<span class="u"> 个/天</span>','')
+    +kpi('累计投入',fmt(c.totalCost)+'<span class="u"> 元</span>','gd')
+    +kpi('单币成本 · 全成本',fmt(c.fullUnit,4)+'<span class="u"> 元/个</span>','gd')
+    +kpi('单币成本 · 仅运营',fmt(c.opUnit,4)+'<span class="u"> 元/个</span>','')
+    +'</div>'
+    +'<div class="card"><h3>逐年收益（个）</h3>'+barChart(Object.keys(c.years).sort().map(function(y){return {label:y+'年',v:c.years[y].coins}}))+'</div>'
+    +'<div class="card"><h3>每期日均收益（个/天）</h3>'+barChart(c.periodAvg)+'</div>'
+    +'<div class="grid" style="grid-template-columns:1fr 1fr" id="bottom-cards">'
+    + leftCard
+    + rightCard
+    +'</div>'
+    +'<style>@media(max-width:720px){#bottom-cards{grid-template-columns:1fr !important}}</style>';
+}
+function kpi(k,v,cls){return '<div class="kpi '+(cls||'')+'"><div class="k">'+esc(k)+'</div><div class="v">'+v+'</div></div>';}
+
+function barChart(items){
+  if(!items.length)return '<div class="empty">暂无数据</div>';
+  var w=Math.max(320,items.length*34),h=178,pad=26;
+  var CH=h-pad-16;
+  var TOP=20;
+  
+  var max=0;items.forEach(function(i){if(i.v>max)max=i.v;});
+  if(max<=0)max=1;
+  var bw=w/items.length;
+  var bars=items.map(function(it,i){
+    var bh=(CH-TOP)*(it.v/max);
+    var x=i*bw+bw*0.15, y=CH-bh;
+    
+    var r='<rect class="bar" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw*0.7).toFixed(1)+'" height="'+Math.max(bh,0.5).toFixed(1)+'" rx="2"><title>'+esc(it.label)+'：'+fmt(it.v,2)+'</title></rect>';
+    r += '<text class="axlabel" x="'+(x+bw*0.35).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" font-size="11">'+(it.v>=100?Math.round(it.v):it.v.toFixed(1))+'</text>';
+    r += '<text class="axlabel" x="'+(x+bw*0.35).toFixed(1)+'" y="'+(h-pad+2)+'" text-anchor="middle" font-size="11">'+esc(it.label)+'</text>';
+    return r;
+  }).join('');
+  
+  return '<div class="chart"><svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'
+    + '<line class="axis" x1="0" y1="'+(h-pad-16)+'" x2="'+w+'" y2="'+(h-pad-16)+'"/>' 
+    + bars 
+    + '</svg></div>';
+}
+
+function viewIncomeForm(){
+  var e=S.editingIncome;
+  var isSeed = e && (e.id.indexOf('i')===0);
+  return '<div class="card"><h3>'+(e?'编辑收益':'记一期收益')+'</h3>'
+    +(e?'<span class="edittag">正在编辑 '+esc(e.start)+' 那一期</span>':'')
+    +'<div class="frow">'
+    +'<label>开始日期<input id="fStart" type="date" value="'+esc(e?e.start:today())+'" '+(isSeed?'disabled':'')+'></label>'
+    +'<label>结束日期<input id="fEnd" type="date" value="'+esc(e?e.end:today())+'" '+(isSeed?'disabled':'')+'></label>'
+    +'<label>收益数量（个）<input id="fCoins" type="number" step="0.01" min="0" value="'+(e?e.coins:'')+'"></label>'
+    +'</div>'
+    +'<div class="frow"><label style="flex:3">备注（可不填）<input id="fNote" type="text" value="'+esc(e && !isSeed ? (e.note||'') : '')+'"></label></div>'
+    +'<p class="fhint">'+(isSeed ? '这是历史数据，日期和天数已被锁定，只能改数量。' : '新增时核算天数自动按起止日期计算（含头含尾）。')+'</p>'
+    +'<button class="btn" id="fSave">'+(e?'保存修改':'添加')+'</button> '
+    +(e?'<button class="btn ghost" id="fCancel">取消编辑</button>':'')
+    +'</div>';
+}
+
+function viewExpenseForm(){
+  var e=S.editingExpense;
+  var types=['云服','维护','主机','其他'];
+  return '<div class="card"><h3>'+(e?'编辑费用':'记一笔费用')+'</h3>'
+    +(e?'<span class="edittag">正在编辑 '+esc(e.start)+' 的'+esc(e.type)+'</span>':'')
+    +'<div class="frow">'
+    +'<label>类型<select id="fType">'+types.map(function(t){return '<option'+(e&&e.type===t?' selected':'')+'>'+t+'</option>'}).join('')+'</select></label>'
+    +'<label>金额（元）<input id="fAmount" type="number" step="0.01" min="0" value="'+(e?e.amount:'')+'"></label>'
+    +'<label>日期<input id="fEStart" type="date" value="'+esc(e?e.start:today())+'"></label>'
+    +'<label>结束日期（可不填）<input id="fEEnd" type="date" value="'+esc(e&&e.end&&e.end!==e.start?e.end:'')+'"></label>'
+    +'</div>'
+    +'<div class="frow"><label style="flex:3">备注（可不填）<input id="fENote" type="text" value="'+esc(e?(e.note||''):'')+'"></label></div>'
+    +'<p class="fhint">云服周期填开始/结束两个日期；单笔支出（维护、主机等）只填一个日期。</p>'
+    +'<button class="btn" id="fESave">'+(e?'保存修改':'添加')+'</button> '
+    +(e?'<button class="btn ghost" id="fECancel">取消编辑</button>':'')
+    +'</div>';
+}
+
+function tbadgeCls(t){return {'主机':'hw','云服':'el','维护':'mt','电费':'el','网费':'nt','其他':'ot'}[t]||'ot';}
+
+function viewDetail(){
+  var inc=S.data.income.slice().sort(function(a,b){return a.start<b.start?1:-1});
+  var exp=S.data.expenses.slice().sort(function(a,b){return a.start<b.start?1:-1});
+  var h='<div class="card"><h3>收益明细（'+inc.length+' 期，新→旧）</h3><div style="overflow-x:auto"><table>'
+    +'<tr><th>期间</th><th>天数</th><th>收益</th><th>日均</th><th></th></tr>';
+  if(!inc.length)h+='<tr><td colspan="5" class="empty">暂无收益记录</td></tr>';
+  inc.forEach(function(r){
+    h+='<tr><td>'+esc(r.start)+' ~ '+esc(r.end)+'</td>'
+      +'<td>'+fmtDays(r.days)+'</td><td>'+fmt(r.coins)+'</td><td>'+fmt((+r.days?r.coins/r.days:0),2)+'</td>'
+      +'<td><div class="op"><button class="btn ghost sm" data-ei="'+esc(r.id)+'">改</button>'
+      +'<button class="btn ghost sm" style="color:var(--warn)" data-di="'+esc(r.id)+'">删</button></div></td></tr>';
+  });
+  h+='</table></div></div>';
+  h+='<div class="card"><h3>费用明细（'+exp.length+' 笔，新→旧）</h3><div style="overflow-x:auto"><table>'
+    +'<tr><th>类型</th><th>日期/周期</th><th>金额</th><th>备注</th><th></th></tr>';
+  if(!exp.length)h+='<tr><td colspan="5" class="empty">暂无费用记录</td></tr>';
+  exp.forEach(function(r){
+    h+='<tr><td><span class="tbadge '+tbadgeCls(r.type)+'">'+esc(r.type)+'</span></td>'
+      +'<td>'+esc(r.start)+(r.end&&r.end!==r.start?' ~ '+esc(r.end):'')+'</td>'
+      +'<td>'+fmt(r.amount)+'</td><td>'+(r.note?'<span class="note" style="display:inline">'+esc(r.note)+'</span>':'')+'</td>'
+      +'<td><div class="op"><button class="btn ghost sm" data-ee="'+esc(r.id)+'">改</button>'
+      +'<button class="btn ghost sm" style="color:var(--warn)" data-de="'+esc(r.id)+'">删</button></div></td></tr>';
+  });
+  h+='</table></div></div>';
+  return h;
+}
+
+function bindForms(){
+  var bx=$('btnXls'),bd=$('btnDoc');
+  if(bx)bx.onclick=exportXls;
+  if(bd)bd.onclick=exportDoc;
+  
+  var ps=$('pSave');
+  if(ps)ps.onclick=function(){
+    var e=parseFloat($('pElec').value),n=parseFloat($('pNet').value);
+    if(isNaN(e)||e<0||isNaN(n)||n<0)return alert('单价要是非负数字');
+    S.data.params={elecDaily:e,netDaily:n};
+    save();
+  };
+
+  var sv=$('fSave');
+  if(sv)sv.onclick=function(){
+    var start=$('fStart').value,end=$('fEnd').value,coins=parseFloat($('fCoins').value),note=$('fNote').value.trim();
+    if(!start||!end)return alert('请填开始和结束日期');
+    var days=daysInclusive(start,end);
+    if(days==null||days<1)return alert('结束日期要晚于开始日期');
+    if(!(coins>=0)||isNaN(coins))return alert('请填收益数量');
+    
+    if(S.editingIncome){
+      var r=S.editingIncome;
+      var isSeed = r.id.indexOf('i')===0;
+      if(!isSeed){
+        r.start=start;
+        r.end=end;
+        r.days=days;
+        r.note=note;
+      }
+      r.coins=coins;
+      S.editingIncome=null;
+    }else{
+      S.data.income.push({id:uid(),start:start,end:end,days:days,coins:coins,note:note});
+    }
+    save();
+  };
+  var fc=$('fCancel');
+  if(fc)fc.onclick=function(){S.editingIncome=null;renderMain();};
+
+  var esv=$('fESave');
+  if(esv)esv.onclick=function(){
+    var type=$('fType').value,amount=parseFloat($('fAmount').value),start=$('fEStart').value,end=$('fEEnd').value,note=$('fENote').value.trim();
+    if(!start)return alert('请填日期');
+    if(!(amount>=0)||isNaN(amount))return alert('请填金额');
+    var rec={type:type,amount:amount,start:start,end:end||start,note:note};
+    if(type==='云服'&&end&&end!==start){
+      var d=daysInclusive(start,end);
+      if(d==null||d<1)return alert('云服结束日期要晚于开始日期');
+      rec.days=d;
+    }
+    if(S.editingExpense){
+      var r=S.editingExpense;
+      r.type=rec.type;r.amount=rec.amount;r.start=rec.start;r.end=rec.end;r.note=rec.note;
+      if(rec.days)r.days=rec.days;else delete r.days;
+      S.editingExpense=null;
+    }else{
+      rec.id=uid();
+      S.data.expenses.push(rec);
+    }
+    save();
+  };
+  var fec=$('fECancel');
+  if(fec)fec.onclick=function(){S.editingExpense=null;renderMain();};
+  
+  document.querySelectorAll('[data-ei]').forEach(function(b){b.onclick=function(){editIncome(b.getAttribute('data-ei'));};});
+  document.querySelectorAll('[data-di]').forEach(function(b){b.onclick=function(){delIncome(b.getAttribute('data-di'));};});
+  document.querySelectorAll('[data-ee]').forEach(function(b){b.onclick=function(){editExpense(b.getAttribute('data-ee'));};});
+  document.querySelectorAll('[data-de]').forEach(function(b){b.onclick=function(){delExpense(b.getAttribute('data-de'));};});
+}
+
+function editIncome(id){
+  S.data.income.forEach(function(r){if(r.id===id)S.editingIncome=r;});
+  S.tab='income';renderMain();
+}
+function delIncome(id){
+  var rec;S.data.income.forEach(function(r){if(r.id===id)rec=r;});
+  if(!rec)return;
+  if(!confirm('删除这期收益？\\n'+rec.start+' ~ '+rec.end+' · '+rec.coins+' 个\\n（不可恢复，建议先导 Excel 留底）'))return;
+  S.data.income=S.data.income.filter(function(r){return r.id!==id;});
+  save();
+}
+function editExpense(id){
+  S.data.expenses.forEach(function(r){if(r.id===id)S.editingExpense=r;});
+  S.tab='expense';renderMain();
+}
+function delExpense(id){
+  var rec;S.data.expenses.forEach(function(r){if(r.id===id)rec=r;});
+  if(!rec)return;
+  if(!confirm('删除这笔费用？\\n'+rec.type+' · '+rec.start+' · '+rec.amount+' 元\\n（不可恢复，建议先导 Excel 留底）'))return;
+  S.data.expenses=S.data.expenses.filter(function(r){return r.id!==id;});
+  save();
+}
+
+function save(){
+  var hint=$('savehint');
+  if(hint){hint.textContent='保存中…';hint.className='savehint';}
+  api('/api/data',S.data).then(function(r){
+    if(r.ok){
+      renderMain();
+      var h=$('savehint');
+      if(h){h.textContent='已保存 ✓ '+new Date().toLocaleTimeString('zh-CN',{hour12:false});h.className='savehint';}
+    }else{
+      var h2=$('savehint');
+      if(h2){h2.textContent='保存失败！'+(r.error||'请检查网络后重试')+'（数据暂在本页）';h2.className='savehint err';}
+    }
+  });
+}
+
+function showPwBox(){
+  var mask=document.createElement('div');mask.className='mask';
+  mask.innerHTML='<div class="card"><h3>修改口令</h3>'
+    +'<div class="frow"><label>原口令<input id="pwOld" type="password"></label></div>'
+    +'<div class="frow"><label>新口令（≥4位）<input id="pwNew" type="password"></label></div>'
+    +'<div id="pwErr" style="color:var(--warn);font-size:13px;min-height:18px"></div>'
+    +'<button class="btn" id="pwOk">确定</button> <button class="btn ghost" id="pwNo">取消</button></div>';
+  document.body.appendChild(mask);
+  $('pwNo').onclick=function(){mask.remove();};
+  $('pwOk').onclick=function(){
+    api('/api/password',{old:$('pwOld').value,new:$('pwNew').value}).then(function(r){
+      if(r.ok){mask.remove();alert('口令已改。注意：云端同步最多约1分钟，若用新口令进不去，稍等片刻再试');}
+      else{$('pwErr').textContent=r.error||'修改失败';}
+    });
+  };
+}
+
+function ensureXlsx(cb){
+  if(window.XLSX)return cb();
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  s.onload=cb;
+  s.onerror=function(){alert('Excel 组件加载失败，请检查网络后重试');};
+  document.head.appendChild(s);
+}
+function exportXls(){
+  ensureXlsx(function(){
+    var c=calc();
+    var wb=XLSX.utils.book_new();
+    var sum=[
+      ['Pi 节点记账 · 汇总'],
+      [],
+      ['累计收益（个）',c.totalCoins],['运行核算（天）',c.totalDays],['日均收益（个/天）',+c.dailyAvg.toFixed(4)],
+      ['累计投入（元）',+c.totalCost.toFixed(2)],
+      ['单币成本·全成本（元/个）',+c.fullUnit.toFixed(4)],
+      ['单币成本·仅运营（元/个）',+c.opUnit.toFixed(4)],
+      []
+    ];
+    Object.keys(c.years).sort().forEach(function(y){
+      sum.push([y+'年 收益（个）',c.years[y].coins],[y+'年 核算天数',c.years[y].days]);
+    });
+    sum.push([]);sum.push(['费用构成']);
+    Object.keys(c.byType).forEach(function(t){sum.push([t+'（元）',+c.byType[t].toFixed(2)]);});
+    sum.push(['电费单价（元/天）',+c.elecDaily]);
+    sum.push(['网费单价（元/天）',+c.netDaily]);
+    sum.push(['电费/网费说明','按「单价 × 运行核算天数」折算，未逐笔计']);
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sum),'汇总');
+    var inc=[['开始日期','结束日期','核算天数','收益数量（个）','期间日均','备注']];
+    S.data.income.slice().sort(function(a,b){return a.start<b.start?-1:1}).forEach(function(r){
+      inc.push([r.start,r.end,+r.days,+r.coins,+((+r.days?r.coins/r.days:0).toFixed(4)),r.note||'']);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(inc),'收益明细');
+    var exp=[['类型','开始日期','结束日期','云服天数','金额（元）','备注']];
+    S.data.expenses.slice().sort(function(a,b){return a.start<b.start?-1:1}).forEach(function(r){
+      exp.push([r.type,r.start,r.end,r.days||'',+r.amount,r.note||'']);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(exp),'费用明细');
+    XLSX.writeFile(wb,'Pi节点记账-'+today()+'.xlsx');
+  });
+}
+function exportDoc(){
+  var c=calc();
+  var css='table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:5px 8px;font-size:12px}h1{font-size:18px}h2{font-size:15px}p{font-size:12px}';
+  var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>'+css+'</style></head><body>';
+  h+='<h1>Pi 节点记账 · 汇总报告（'+today()+'）</h1><table>';
+  h+='<tr><th>累计收益</th><td>'+fmt(c.totalCoins)+' 个 π</td><th>运行核算</th><td>'+fmtDays(c.totalDays)+' 天</td></tr>';
+  h+='<tr><th>日均收益</th><td>'+fmt(c.dailyAvg,3)+' 个/天</td><th>累计投入</th><td>'+fmt(c.totalCost)+' 元</td></tr>';
+  h+='<tr><th>单币成本·全成本</th><td>'+fmt(c.fullUnit,4)+' 元/个</td><th>单币成本·仅运营</th><td>'+fmt(c.opUnit,4)+' 元/个</td></tr>';
+  h+='</table><h2>逐年收益</h2><table><tr><th>年份</th><th>收益（个）</th><th>天数</th></tr>';
+  Object.keys(c.years).sort().forEach(function(y){h+='<tr><td>'+y+'</td><td>'+fmt(c.years[y].coins)+'</td><td>'+c.years[y].days+'</td></tr>';});
+  h+='</table><h2>费用构成</h2><table><tr><th>类型</th><th>金额（元）</th></tr>';
+  Object.keys(c.byType).forEach(function(t){h+='<tr><td>'+esc(t)+'</td><td>'+fmt(c.byType[t])+'</td></tr>';});
+  h+='</table><p>注：电费/网费按「单价 × 运行核算天数」折算（电费 '+c.elecDaily+' 元/天、网费 '+c.netDaily+' 元/天），未逐笔计。</p><h2>收益明细</h2><table><tr><th>期间</th><th>天数</th><th>收益</th><th>日均</th></tr>';
+  S.data.income.slice().sort(function(a,b){return a.start<b.start?-1:1}).forEach(function(r){
+    h+='<tr><td>'+r.start+' ~ '+r.end+'</td><td>'+r.days+'</td><td>'+fmt(r.coins)+'</td><td>'+fmt((+r.days?r.coins/r.days:0),2)+'</td></tr>';
+  });
+  h+='</table><h2>费用明细</h2><table><tr><th>类型</th><th>日期/周期</th><th>金额（元）</th></tr>';
+  S.data.expenses.slice().sort(function(a,b){return a.start<b.start?-1:1}).forEach(function(r){
+    h+='<tr><td>'+esc(r.type)+'</td><td>'+r.start+(r.end&&r.end!==r.start?' ~ '+r.end:'')+'</td><td>'+fmt(r.amount)+'</td></tr>';
+  });
+  h+='</table></body></html>';
+  var blob=new Blob(['\\ufeff'+h],{type:'application/msword'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Pi节点记账-'+today()+'.doc';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},5000);
+}
+
+function showGate(title, msg){
+  $('app').innerHTML='<div class="gate"><h1>'+esc(title)+'</h1><p style="white-space:pre-wrap">'+esc(msg)+'</p>'
+    +'<button class="btn" style="width:100%;margin-top:10px" onclick="location.reload()">刷新重试</button></div>';
+}
+
+api('/api/state').then(function(r){
+  if(r && r.error){
+    showGate('后端没有就绪（版本 '+PV+'）', r.error+'\\n\\n最常见原因：Worker 没有绑定 KV，或绑定的变量名不是 DATA。\\n请到 Worker 后台 → 设置 → 绑定，检查 KV 绑定。');
+    return;
+  }
+  S.state=r;
+  render();
+  if(r.authed)loadData();
+}).catch(function(err){
+  showGate('启动失败（版本 '+PV+'）', String(err && err.message ? err.message : err));
+});
+})();
+</script>
+</body>
+</html>
+`;
