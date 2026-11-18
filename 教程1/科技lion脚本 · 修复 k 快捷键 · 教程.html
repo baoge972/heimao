@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技lion脚本 · 修复 k 快捷键 · 教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0f172a;
+            font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .card {
+            max-width: 780px;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03);
+            padding: 2rem 2rem 2.5rem;
+            transition: all 0.2s;
+            border: 1px solid #2d3b4f;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #f0f9ff;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.3rem;
+        }
+        .subhead {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+            padding-left: 0.2rem;
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 0 8px 8px 0;
+            line-height: 1.5;
+        }
+        .step {
+            display: flex;
+            gap: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .step-num {
+            background: #3b82f6;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .badge {
+            background: #0f172a;
+            color: #a5b4fc;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.2rem 0.7rem;
+            border-radius: 30px;
+            border: 1px solid #334155;
+            letter-spacing: 0.3px;
+        }
+        .code-block {
+            background: #0b1120;
+            border-radius: 16px;
+            padding: 1rem 1.2rem;
+            border: 1px solid #2a374a;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.95rem;
+            color: #e0e7ff;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 0.8rem 1rem;
+            margin: 0.6rem 0 0.8rem 0;
+            word-break: break-word;
+            overflow-x: auto;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+        }
+        .command-text {
+            white-space: pre-wrap;
+            word-break: break-all;
+            flex: 1;
+            min-width: 240px;
+            color: #b9e6ff;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .copy-btn {
+            background: #1e2a3a;
+            border: none;
+            color: #bbd7fb;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.55rem 1.1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.15s;
+            border: 1px solid #374a62;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+            letter-spacing: 0.2px;
+            flex-shrink: 0;
+        }
+        .copy-btn:hover {
+            background: #2c3d56;
+            color: #ffffff;
+            border-color: #5f7ea0;
+            transform: scale(0.97);
+        }
+        .copy-btn:active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+        .note {
+            background: #1e2a3a;
+            border-left: 4px solid #f59e0b;
+            padding: 0.9rem 1.2rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: #fcd34d;
+            margin: 1.5rem 0 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+        }
+        .note-icon {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+        .note p {
+            color: #e6d5a8;
+            margin: 0;
+        }
+        .note strong {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+        .after-steps {
+            margin-top: 2rem;
+            background: #0f172a;
+            padding: 1.2rem 1.5rem;
+            border-radius: 20px;
+            border: 1px dashed #3b4b63;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .after-steps .text {
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .kbd {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 0.25rem 0.7rem;
+            font-family: monospace;
+            font-weight: 700;
+            color: #b3d0ff;
+            border: 1px solid #3f5570;
+            box-shadow: 0 2px 0 #0b0f17;
+            font-size: 1.1rem;
+        }
+        .footer-note {
+            margin-top: 1.2rem;
+            text-align: right;
+            color: #64748b;
+            font-size: 0.8rem;
+            letter-spacing: 0.2px;
+        }
+        .inline-code {
+            background: #0b1120;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #a5d8ff;
+            border: 1px solid #2e3d52;
+        }
+        .highlight {
+            color: #7dd3fc;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>
+            <span>⚡ 科技lion脚本</span>
+            <span style="font-size: 1.6rem;">🔧</span>
+        </h1>
+        <div class="subhead">
+            修复 <span class="inline-code">k</span> 快捷键无法运行 · 为 user 用户配置强制别名
+        </div>
+
+        <!-- 步骤1 -->
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <div class="step-title">
+                    复制命令并执行
+                    <span class="badge">一行搞定</span>
+                </div>
+                <p style="color: #b0c4de; margin-bottom: 0.9rem; font-size: 0.96rem;">
+                    打开终端，<strong style="color: #e2e8f0;">直接复制</strong>下面整行命令，回车执行：
+                </p>
+                <div class="code-block">
+                    <span class="command-text" id="cmd-to-copy">echo "alias k='bash <(curl -sL kejilion.sh)'" >> ~/.bashrc && source ~/.bashrc</span>
+                    <button class="copy-btn" id="copyBtn">
+                        <span>📋</span> 复制
+                    </button>
+                </div>
+                <p style="font-size: 0.88rem; color: #7e93ad; margin-top: 0.3rem;">
+                    这条命令会向 <span class="inline-code">~/.bashrc</span> 追加别名并立即生效。
+                </p>
+            </div>
+        </div>
+
+        <!-- 步骤2 -->
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <div class="step-title">
+                    重新敲入 <span class="kbd" style="margin-left: 0.2rem;">k</span>
+                </div>
+                <p style="color: #cbd5e1; font-size: 1rem; line-height: 1.6;">
+                    现在新开终端或者当前终端直接输入小写字母 <span class="inline-code">k</span> 并回车，<br>
+                    即可启动 <strong style="color: #93c5fd;">科技lion脚本</strong>，不再需要其他操作。
+                </p>
+                <div style="background: #0f172a; padding: 0.9rem 1.2rem; border-radius: 16px; margin-top: 0.9rem; border: 1px solid #273449;">
+                    <span style="color: #a0b8d4;">$ </span><span style="color: #f0f9ff; font-weight: 600;">k</span>
+                    <span style="color: #5f7e9b; margin-left: 1rem;">← 现在可以正常执行了 ✅</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 特殊提示 (不能看k键? 说明) -->
+        <div class="note">
+            <span class="note-icon">💡</span>
+            <p>
+                <strong>针对 “不能看 k 键进入” 的情况：</strong> 如果你之前尝试过按 <span class="inline-code">k</span> 没有反应，或提示命令未找到，
+                请确保完整执行了上面的命令。此方法为 <span class="highlight">user 用户强行配置快捷键</span>，
+                别名会写入 <span class="inline-code">~/.bashrc</span>，之后每次登录都会自动生效。
+            </p>
+        </div>
+
+        <!-- 额外补充：备选方案 / 说明 -->
+        <div class="after-steps">
+            <div class="text">
+                <span>🔁</span> 如果终端重启后依然无效？
+            </div>
+            <div style="color: #94a3b8; font-size: 0.95rem;">
+                可尝试执行 <span class="inline-code" style="background: #1a2537; border-color: #3b4b63;">source ~/.bashrc</span> 或重新登录。
+            </div>
+        </div>
+
+        <!-- 附加提醒: 权限/其他shell -->
+        <div style="margin-top: 1.2rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.88rem; color: #6f88a2;">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span>🐧</span> 适用于 bash/zsh (通过 .bashrc)
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span>📌</span> 如果使用 zsh，可替换为 ~/.zshrc
+            </div>
+        </div>
+
+        <div class="footer-note">
+            ⚡ 科技lion · 快捷键修复 · 即拷即用
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const copyBtn = document.getElementById('copyBtn');
+            const cmdSpan = document.getElementById('cmd-to-copy');
+            const commandText = cmdSpan.innerText.trim();
+
+            // 复制功能
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(commandText);
+                    // 视觉反馈
+                    const originalHTML = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<span>✅</span> 已复制';
+                    copyBtn.style.background = '#2563eb';
+                    copyBtn.style.color = '#fff';
+                    copyBtn.style.borderColor = '#2563eb';
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalHTML;
+                        copyBtn.style.background = '';
+                        copyBtn.style.color = '';
+                        copyBtn.style.borderColor = '';
+                    }, 1500);
+                } catch (err) {
+                    alert('复制失败，请手动选择命令复制。');
+                }
+            });
+
+            // 如果用户点击命令区域也可以复制 (方便触摸)
+            cmdSpan.addEventListener('click', () => {
+                copyBtn.click();
+            });
+        })();
+    </script>
+</body>
+</html>
